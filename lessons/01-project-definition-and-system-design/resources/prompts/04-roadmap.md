@@ -17,7 +17,9 @@ The phases are fixed:
   Week 2 — Dataset Engineering: dataset versions, preprocessing, augmentation
   Week 3 — Model Development: YOLO11 fine-tuning, Depth Anything V2, MLflow
   Week 4 — Backend Engineering: FastAPI, model fusion, Docker, tests
-  Week 5 — CI/CD/CT: GitHub Actions, continuous training, promotion logic
+  Week 5 — Mobile client and cloud delivery: Expo app, Azure Container Apps,
+           client-observed latency
+  Week 6 — CI/CD/CT: GitHub Actions, continuous training, promotion logic
 
 For each phase produce:
 - The deliverables, named as artifacts that either exist or do not — not activities

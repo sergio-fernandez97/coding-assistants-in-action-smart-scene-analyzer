@@ -16,13 +16,27 @@ Work top to bottom. The session is complete when every box is checked.
 - [ ] `CLAUDE.md` contains nothing derivable by reading `src/` — no restated code
 - [ ] `.claude/settings.json` reviewed; you can explain why each entry is in `allow` vs. `ask` vs. `deny`
 - [ ] `/permissions` shows the policy loaded
-- [ ] `/agents` lists all five agents
-- [ ] You can state each agent's purpose in one sentence without re-reading it
+- [ ] `/agents` lists all ten agents
+- [ ] You can state the purpose of `architecture`, `documentation`, and `devops` in one
+      sentence each, without re-reading them
+- [ ] `/skills` lists the five project skills
+- [ ] You can name the four harness layers and say how each one constrains
+
+## Hooks
+
+- [ ] The `hooks` block in `.claude/settings.json` read, and each script opened
+- [ ] **`format_python.py` observed running** — a badly formatted file came back formatted
+- [ ] **`units_guard.py` observed blocking** — a write containing "meters" was refused
+- [ ] You can say why `CLAUDE.md` saying "not metres" was not sufficient on its own
+- [ ] You can say what to do when a hook blocks you, and what not to do
 
 ## Design artifacts
 
 - [ ] `docs/requirements.md` — every `<...>` placeholder replaced
 - [ ] N1 (p95 latency) is a real number derived from the user experience, not from the model
+- [ ] **N1 states whether it is client- or server-observed**, and if client-observed, the
+      link characteristics it assumes. Lesson 05 measures against this
+- [ ] The requirements are written for a user holding a phone, not for a `curl` command
 - [ ] "Out of scope" section is non-empty
 - [ ] `docs/architecture.md` — component diagram present
 - [ ] Every module boundary has a data contract stating **type, units, and coordinate convention**
@@ -30,7 +44,7 @@ Work top to bottom. The session is complete when every box is checked.
 - [ ] Latency budget allocates N1 across stages and the numbers sum correctly
 - [ ] An "Assumptions" section exists and is non-empty
 - [ ] `src/smart_scene_analyzer/` has module stubs with docstrings and **no function bodies**
-- [ ] `docs/roadmap.md` — Weeks 2–5, each with artifact-shaped exit criteria
+- [ ] `docs/roadmap.md` — Weeks 2–6, each with artifact-shaped exit criteria
 - [ ] `docs/roadmap.md` has a "Blocked on decisions" section
 
 ## Decisions

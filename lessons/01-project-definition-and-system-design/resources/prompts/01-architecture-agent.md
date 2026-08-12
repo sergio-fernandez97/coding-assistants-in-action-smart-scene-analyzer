@@ -19,9 +19,13 @@ Read first, in this order:
 
 Produce docs/architecture.md containing:
 
-1. A component diagram of the pipeline: capture → preprocessing → parallel
-   inference (YOLO11 detection, Depth Anything V2 depth) → scene understanding
-   layer → FastAPI → client.
+1. A component diagram of the pipeline: mobile client capture → upload →
+   preprocessing → parallel inference (YOLO11 detection, Depth Anything V2 depth)
+   → scene understanding layer → FastAPI → back to the mobile client.
+
+   The Expo client is a real component built in Lesson 05, not a box at the bottom
+   of the diagram. Show it as one, in its own deployment boundary — it ships
+   separately from the service and cannot be fixed by editing the file next to it.
 
 2. A data contract for EVERY boundary between components. Each contract states the
    type, the units, and the coordinate convention. For example, do not write
@@ -38,6 +42,11 @@ Produce docs/architecture.md containing:
 4. A latency budget allocating my p95 target from docs/requirements.md across the
    pipeline stages. The allocations must sum to the target. If they cannot, say so
    and tell me which requirement is unachievable.
+
+   If N1 is client-observed, the budget MUST include a line for network transit,
+   with the assumed link speed and upload size stated. A budget that allocates
+   only server-side stages against a client-observed target does not sum to
+   anything — it just omits the largest term.
 
 5. Module boundaries designed to be mockable: unit tests must run with no GPU and no
    network.
@@ -63,7 +72,9 @@ Constraints:
 
 - Every arrow in the diagram has a named type and units next to it
 - The latency budget arithmetic is shown and sums correctly
+- Network transit has its own line if N1 is client-observed
 - The fusion strategy names a specific method and its failure mode
+- The client is a component with a contract and its own deployment boundary
 - An "Assumptions" section exists and is non-empty
 - `src/` contains docstrings and no logic
 
@@ -71,6 +82,7 @@ Constraints:
 
 - Any contract is described in prose without a type
 - Function bodies appear
-- The budget does not sum, or is omitted
+- The budget does not sum, is omitted, or omits transit against a client-observed target
 - An open decision was resolved silently
+- The client appears as an unlabelled box with no contract on its arrow
 - The "Assumptions" section is missing — it is never legitimately empty at this stage

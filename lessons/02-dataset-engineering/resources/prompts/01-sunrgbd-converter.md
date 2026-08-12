@@ -4,6 +4,11 @@
 
 **Which agent:** `data-pipeline`. This is local file work, not platform work.
 
+**Which skill:** `annotation-conversion`. Invoke it first — it carries the method
+(inspect → assert → verify against pixels) and the acceptance criteria. This file carries
+what is specific to SUN RGB-D: where its metadata lives, how it loads, and the audit-set
+carve-out. The skill is the procedure; this is one run of it.
+
 **Credits: zero.** Everything here runs on your machine. That is the entire reason this
 course converts rather than auto-labels — see the cost table in step 7.
 

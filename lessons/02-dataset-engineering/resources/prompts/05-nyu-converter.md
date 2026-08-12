@@ -4,6 +4,11 @@
 
 **Which agent:** `data-pipeline`.
 
+**Which skill:** `annotation-conversion` — the same method you used for SUN RGB-D. That
+is the point of it being a skill rather than a second copy of the same 150 lines: the
+procedure did not change, only the source format did. Note in particular the skill's rule
+about `classes.txt` matching byte for byte across datasets, which now has teeth.
+
 **Credits: zero.** All of it runs locally.
 
 ⚠️ **This is harder than the SUN RGB-D conversion.** SUN RGB-D at least *has* boxes,

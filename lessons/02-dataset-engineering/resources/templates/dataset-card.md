@@ -98,7 +98,7 @@ Separate the two kinds of disagreement — they have different consequences.
 **Classes where auto-labeling would have been acceptable:** `<list>`
 **Classes where it would not:** `<list>`
 
-Carry this into Lesson 05: the active-learning loop asks exactly this question about
+Carry this into Lesson 06: the active-learning loop asks exactly this question about
 which classes are safe to accept from a model without review.
 
 ## Composition

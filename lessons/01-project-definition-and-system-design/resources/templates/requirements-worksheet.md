@@ -42,18 +42,37 @@ State plainly what this system does **not** do. An unstated non-goal gets built.
 
 | ID | Requirement | Target | How it is measured |
 |---|---|---|---|
-| N1 | End-to-end p95 latency, single 1280×720 image | `<___ ms>` | Client-observed, request to response |
-| N2 | p50 latency | `<___ ms>` | Same |
+| N1 | End-to-end p95 latency, single 1280×720 image | `<___ ms>` | `<client-observed over ___ Mbit/s, at ___ KB upload / server-observed>` |
+| N1a | Upload size the client sends | `<___ KB>` at `<___ px long edge>` | After on-device preparation |
+| N2 | p50 latency | `<___ ms>` | Same conditions as N1 |
 | N3 | Detection accuracy | mAP@50 ≥ `<___>` | Held-out test split, dataset version stated |
 | N4 | Depth accuracy | `<metric, e.g. δ<1.25 ≥ ___>` | Held-out test split |
 | N5 | Throughput | `<___ req/s>` at `<___ concurrency>` | Load test |
-| N6 | Cold start | `<___ s>` | First request after container start |
+| N6 | Cold start | `<___ s>` | First request after the container scales from zero |
 
 > **Where N1 comes from.** Work backwards from the user experience you want, not
 > forwards from what you think the model can do. If the mobile client should feel
 > responsive, you have roughly 400 ms; that number then tells the Architecture Agent
 > whether detection and depth can run sequentially. Setting the budget from the
 > model's convenience defeats the purpose.
+
+> ⚠️ **N1 must say which side of the network it is measured on, and if it is the client's
+> side, on what link.** "Client-observed p95 under 800 ms" sounds rigorous and cannot be
+> passed or failed, because it does not say what the client is connected to:
+>
+> ```
+> 250 KB upload at 5 Mbit/s  =  250 × 8 / 5000  ≈  400 ms
+>                               ...before the server has seen a single byte
+> ```
+>
+> Half the budget is gone to physics you do not control, and on a slower link the
+> requirement is unachievable no matter how fast the code is. Two defensible shapes:
+> client-observed **with the link pinned**, or server-observed **with transit budgeted
+> separately**. Pick one now. Lesson 05 measures the real number on Wi-Fi and cellular.
+
+> **N6 is not optional now that the service scales to zero.** A container with no replica
+> running costs nothing and starts cold, and this one loads a depth model at startup. That
+> trade — free idling for a slow first request — is a requirement, not an accident.
 
 ### Resource constraints
 
@@ -95,7 +114,12 @@ State plainly what this system does **not** do. An unstated non-goal gets built.
 |---|---|---|---|
 | Inference target: cloud vs. on-device | N1, N7–N10, whole serving architecture | `<open / decided>` | `<docs/decisions/NNNN-...>` |
 | MLflow hosting | N19 | `<open / decided>` | |
-| Mobile app: real client or stub | F-list scope | `<open / decided>` | |
+| N1: client- or server-observed | N1, N2, the latency budget | `<open / decided>` | |
 | Object taxonomy | F-list, all of Lesson 02 | `<open / decided>` | |
+
+> **Mobile app: real client or stub** used to be the first row of this table. It is
+> **decided** — a real Expo client for iOS and Android, built in Lesson 05. The consequence
+> is the row above it: a real client makes N1's link characteristics a question somebody
+> has to answer.
 
 Resolve each with `/adr <title>` and link the resulting file here.

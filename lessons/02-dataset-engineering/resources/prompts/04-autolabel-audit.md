@@ -20,7 +20,7 @@ annotators, and where does it not? That number is only obtainable because you ha
 labels to compare against. Had you taken the auto-labeling path, you would have had an
 opinion about label quality and no way to check it.
 
-You will need this table again in Lesson 05, when the active-learning loop asks which
+You will need this table again in Lesson 06, when the active-learning loop asks which
 classes are safe to accept from a model and which need review.
 
 ---
@@ -207,7 +207,7 @@ that still need a label.
 bills as hosted inference execution seconds. Scaling this would mean Roboflow batch jobs
 (1 credit/hour CPU, 1 credit per 15 minutes GPU) or a local inference server — and the
 local server is metered too, at 1 credit per 3,000 images. Nothing here is free at volume,
-which is worth knowing before Lesson 05 proposes automating it.
+which is worth knowing before Lesson 06 proposes automating it.
 
 ---
 

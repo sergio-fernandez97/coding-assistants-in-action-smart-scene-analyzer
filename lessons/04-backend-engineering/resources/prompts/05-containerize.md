@@ -66,7 +66,7 @@ Do not put any secret in the compose file. It reads .env, which is gitignored.
 configuration rather than an intention. Record it if you have not already:
 `/adr mlflow hosting: local sqlite in docker compose`.
 
-Note the consequence honestly: runs live on one machine, in one volume. Lesson 05's CI
+Note the consequence honestly: runs live on one machine, in one volume. Lesson 06's CI
 will need to read runs it did not create, and this configuration does not provide that.
 Better to write that down now than to discover it inside a failing workflow.
 

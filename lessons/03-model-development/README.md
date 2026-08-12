@@ -173,7 +173,7 @@ and `http://127.0.0.1:5000` loads in a browser.
 > Lesson 01 left MLflow hosting as an ⚠️ OPEN decision. Local SQLite is the answer for a
 > course-scale project: zero cost, zero setup, and every run reproducible on one machine.
 > Record it — `/adr mlflow hosting: local sqlite` — and note the consequence, which is
-> that runs are not shared across machines. Lesson 05 revisits this when CI needs to see
+> that runs are not shared across machines. Lesson 06 revisits this when CI needs to see
 > them.
 
 ---
@@ -399,6 +399,22 @@ since Lesson 01 — "Ambiguity about whether a depth value is metres or normaliz
 disparity is a real source of bugs in this project" — and this is where the demand
 becomes concrete.
 
+**This is also the step where `units_guard.py` starts earning its place.** You watched it
+block a contrived comment in Lesson 01 step 5. Here it is guarding real code, at the exact
+moment the temptation is highest: you are writing a module about depth, every natural
+identifier for the concept is a metric one, and the model in front of you produces
+numbers that look like distances.
+
+Any write to `src/` containing `meters`, `metres`, `_mm`, `_cm`, `distance_`, or
+`to_metres` is refused. If it fires, do not reword around it — read the message and ask
+whether the name was reaching for a claim the system cannot support. That is usually
+exactly what happened.
+
+> Notice which layer of the harness finally caught this. `CLAUDE.md` has stated the rule
+> for three lessons. The rule was correct, prominent, and loaded into every session — and
+> it is *advice*, competing with a plausible-looking identifier at the moment of writing.
+> The hook does not compete with anything.
+
 **Do:** Validate what you actually can:
 
 ```bash
@@ -504,7 +520,7 @@ blind on two. Those need different responses, and the metric does not distinguis
 ## Open items
 
 - ⚠️ **MLflow hosting beyond one machine** (step 3) — local SQLite is decided for now,
-  but Lesson 05's CI needs to read runs it did not create. Revisit there.
+  but Lesson 06's CI needs to read runs it did not create. Revisit there.
 - ⚠️ **Weight downloads require the Core plan** (step 8) — sourced from
   `roboflow:plans-and-pricing`, not confirmed on the platform. If it turns out free-tier
   weight download is possible, Lesson 04's comparison becomes optional rather than

@@ -35,7 +35,7 @@ your 20 credits** getting there, and you will be able to say exactly where they 
 > **This course has a hard budget of 20 Roboflow credits per student, for all five
 > lessons.** There is no top-up. Step 4 sets up the ledger and the permission rules that
 > enforce it, and it comes before any operation that touches the platform. Do not skip
-> it — Lesson 05 is spending the credits you save here.
+> it — Lesson 06 is spending the credits you save here.
 
 ## Deliverables
 
@@ -258,10 +258,16 @@ Uploading ten thousand images costs one credit. Labeling ten thousand images cos
 hundred. That asymmetry is the single most important fact in this lesson, and step 7 is
 where it decides your architecture.
 
-#### Encode the budget in the harness
+#### Encode the budget in the harness — all four layers
 
-A budget you agreed to is a prompt. A budget the tool enforces is a harness. Add these
-rules to `.claude/settings.json`:
+A budget you agreed to is a prompt. A budget the tool enforces is a harness. Lesson 01
+step 3 named four layers; this is the first thing in the course that uses all of them, on
+one subject, and it is worth watching them stack.
+
+**Layer 1 — the rule.** `CLAUDE.md` already carries the cap, the rate table, and the
+forbidden-operations list. You will read it in a moment.
+
+**Layer 2 — the permission policy.** Add these rules to `.claude/settings.json`:
 
 ```jsonc
 "ask": [
@@ -281,6 +287,77 @@ cloud-storage mirror run and its `trigger` parameter **defaults to true**. You d
 need cloud storage in this course; the safest configuration for a tool you will not use
 is one that cannot be called.
 
+> ⚠️ **Check the tool names against your own install.** MCP tools are named
+> `mcp__<server>__<tool>`, and a tool provided by a *plugin* is named
+> `mcp__plugin_<plugin>_<server>__<tool>` — so `mcp__roboflow__trainings_create` and
+> `mcp__plugin_roboflow_roboflow__trainings_create` are different strings, and a rule
+> written for one does not fire for the other. Step 2 offered you two install paths. The
+> scaffold lists both spellings for exactly this reason. Confirm with `/permissions`
+> after a real tool call, and if a billed call went through without prompting, the rule
+> is not matching — fix the name rather than trusting it.
+
+**Layer 3 — the procedure.** Open the project skill that encodes the ritual:
+
+```bash
+$EDITOR .claude/skills/credit-ledger/SKILL.md
+```
+
+**Do:** Bring it up to date against what you just read, and make it yours. Two things
+need to be true that only you can make true:
+
+1. The **rate table** in it must agree with `roboflow:plans-and-pricing` *today*. Read
+   the vendor skill, compare, and correct the project skill where they differ.
+2. The **forbidden-operations table** must reflect *your* plan and *your* budget, not the
+   general case.
+
+This is what authoring a project skill actually is. You have just installed nine skills
+written by Roboflow, and they are good — they will tell you exactly what a version
+generation costs. What they cannot tell you is that you have twenty credits, that four of
+them are allocated to today, and that this project has decided against the architecture
+their own skill recommends. **A vendor skill encodes the vendor's defaults. Yours encodes
+your circumstances, and that is the only reason it can win an argument with theirs.**
+
+**Layer 4 — enforcement.** Layers 1–3 all depend on being read. This one does not:
+
+```bash
+$EDITOR .claude/hooks/credit_gate.py
+```
+
+It is about a hundred lines and worth reading all of them. It fires before any billed
+Roboflow tool call, parses `docs/credit-budget.md`, and exits 2 — which blocks the call —
+unless the ledger contains a row with an estimate and no actual.
+
+**Do:** Prove it, before you need it. Ask for a version generation without recording
+anything first.
+
+```
+Generate dataset version 1 now.
+```
+
+**Expected result:** the call is **blocked**, not prompted. The message names what is
+missing: a ledger row with the date, lesson, operation, rate, and estimated cost.
+
+Now add the row by hand to `docs/credit-budget.md`, leaving `Actual` blank:
+
+```
+| 2026-08-11 | 02 | Version generation, ~3000 images | 1 cr / 20k images | 0.15 |  | 0.15 | 19.85 |
+```
+
+Ask again. This time the hook passes and the `ask` permission rule fires — and *now* the
+prompt you are approving has an estimate attached to it, which is the only condition under
+which approving it means anything. Decline it; you generate the real version in step 13.
+
+> Compare the two experiences. Without the hook, "estimate before you spend" is advice,
+> and the moment it matters most is the moment a confident assistant is most likely to
+> skip it. With the hook, the estimate is a **precondition of the call existing**. The
+> ledger stops being documentation of what happened and becomes the thing that lets it
+> happen.
+>
+> This is also why the hook does not simply block everything expensive. It blocks
+> *unaccounted* spending. You can still spend the whole budget — you just cannot do it
+> without having written down what you expected it to cost, which is the only part that
+> was ever really at risk.
+
 **Do:** Then read the new `## Credit budget` section of your `CLAUDE.md`, in particular
 the forbidden-operations table. One entry deserves attention:
 
@@ -295,9 +372,10 @@ nothing in the skill knows that. **This is what a project constraint layer is fo
 Vendor knowledge encodes the vendor's defaults; `CLAUDE.md` encodes yours, and when they
 conflict, yours wins because it is the one that knows your circumstances.
 
-**Expected result:** `.claude/settings.json` contains the rules above, and asking the
-agent to start a training run now produces a permission prompt rather than a training
-run. Try it if you like — decline it.
+**Expected result:** `.claude/settings.json` contains the rules above and a `hooks` block
+pointing at `credit_gate.py`; `.claude/skills/credit-ledger/SKILL.md` has a rate table you
+have personally reconciled against `roboflow:plans-and-pricing`; and a billed call
+attempted with an empty ledger is **blocked** rather than prompted.
 
 ---
 
@@ -497,8 +575,13 @@ created. `projects_list` then shows it.
 | < 1,000 | Web UI drag-and-drop at `app.roboflow.com` |
 | > 1,000 | The CLI |
 
+Login in to the Roboflow account that owns or has access to `smart-scene-analyzer`
+```
+uv run roboflow login
+```
+
 ```bash
-uv run roboflow import -w $ROBOFLOW_WORKSPACE -p smart-scene-analyzer <path-to-converted-dataset>
+uv run roboflow -w $ROBOFLOW_WORKSPACE import -p smart-scene-analyzer <path-to-converted-dataset>
 ```
 
 **Expected result:** the upload completes and the image count in the web app matches
@@ -569,7 +652,7 @@ neither is fixed by a confidence threshold.
 human annotators had conventions too, and where the two disagree about whether a door
 frame belongs in the box, neither is *wrong*. That ambiguity is exactly why the number
 matters: it tells you which classes a machine-labeled dataset would have quietly
-degraded, and it is the evidence base for the active-learning review loop in Lesson 05.
+degraded, and it is the evidence base for the active-learning review loop in Lesson 06.
 
 **One constraint the agent cannot route around:** there is **no `auto_label` MCP
 tool**. Auto Label is a web-app action. The MCP surface offers `annotations_save`,
@@ -724,7 +807,7 @@ you assumed.
 
 > **A version is an immutable snapshot.** Changes to the project afterwards do not
 > affect it. Always reference it by number in code and docs — never as "the latest".
-> This is the property that makes Lesson 05's continuous training auditable.
+> This is the property that makes Lesson 06's continuous training auditable.
 
 ---
 

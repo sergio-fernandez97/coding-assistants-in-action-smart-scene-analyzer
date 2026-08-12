@@ -8,7 +8,7 @@
 
 > ⛔ **Do not run this with fewer than 3 credits remaining.** Check
 > `docs/credit-budget.md` first. Skipping this step costs you one comparison row and no
-> deliverable. Overrunning the budget costs you Lesson 05.
+> deliverable. Overrunning the budget costs you Lesson 06.
 
 ---
 

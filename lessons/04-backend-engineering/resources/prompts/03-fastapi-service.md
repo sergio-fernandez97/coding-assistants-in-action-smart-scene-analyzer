@@ -35,7 +35,7 @@ Then write the model lifecycle in src/smart_scene_analyzer/models.py:
 Do not write routes yet.
 ```
 
-**Why `model_version` is a setting rather than derived.** In Lesson 05, CI will deploy a
+**Why `model_version` is a setting rather than derived.** In Lesson 06, CI will deploy a
 container and need to know which model is inside it. A version read from the environment
 is a deployment fact; a version parsed from a weights filename is a guess.
 

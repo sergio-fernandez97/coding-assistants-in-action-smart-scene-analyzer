@@ -4,6 +4,10 @@
 
 **Which agent:** `dataset-engineer`.
 
+**Which skill:** `dataset-qa-sweep`. It carries the queries, the read-only constraint, and
+the converter-bug-versus-data-quality table. Run it after *every* upload from here on, not
+only at this step — that is why it is a skill and not a one-off prompt.
+
 ---
 
 ```

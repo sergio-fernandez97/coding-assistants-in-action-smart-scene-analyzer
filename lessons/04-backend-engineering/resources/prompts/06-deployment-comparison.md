@@ -43,7 +43,7 @@ images** — roughly 0.33 credits per 1,000. It runs on your hardware and it sti
 hardware"*.
 
 **That is the correction this step exists to deliver.** "Run it locally and it's free" is
-the near-universal assumption, and Lesson 05 automates these calls without a human
+the near-universal assumption, and Lesson 06 automates these calls without a human
 watching. An automated pipeline built on a wrong cost model is the classic way a budget
 disappears quietly.
 

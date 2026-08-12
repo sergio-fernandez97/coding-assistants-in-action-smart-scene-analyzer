@@ -48,7 +48,7 @@ per image than hosted serverless, not free.
 `inference/workflows.md` describes the local cost model as *"metered credits + your
 hardware"* — you pay for both.
 
-**Why this matters beyond this document:** Lesson 05 automates inference inside a CI
+**Why this matters beyond this document:** Lesson 06 automates inference inside a CI
 pipeline, where no human sees each call. A pipeline built on "local is free" burns budget
 invisibly, and the first symptom is a failed run at the end of the month.
 

@@ -86,6 +86,17 @@ The response is the only part of this service anyone else will ever see. Once a 
 client parses a field, its name and its units are frozen — changing them later is a
 coordinated release, not an edit.
 
+**That stops being hypothetical next week.** In Lesson 05 an Expo client generates its
+TypeScript types from this schema's OpenAPI document, and ships to phones on its own
+release cycle. Two consequences worth designing for now rather than discovering then:
+
+- **The response must carry the dimensions of the image it processed.** Boxes are absolute
+  pixels, and a client that downscales before uploading cannot place them without knowing
+  which frame they are in. This is already on the deliverables checklist; Lesson 05 is why.
+- **Every `description` you write becomes a comment in the generated client.** The
+  sentence explaining that depth is not metres travels, automatically, into the codebase
+  of the person most likely to display it as a distance.
+
 **The field that decides this lesson:**
 
 ```python
@@ -186,7 +197,7 @@ object — where the object you can see is closest has the largest value.
 **The suite must run with no GPU, no network, and no weights on disk**, in seconds.
 Inference is mocked; fixtures return canned detections and depth maps. This is not a
 purity exercise — a suite that needs a GPU is a suite that does not run in CI, and
-Lesson 05 is CI.
+Lesson 06 is CI.
 
 What actually needs testing, in order of what breaks:
 
@@ -262,12 +273,21 @@ compute cost per 1,000 images from the published rates.
 | **Self-hosted inference server** | 1 credit / 3,000 images | **~0.33** | `localhost:9001`, Docker |
 | **Hosted serverless (v2)** | 1 credit / 500 **seconds** | **~1** at 0.5 s/image | `serverless.roboflow.com` |
 | **Dedicated (GPU)** | 1 credit / hour of **uptime** | Depends entirely on utilization | ⛔ Not in this course |
+| **Local in-process, on Azure Container Apps** | Azure meter, free grant | **0 Roboflow credits** | Lesson 05's target. Cost moves currency, not away |
+
+> **The last row is where this is going.** Lesson 05 puts your container on Azure and
+> points a phone at it. Note what that changes and what it does not: the Roboflow cost per
+> image stays zero because the weights are yours, and the compute cost becomes Azure's
+> meter instead — a *different* budget with a *different* failure mode, which is its own
+> lesson. What matters here is the row you would be on if you had chosen hosted detection:
+> **1 credit per 1,000 images, paid every time somebody taps the shutter.** A `curl` loop
+> never made that visible. A camera app would.
 
 > **The correction this step exists to deliver:** the self-hosted inference server on
 > `localhost:9001` is **metered**. It runs on your hardware and it still bills, at 1 credit
 > per 3,000 images. "Run it yourself and it's free" is the intuition almost everyone has,
 > and it is wrong — `inference/workflows.md` describes the local cost model as *"metered
-> credits + your hardware"*. Carry the correct version into Lesson 05, where an automated
+> credits + your hardware"*. Carry the correct version into Lesson 06, where an automated
 > pipeline will be making these calls without a human watching.
 
 **Do:** Budget before you measure. 200 images at roughly 0.5 s each is ~100 seconds of
@@ -305,6 +325,16 @@ The ADR must state what you learned rather than what you assumed:
 - The measured latency of each path, from step 7
 - What would change the decision — a traffic level, a plan upgrade, a latency requirement
 
+**Write the *Revisit when* clause carefully.** Lesson 05 builds a real client, deploys to
+Azure, and measures latency over cellular — so at least one of your trigger conditions is
+about to fire on schedule. An ADR whose revisit condition occurs and is never revisited
+has stopped being a decision and become a piece of history.
+
+Note also what your latency numbers from step 7 are and are not. They were measured on
+loopback, which means they measure how fast your code is. Lesson 05 measures how fast the
+product is, and the gap between those two is the entire network. Say in the ADR which one
+you have.
+
 **Expected result:** an ADR whose Context section contains numbers you measured.
 
 > The `/adr` command tells the agent: *"If you do not know why this decision was forced,
@@ -324,7 +354,8 @@ The ADR must state what you learned rather than what you assumed:
 3. Update **Remaining** and **Last reconciled**
 
 **Expected result:** Lesson 04 spend is **0** or about **0.5**. Running total across
-Lessons 02–04 at or under **7**, leaving **13 or more** for Lesson 05.
+Lessons 02–04 at or under **7**, leaving **13 or more** for Lessons 05–06. Lesson 05
+spends nothing on Roboflow; Lesson 06 is allocated 4.
 
 ```bash
 uv run ruff check . && uv run mypy src && uv run pytest
@@ -378,22 +409,26 @@ Then read:
 The qualitative check: **upload a photo of a real room from your phone and look at the
 response.** Your test images come from one dataset with one sensor. The first genuinely
 out-of-distribution image usually tells you more about the system than the whole test
-suite — and it is the last cheap opportunity to find that out before Lesson 05 automates
-everything.
+suite — and it is the last cheap opportunity to find that out before a real phone starts
+sending you images your dataset has never seen.
 
 ---
 
 ## Open items
 
-- ⚠️ **Mobile app scope** — carried from Lesson 01. This service exposes an API; whether a
-  real client application is built or a stub exercises it is still undecided.
 - ⚠️ **Self-hosted inference metering** (step 7) — the rate is documented as 1 credit per
   3,000 images, but whether a locally hosted server meters *every* call or only
   authenticated cloud-model calls is not spelled out in the skills. Measure it against the
   usage page if you run this path.
-- ⚠️ **MLflow in CI** — `docker-compose.yml` gives one machine a tracking server. Lesson 05
+- ⚠️ **MLflow in CI** — `docker-compose.yml` gives one machine a tracking server. Lesson 06
   needs CI to read runs it did not create. Carried from Lesson 03.
 - ⚠️ **Free-plan credit allowance unconfirmed** — carried from Lesson 02.
+
+> **Resolved since this lesson was written:** *mobile app scope*. It is a real client —
+> an Expo app for iOS and Android, built in Lesson 05 against the schema you designed in
+> step 2. Which is why that step now asks you to include the processed image dimensions in
+> the response: a client that downscales before uploading cannot place an absolute box
+> without them.
 
 All tracked in the course [`TODO.md`](../../TODO.md).
 
@@ -417,4 +452,4 @@ External:
 - [Roboflow Inference](https://inference.roboflow.com/)
 
 **Previous:** [Lesson 03](../03-model-development/) ·
-**Next:** Lesson 05 — CI / CD / CT *(not yet written)*
+**Next:** [Lesson 05 — Mobile Client & Cloud Delivery](../05-mobile-client-and-delivery/)

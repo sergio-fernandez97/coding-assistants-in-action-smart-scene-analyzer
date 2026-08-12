@@ -119,5 +119,5 @@ Skip entirely if you were short on credits. Record that you skipped it and why.
 
 Every test image so far came from one dataset, one sensor, one set of rooms. The first
 genuinely out-of-distribution image tells you more about the system than the entire test
-suite — and this is the last cheap chance to learn it before Lesson 05 automates the whole
+suite — and this is the last cheap chance to learn it before Lesson 06 automates the whole
 pipeline.

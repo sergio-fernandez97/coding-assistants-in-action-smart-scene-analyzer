@@ -37,12 +37,14 @@ When this session ends, your `smart-scene-analyzer` repository contains:
 
 - [ ] A git repository with an initial commit, pushed to GitHub
 - [ ] `CLAUDE.md` — project rules loaded into every assistant session
-- [ ] `.claude/settings.json` — a reviewed permission policy
+- [ ] `.claude/settings.json` — a reviewed permission policy **and a hooks block**
 - [ ] `.claude/agents/` — three role definitions (architecture, documentation, devops)
+- [ ] `.claude/skills/` — this project's own procedures, read but not yet used
+- [ ] `.claude/hooks/` — enforcement scripts, with two of them observed running
 - [ ] `docs/requirements.md` — functional and non-functional requirements with numbers
 - [ ] `docs/architecture.md` — components, data contracts, pipeline stages
 - [ ] `docs/decisions/` — at least one ADR recording the inference-target decision
-- [ ] `docs/roadmap.md` — the engineering plan for Weeks 2–5
+- [ ] `docs/roadmap.md` — the engineering plan for Weeks 2–6
 - [ ] `README.md` and `CONTRIBUTING.md`
 - [ ] `Dockerfile`, `docker-compose.yml`, `.github/workflows/ci.yml`
 
@@ -98,6 +100,22 @@ uv run python -c "import fastapi, cv2, numpy; print('ok')"
 This is not a formality. `CLAUDE.md` is loaded into the context of *every* Claude Code
 session in this repository — it is where a rule goes when you want it to survive the
 session you are in. Rules that live only in a prompt are gone in an hour.
+
+**The harness has four layers, and they are not interchangeable.** You will meet all four
+in this session; the distinction between the last two is the one worth carrying:
+
+| Layer | Where | How it constrains |
+|---|---|---|
+| **Rules** | `CLAUDE.md` | By being **read**. Loaded into every session |
+| **Roles** | `.claude/agents/` | By **scope**. Separate context, restricted tools, one responsibility |
+| **Procedures** | `.claude/skills/` | By being **invoked**. A repeatable method with its own acceptance criteria |
+| **Enforcement** | `.claude/hooks/` | By **blocking**. Runs on the tool call, whether or not anyone read anything |
+
+The first three all depend on cooperation. An assistant that has read a rule can still
+decide, plausibly and in good faith, that this particular case is different. That is not
+usually a problem — until the case that is different costs money or ships a lie to a user.
+Which is exactly what the fourth layer is for, and why Lesson 02 puts the credit budget
+there rather than leaving it in prose.
 
 Notice what the file does and does not contain:
 
@@ -177,6 +195,60 @@ Walk the reasoning:
 > harness that catches the confident mistake. Skip it and you have a code generator
 > again.
 
+#### What a permission rule cannot do
+
+Scroll further down `settings.json` to the `hooks` block, and open the scripts it points
+at in `.claude/hooks/`.
+
+A permission rule pauses and asks **you**. That works exactly as well as your attention
+does — and the twentieth prompt in a session gets the same click as the first. A hook does
+not ask. It runs a script before or after the tool call, and a `PreToolUse` hook exiting
+with status 2 means the call does not happen.
+
+Five ship with the scaffold. Two of them block:
+
+| Hook | Fires on | Effect |
+|---|---|---|
+| `session_balance.py` | Session start | Prints the remaining credit balance into context |
+| `format_python.py` | After `Write`/`Edit` | `ruff format` + `ruff check --fix`. Never blocks |
+| `credit_gate.py` | Before billed Roboflow tools | **Blocks** unless the ledger has a pending estimate that fits the balance |
+| `units_guard.py` | Before `Write`/`Edit` to `src/` | **Blocks** any metric-depth identifier |
+| `contract_drift.py` | After editing `schemas.py` | Warns that the client's generated types are stale |
+
+**Do:** Watch the harmless one work. Ask for a deliberately badly formatted file.
+
+```
+Create src/smart_scene_analyzer/scratch.py containing:
+x=1
+def  f( a,b ):
+     return a+b
+```
+
+**Expected result:** the file is written, and when you read it back it is formatted. You
+did not ask for that, and nothing in `CLAUDE.md` requested it. Delete the file.
+
+**Do:** Now watch one that blocks.
+
+```
+In src/smart_scene_analyzer/__init__.py, add a comment reading
+"# depth values are returned in meters"
+```
+
+**Expected result:** the edit is **refused**, with a message explaining that this project
+returns relative inverse depth and no identifier or comment in `src/` may imply metres.
+The assistant cannot proceed by rewording, retrying, or writing the file another way.
+
+> Sit with the difference. `CLAUDE.md` already said depth is not metres — that rule has
+> been loaded into context this entire session. It is a good rule, correctly stated, and
+> a sufficiently confident model at eleven at night will write `depth_meters` anyway
+> because in that moment it seems obviously right. The hook does not care what seemed
+> right. **That is the entire distinction between a rule and a constraint**, and Lesson 02
+> puts your Roboflow budget on the far side of it.
+>
+> One consequence worth naming now: if a hook blocks you, the fix is to satisfy it. Not to
+> edit the hook, and not to route around it. A hook you can talk your way past is a
+> comment.
+
 ---
 
 ### 6. Understand the subagent definitions
@@ -209,8 +281,28 @@ that reading pollutes your main session.
 /agents
 ```
 
-**Expected result:** `architecture`, `documentation`, `devops`, `dataset-engineer`, and
-`data-pipeline` are listed. (The last two are used in Lesson 02.)
+**Expected result:** `architecture`, `documentation`, `devops`, `dataset-engineer`,
+`data-pipeline`, and the rest of the ten — through `mobile`, which Lesson 05 uses — are
+listed. Only the first three matter today.
+
+**Do:** Finally, look at the layer between roles and enforcement.
+
+```
+/skills
+```
+
+**Expected result:** five project skills are listed — `credit-ledger`, `error-triage`,
+`annotation-conversion`, `dataset-qa-sweep`, `offline-suite`.
+
+Open `.claude/skills/credit-ledger/SKILL.md` and read the `description` in its
+frontmatter. It is written the same way an agent's `description` is: for a dispatcher
+deciding whether this is the right thing to reach for, not for a human browsing a menu.
+
+You will not invoke any of them today — Lesson 01 spends nothing, trains nothing, and
+tests nothing. They are here so that when you meet the vendor's `roboflow:*` skills in
+Lesson 02, the distinction is already concrete: those encode Roboflow's knowledge, these
+encode your project's, and when the two disagree yours wins because it is the one that
+knows your budget.
 
 ---
 
@@ -229,19 +321,35 @@ requirement. "p95 end-to-end latency under 400 ms for a 1280×720 image" is — 
 determines model size, whether depth and detection run in parallel, and whether you can
 afford a network hop per request.
 
+**The client is a real application, and that is now settled.** Lesson 05 builds an Expo
+app for iOS and Android against this API. Write your requirements for a user holding a
+phone, not for a `curl` command — it changes which non-functional numbers matter.
+
+In particular, **N1 must state its link.** "p95 client-observed latency under 800 ms" is
+not a requirement anyone can pass or fail, because a 250 KB upload alone is roughly 400 ms
+at 5 Mbit/s. Either pin the link characteristics in the requirement, or state it as
+server-observed and give transit a separate budget. Lesson 05 supplies the measurement;
+this is where you decide which shape the requirement takes.
+
 ⚠️ **OPEN — resolve this before step 8.** The single biggest architectural fork is the
 **inference target**, and it is not yet decided for this course:
 
 | Option | Consequence |
 |---|---|
-| **Cloud** — FastAPI serves both models | Simpler pipeline, single codebase, network round-trip per frame, server GPU cost |
-| **On-device** — ONNX / Core ML / TFLite | No round-trip, works offline, but forces export/quantization work and splits the codebase |
+| **Cloud, self-hosted** — your container serves both models | Simpler pipeline, one codebase, a network round-trip per frame. Zero per-image platform cost, since the weights are yours |
+| **Cloud, hosted API** — detection served by Roboflow | No weights in your image, but **bills per request** — and a camera app makes far more requests than a `curl` loop |
+| **On-device** — ONNX / Core ML / TFLite | No round-trip, works offline, best privacy posture. Forces per-platform export, quantization, and numerical validation of two models, and a model update becomes an app-store release |
 
 Pick one, then record it:
 
 ```
 /adr inference target: cloud vs on-device
 ```
+
+> The middle row is the one to think hardest about now that a real client exists. It looks
+> like the cheap option — no weights to ship, no GPU to size — and it is the only one whose
+> cost scales with how much anyone uses your app. Lesson 04 measures all three; Lesson 05
+> is where the difference would actually be spent.
 
 **Expected result:** `docs/requirements.md` with numeric targets, and
 `docs/decisions/0001-inference-target.md`. Update the first `TODO(Lesson 01)` marker in
@@ -324,7 +432,7 @@ the choice when it is made:
 
 **Do:** Use [`resources/prompts/04-roadmap.md`](resources/prompts/04-roadmap.md).
 
-**Expected result:** `docs/roadmap.md` covering Weeks 2–5, where each milestone names
+**Expected result:** `docs/roadmap.md` covering Weeks 2–6, where each milestone names
 its deliverable, its owning role, and its entry condition — not just a list of tasks.
 
 ---
@@ -369,16 +477,24 @@ skill.
 
 ## Open items
 
-- ⚠️ **Inference target** — cloud FastAPI vs. on-device ONNX/Core ML/TFLite (step 7).
-  Notion Open Decision #2. Blocks a final architecture.
+- ⚠️ **Inference target** — self-hosted cloud, hosted API, or on-device (step 7).
+  Notion Open Decision #2. Blocks a final architecture. Lesson 04 measures all three;
+  Lesson 05 revisits the on-device branch once a real client exists.
 - ⚠️ **MLflow hosting** — local Docker, self-hosted, or managed (step 10). Notion Open
   Decision #4. Determines `docker-compose.yml` and Lesson 03's tracking setup.
-- ⚠️ **Mobile app scope** — a real client application, or a stub that exercises the
-  API? The architecture's outermost layer depends on this, and it is not yet decided.
+- ⚠️ **N1's shape** — client-observed with a pinned link, or server-observed with a
+  separate transit budget (step 7). You choose the shape now; Lesson 05 supplies the
+  number that fills it.
 - ⚠️ **Codex** — the course lists OpenAI Codex alongside Claude Code. This lesson is
   Claude Code only; the `AGENTS.md` and `codex plugin` equivalents are not yet written.
+  Note that **Codex does not run the hooks you met in step 5** — those two constraints
+  become yours to keep there.
 
 All four are tracked in the course [`TODO.md`](../../TODO.md).
+
+> **Resolved since this lesson was first written:** *mobile app scope*. It is a real
+> client application — an Expo app for iOS and Android, built in Lesson 05. The
+> architecture's outermost layer is a component with a contract, not a placeholder.
 
 ---
 
@@ -388,6 +504,9 @@ All four are tracked in the course [`TODO.md`](../../TODO.md).
 - [Claude Code — subagents](https://docs.claude.com/en/docs/claude-code/sub-agents)
 - [Claude Code — settings and permissions](https://docs.claude.com/en/docs/claude-code/settings)
 - [Claude Code — slash commands](https://docs.claude.com/en/docs/claude-code/slash-commands)
+- [Claude Code — hooks](https://code.claude.com/docs/en/hooks) — the reference for step 5's
+  `hooks` block, including the exit codes and the `PreToolUse` decision fields
+- [Claude Code — skills](https://code.claude.com/docs/en/skills)
 - [Architecture Decision Records](https://adr.github.io/)
 
 **Next:** [Lesson 02 — Dataset Engineering](../02-dataset-engineering/)

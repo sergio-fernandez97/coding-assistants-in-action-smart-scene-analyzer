@@ -4,6 +4,11 @@
 
 **Which agent:** `qa`. Not `backend` — the agent that wrote the code does not grade it.
 
+**Which skill:** `offline-suite`. It carries the no-GPU/no-network/no-weights constraint,
+the fixture strategy, and the "does this code use the input it claims to use" test. This
+file carries what is specific to *this* service — the endpoints, the status codes, the
+degenerate box cases.
+
 **Credits: zero.**
 
 ---
@@ -12,7 +17,7 @@
 
 **The default suite runs with no GPU, no network, and no weights on disk, in seconds.**
 
-This is not fastidiousness. Lesson 05 puts these tests in GitHub Actions, where there is
+This is not fastidiousness. Lesson 06 puts these tests in GitHub Actions, where there is
 no GPU and no `best.pt`. A suite that needs either is a suite that does not run in CI,
 and a suite that does not run in CI stops being maintained within a month.
 

@@ -5,11 +5,12 @@ hunting through the repo mid-lesson.
 
 | Lesson | Notion week | Focus | Status |
 |---|---|---|---|
-| [01 — Project Definition & System Design](01-project-definition-and-system-design/) | Week 1 | Repository, Claude Code harness, architecture, roadmap | Ready |
+| [01 — Project Definition & System Design](01-project-definition-and-system-design/) | Week 1 | Repository, the four-layer harness, architecture, roadmap | Ready |
 | [02 — Dataset Engineering](02-dataset-engineering/) | Week 2 | Roboflow MCP, annotation conversion, dataset versions, the credit harness | Ready |
 | [03 — Model Development](03-model-development/) | Week 3 | YOLO11 fine-tuning, MLflow, domain adaptation, depth inference | Ready |
 | [04 — Backend Engineering & Production APIs](04-backend-engineering/) | Week 4 | FastAPI, detection–depth fusion, Docker, tests, deployment economics | Ready |
-| 05 — CI / CD / CT | Week 5 | GitHub Actions, continuous training, promotion logic | Not written |
+| [05 — Mobile Client & Cloud Delivery](05-mobile-client-and-delivery/) | Week 5 | Expo on iOS and Android, Azure Container Apps, the generated contract, client-observed latency | Ready |
+| 06 — CI / CD / CT | Week 6 | GitHub Actions, continuous training, promotion logic | Not written |
 
 ## Lesson directory layout
 
@@ -28,6 +29,27 @@ files reliably and mis-copy fenced blocks buried in prose. Each prompt file also
 carries a *"what good output looks like"* and a *"reject and re-run if"* section —
 judging generated output is the skill the course teaches, so every prompt states the
 acceptance criteria alongside the request.
+
+### Prompts versus skills
+
+Both live in the harness and they are not the same thing. The rule this course applies:
+
+| | Prompt file | Project skill |
+|---|---|---|
+| Lives in | `lessons/NN/resources/prompts/` | `template/.claude/skills/` |
+| Invoked | Once, to produce a specific artifact | Many times, whenever the situation recurs |
+| Contains | This dataset, this endpoint, this model | The method and its acceptance criteria |
+| Example | "Convert SUN RGB-D, whose metadata is a MATLAB struct" | "Inspect before you convert; verify against pixels" |
+
+Five procedures were repeating across lessons and are now skills:
+`credit-ledger`, `error-triage`, `annotation-conversion`, `dataset-qa-sweep`,
+`offline-suite`. Where a prompt uses one, its header names it — the prompt supplies the
+instance, the skill supplies the method. The prompts were not deleted, because the
+instance-specific detail is the part that was never generic.
+
+The tell for which one you are writing: **if the second copy would differ only in nouns,
+it is a skill.** The SUN RGB-D and NYU converter prompts were 150 lines each and shared
+everything except the file format, which is what made the split obvious.
 
 ## README contract
 
@@ -69,14 +91,15 @@ the lesson that needs it and reused afterwards.
 | `backend` | 04 | FastAPI, dependency injection, logging |
 | `qa` | 04 | Unit, integration, and regression tests |
 | `integration` | 04 | Fusing detection, classification, and depth |
-| `mlops` | 05 | Training and evaluation pipelines, promotion logic, rollback |
+| `mobile` | 05 | The Expo client, overlays, capture, client-observed latency |
+| `mlops` | 06 | Training and evaluation pipelines, promotion logic, rollback |
 
-**All ten ship in [`template/.claude/agents/`](../template/.claude/agents/)**, with Codex
-twins under `template/plugins/smart-scene-analyzer/skills/`. "Introduced in" means the
-lesson where the student first reads the definition and uses it — not where the file
+**All eleven ship in [`template/.claude/agents/`](../template/.claude/agents/)**, with
+Codex twins under `template/plugins/smart-scene-analyzer/skills/`. "Introduced in" means
+the lesson where the student first reads the definition and uses it — not where the file
 appears. Lesson 02 already established that pattern with `dataset-engineer`.
 
-Two boundaries in that table are load-bearing rather than tidy:
+Three boundaries in that table are load-bearing rather than tidy:
 
 - **`ml-engineer` / `evaluation`** — `evaluation` has no `Edit` tool. An agent that both
   trains a model and reports whether it is good can improve the number without improving
@@ -84,10 +107,42 @@ Two boundaries in that table are load-bearing rather than tidy:
   shortcut.
 - **`backend` / `integration` / `qa`** — identical tool lists, different responsibilities,
   drawn where the failure modes differ. `qa` did not write the code it tests.
+- **`mobile` / `backend`** — `mobile` does not edit `src/`. A mobile engineer who can
+  change the server resolves a naming disagreement by renaming the server field, and the
+  disagreement — which was information about the contract — disappears without anyone
+  deciding anything.
+
+## The hooks
+
+`template/.claude/hooks/` is the layer that does not depend on anyone reading anything.
+Introduced cheapest-first, so students meet the mechanism before it guards anything
+expensive.
+
+| Hook | Event | Effect | Introduced |
+|---|---|---|---|
+| `format_python.py` | `PostToolUse` | `ruff format` + `--fix`. Never blocks | 01 — deliberately trivial |
+| `session_balance.py` | `SessionStart` | Puts the credit balance into context | 01 |
+| `credit_gate.py` | `PreToolUse` | **Blocks** billed Roboflow calls with no ledger estimate | **02 — the load-bearing one** |
+| `units_guard.py` | `PreToolUse` | **Blocks** metric-depth identifiers in `src/` | 01 (demonstrated), 03 (earns it) |
+| `contract_drift.py` | `PostToolUse` | Warns when the client's generated types are stale | 05 |
+
+Two design points worth preserving if these are edited:
+
+- **Only two of them block.** `contract_drift` warns because editing a schema is
+  legitimate work with a consequence; `units_guard` blocks because writing `depth_meters`
+  is not legitimate at all. Choosing correctly between *wrong* and *has a consequence* is
+  most of hook design, and Lesson 05 step 4 makes students compare the two directly.
+- **`credit_gate` blocks unaccounted spending, not expensive spending.** A student can
+  still spend the entire budget. They cannot spend it without having written down what
+  they expected it to cost, which is the only part that was ever at risk.
+
+Note also that **Codex does not run hooks.** `template/AGENTS.md` says so explicitly and
+tells a Codex session that those two rules are its own to keep. Do not quietly let that
+note rot if the hooks change.
 
 ---
 
-## Reusable material for Lesson 05
+## Reusable material for Lesson 06
 
 `computer-vision-skills/` (local clone of
 [roboflow/computer-vision-skills](https://github.com/roboflow/computer-vision-skills),
@@ -95,7 +150,7 @@ gitignored) contains 9 skills across ~3,500 lines. **Reuse it rather than restat
 — and verify facts against it rather than from memory, since model IDs, credit rates, and
 tool names change upstream.
 
-Lessons 02–04 draw on it as follows, recorded here so a maintainer can trace a claim back
+Lessons 02–05 draw on it as follows, recorded here so a maintainer can trace a claim back
 to its source:
 
 | Lesson | Sources used |
@@ -103,8 +158,15 @@ to its source:
 | 02 | `data-management/SKILL.md` (upload, tags, RoboQL, versions), `data-management/labeling.md` (Auto Label and its free 4-image preview), `plans-and-pricing/SKILL.md` (the rate table behind the whole credit harness), `universe/SKILL.md`, `inference/workflows.md` (the YOLO-World block) |
 | 03 | `training-and-evaluation/SKILL.md` (exact `model_id` values, training controls, **and the RF-DETR NAS default the course overrides**), `improvement-playbook.md` (the confusion-matrix decision tree behind the error analysis), `custom-weights-upload/SKILL.md`, `plans-and-pricing/SKILL.md` (training rates, Core-plan feature list) |
 | 04 | `inference/SKILL.md` (deployment option comparison), `inference/local-tooling.md` (the metered `localhost:9001` server), `api-reference/inference.md` (v2 bills by execution seconds), `plans-and-pricing/SKILL.md` |
+| 05 | **None.** Lesson 05 spends zero Roboflow credits and touches no Roboflow surface — its sources are Microsoft Learn (the Container Apps free grant and `az containerapp up`) and the Expo docs, both cited inline in the lesson |
 
-### Lesson 05 — CI / CD / CT
+Row 05 is worth noticing rather than skipping. Every lesson from 02 onward has drawn on
+`computer-vision-skills/` and priced its work against the credit ledger; Lesson 05 does
+neither, and instead introduces a second budget that behaves differently. If a future
+edit finds itself adding a Roboflow call to the request path in Lesson 05, that row is the
+thing it is breaking.
+
+### Lesson 06 — CI / CD / CT
 
 | Source | What it gives the lesson |
 |---|---|
@@ -114,13 +176,18 @@ to its source:
 | `api-reference/api-key-management.md` | Secret handling; maps onto GitHub Actions secrets |
 | `plans-and-pricing/SKILL.md` | Credit rates — an automated retraining pipeline can burn a budget quietly |
 
-⚠️ **Lesson 05 has roughly 4 credits to work with**, and it is the lesson most able to
+⚠️ **Lesson 06 has roughly 4 credits to work with**, and it is the lesson most able to
 spend them without anyone noticing. Two constraints to design around from the start:
 
 - **Batch processing on GPU is 4 credits/hour** — the worst rate on the platform — and
   **dedicated deployments bill uptime**, so a pipeline that provisions one and fails
   before tearing it down costs 24 credits a day. Both are already denied or forbidden in
   the scaffold; the CI design has to stay inside that.
+- **Lesson 06 now has two deploy targets.** The pipeline builds and pushes to ACR and
+  deploys to Azure Container Apps alongside the continuous-training work. Whatever it
+  deploys must keep `--min-replicas 0`; a CI step that resets that quietly ends the Azure
+  free grant in about two days, which is the Azure analogue of the dedicated-deployment
+  trap above.
 - **The active-learning review loop has a head start.** Lesson 02's Auto Label audit
   produced a per-class table of where a foundation model agrees with human annotators.
   That table is exactly the input the "which predictions can we accept without review"
@@ -132,7 +199,7 @@ spend them without anyone noticing. Two constraints to design around from the st
 |---|---|
 | `product-navigation/SKILL.md`, `features-by-page.md` | Appendix material for students navigating `app.roboflow.com` |
 | `universe/SKILL.md` | Dataset and model discovery; used in Lesson 02, useful again for checkpoint selection |
-| `data-management/labeling.md` | Annotation tooling and Auto Label. The reference for Lesson 02's audit; returns in Lesson 05 for the active-learning review loop |
+| `data-management/labeling.md` | Annotation tooling and Auto Label. The reference for Lesson 02's audit; returns in Lesson 06 for the active-learning review loop |
 | `plans-and-pricing/SKILL.md` | The rate table behind the credit harness. Referenced by every lesson from 02 onward |
 
 ### Not currently used

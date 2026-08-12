@@ -5,6 +5,11 @@
 **Which agent:** `evaluation`. **Not** `ml-engineer` — the agent that trained the model
 does not get to grade it.
 
+**Which skill:** `error-triage`. It carries the DATA / TAXONOMY / MODEL classification and
+its acceptance criteria. You run this once per model and once per version — twice in this
+lesson alone, and again in Lesson 06 every time a retrain lands — which is precisely why
+the method lives in a skill and only the model-specific details live here.
+
 **Credits: zero.** Roboflow's evaluation UI is a paid-plan feature; `ultralytics`
 computes all of this locally.
 
