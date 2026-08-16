@@ -25,7 +25,7 @@ Run each check. Every one must pass before you continue.
 | Claude Code | `claude --version` | [Install guide](https://docs.claude.com/en/docs/claude-code/overview) |
 | `uv` | `uv --version` | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
 | Python 3.11+ | `uv python install 3.11` | — |
-| Docker running | `docker info` | Start Docker Desktop |
+| Node.js 20+ | `node --version` | [nodejs.org](https://nodejs.org) — not used today, needed from Lesson 05 |
 | GitHub account | `gh auth status` (optional) | Create one; you push your project at the end |
 
 > **macOS note.** The system Python is 3.9 and is too old for this project. `uv` installs
@@ -40,13 +40,13 @@ When this session ends, your `smart-scene-analyzer` repository contains:
 - [ ] `.claude/settings.json` — a reviewed permission policy **and a hooks block**
 - [ ] `.claude/agents/` — three role definitions (architecture, documentation, devops)
 - [ ] `.claude/skills/` — this project's own procedures, read but not yet used
-- [ ] `.claude/hooks/` — enforcement scripts, with two of them observed running
+- [ ] `.claude/hooks/` — enforcement scripts, with three of them observed running
 - [ ] `docs/requirements.md` — functional and non-functional requirements with numbers
 - [ ] `docs/architecture.md` — components, data contracts, pipeline stages
 - [ ] `docs/decisions/` — at least one ADR recording the inference-target decision
 - [ ] `docs/roadmap.md` — the engineering plan for Weeks 2–6
 - [ ] `README.md` and `CONTRIBUTING.md`
-- [ ] `Dockerfile`, `docker-compose.yml`, `.github/workflows/ci.yml`
+- [ ] `app/app.json`, `app/metro.config.js`, `.gitignore`, `.github/workflows/ci.yml`
 
 Verify with [`resources/checklists/deliverables.md`](resources/checklists/deliverables.md).
 
@@ -85,7 +85,7 @@ ls -a
 
 ```bash
 uv sync
-uv run python -c "import fastapi, cv2, numpy; print('ok')"
+uv run python -c "import numpy, cv2, PIL, pydantic; print('ok')"
 ```
 
 **Expected result:** `ok`. A `.venv/` directory now exists and is gitignored.
@@ -177,8 +177,9 @@ Walk the reasoning:
 
 - `git status`, `git diff`, `uv run` are in `allow` — read-only or trivially
   reversible, and prompting on them trains you to click *yes* without reading.
-- `git push`, `git commit`, `uv add`, `docker run` are in `ask` — each has a cost
-  outside your working tree, or changes the dependency surface.
+- `git push`, `git commit`, `uv add`, `npm install`, `npx expo run` are in `ask` — each
+  has a cost outside your working tree, changes the dependency surface, or takes minutes
+  of native build time.
 - `.env` and `*.pem` are in `deny` — an assistant never needs to read a secret to do
   its job, and content it reads can end up in output.
 
@@ -205,17 +206,70 @@ does — and the twentieth prompt in a session gets the same click as the first.
 not ask. It runs a script before or after the tool call, and a `PreToolUse` hook exiting
 with status 2 means the call does not happen.
 
-Five ship with the scaffold. Two of them block:
+Six ship with the scaffold. Two of them block:
 
 | Hook | Fires on | Effect |
 |---|---|---|
 | `session_balance.py` | Session start | Prints the remaining credit balance into context |
+| `notify_done.py` | The turn ending, or the assistant waiting on you | Raises a desktop notification. Never blocks |
 | `format_python.py` | After `Write`/`Edit` | `ruff format` + `ruff check --fix`. Never blocks |
 | `credit_gate.py` | Before billed Roboflow tools | **Blocks** unless the ledger has a pending estimate that fits the balance |
-| `units_guard.py` | Before `Write`/`Edit` to `src/` | **Blocks** any metric-depth identifier |
-| `contract_drift.py` | After editing `schemas.py` | Warns that the client's generated types are stale |
+| `units_guard.py` | Before `Write`/`Edit` to `src/` or `app/` | **Blocks** any metric-depth identifier, in Python or TypeScript |
+| `artifact_drift.py` | After editing an export config | Warns that the bundled model artifacts are older than what produced them |
 
-**Do:** Watch the harmless one work. Ask for a deliberately badly formatted file.
+**Do:** Watch the one that has already fired. Open `.claude/hooks/notify_done.py`, then
+look at the `Stop` entry in `settings.json`.
+
+```json
+"Stop": [
+  {
+    "hooks": [
+      {
+        "type": "command",
+        "command": "python3 ${CLAUDE_PROJECT_DIR}/.claude/hooks/notify_done.py",
+        "timeout": 10
+      }
+    ]
+  }
+]
+```
+
+**Expected result:** you have been getting a desktop notification at the end of every
+turn since your first prompt in this repository, and you did not configure anything to
+make that happen — copying `template/` was enough. On macOS the first one may have been
+swallowed by a permission prompt from your terminal app; approve it and the next turn
+will land. On Linux it needs `notify-send`; on Windows, and anywhere without a
+notification daemon, the hook falls back to the terminal bell rather than failing.
+
+> Note what `Stop` does **not** have: a `matcher`. Tool events like `PreToolUse` match on
+> which tool is about to run, because "before a billed Roboflow call" is a meaningful
+> subset. There is no subset of "the turn ended", so the event fires every time and the
+> filtering, if you want any, belongs inside your script.
+> ([Claude Code hooks reference](https://code.claude.com/docs/en/hooks), checked
+> 2026-08-13.)
+
+This is the only hook in the scaffold written for **you** rather than for the code.
+Nothing in `src/` is safer because it exists. It is here because a training run in
+Lesson 03 and an export in Lesson 04 both take long enough that you will switch windows,
+and because meeting the mechanism somewhere harmless is the cheapest place to meet it.
+
+The same script is wired to a second event, `Notification`, which fires when the assistant
+is blocked **on you** — most often a permission prompt. Both entries point at the same
+file, and the script tells them apart by reading `hook_event_name` from the payload:
+
+```json
+"Notification": [
+  { "hooks": [ { "type": "command", "command": "python3 ${CLAUDE_PROJECT_DIR}/.claude/hooks/notify_done.py", "timeout": 10 } ] }
+]
+```
+
+That pairing matters more here than it would in most projects. This course never uses
+`--dangerously-skip-permissions`, so an assistant working through a long task stops and
+waits for you repeatedly — and a permission prompt nobody is looking at is indistinguishable
+from work still in progress. "Done" and "waiting on you" are the two states worth being
+interrupted for, and now both interrupt you.
+
+**Do:** Watch a second harmless one work. Ask for a deliberately badly formatted file.
 
 ```
 Create src/smart_scene_analyzer/scratch.py containing:
@@ -322,14 +376,14 @@ determines model size, whether depth and detection run in parallel, and whether 
 afford a network hop per request.
 
 **The client is a real application, and that is now settled.** Lesson 05 builds an Expo
-app for iOS and Android against this API. Write your requirements for a user holding a
-phone, not for a `curl` command — it changes which non-functional numbers matter.
+app for iOS and Android. Write your requirements for a user holding a phone, not for a
+`curl` command — it changes which non-functional numbers matter.
 
-In particular, **N1 must state its link.** "p95 client-observed latency under 800 ms" is
-not a requirement anyone can pass or fail, because a 250 KB upload alone is roughly 400 ms
-at 5 Mbit/s. Either pin the link characteristics in the requirement, or state it as
-server-observed and give transit a separate budget. Lesson 05 supplies the measurement;
-this is where you decide which shape the requirement takes.
+In particular, **N1 must name what it is measured on.** "p95 latency under 800 ms" is not
+a requirement anyone can pass or fail until you say on which device, in which build, and
+whether the seconds-long one-time model load counts. Those are different questions
+depending on which row of the fork below you choose, which is why this requirement cannot
+be finished before that decision is. Lesson 05 supplies the measurement.
 
 ⚠️ **OPEN — resolve this before step 8.** The single biggest architectural fork is the
 **inference target**, and it is not yet decided for this course:
@@ -338,7 +392,7 @@ this is where you decide which shape the requirement takes.
 |---|---|
 | **Cloud, self-hosted** — your container serves both models | Simpler pipeline, one codebase, a network round-trip per frame. Zero per-image platform cost, since the weights are yours |
 | **Cloud, hosted API** — detection served by Roboflow | No weights in your image, but **bills per request** — and a camera app makes far more requests than a `curl` loop |
-| **On-device** — ONNX / Core ML / TFLite | No round-trip, works offline, best privacy posture. Forces per-platform export, quantization, and numerical validation of two models, and a model update becomes an app-store release |
+| **On-device** — TFLite / ExecuTorch / Core ML | No round-trip, works offline, image bytes never leave the phone. Forces per-platform export, quantization, and numerical validation of two models; ships tens of MB of runtime; sets a device floor; and a model update becomes an app-store release rather than a deploy |
 
 Pick one, then record it:
 
@@ -346,10 +400,19 @@ Pick one, then record it:
 /adr inference target: cloud vs on-device
 ```
 
-> The middle row is the one to think hardest about now that a real client exists. It looks
-> like the cheap option — no weights to ship, no GPU to size — and it is the only one whose
-> cost scales with how much anyone uses your app. Lesson 04 measures all three; Lesson 05
-> is where the difference would actually be spent.
+> Two rows deserve the hardest thought, for opposite reasons. **The middle row** looks like
+> the cheap option — no weights to ship, no GPU to size — and it is the only one whose cost
+> scales with how much anyone uses your app; a camera client makes far more requests than a
+> `curl` loop. **The bottom row** looks like the expensive one, and it is: it trades a
+> hosting bill for an export toolchain, two native runtimes, and an app-store release cycle
+> for every model update. Neither is free. They are expensive in different currencies, and
+> naming the currency is most of what this ADR is for.
+>
+> Lesson 04 measures the options and closes this decision; Lesson 05 lives with whatever
+> you chose. **This course's own worked instance chose on-device** — see
+> `smart-scene-analyzer/docs/decisions/0003-on-device-inference-target.md` — and Lessons 04
+> and 05 are written for that path. Choosing differently is legitimate and means adapting
+> them.
 
 **Expected result:** `docs/requirements.md` with numeric targets, and
 `docs/decisions/0001-inference-target.md`. Update the first `TODO(Lesson 01)` marker in
@@ -404,20 +467,35 @@ still remember what the correct step was.
 
 **Do:** Use [`resources/prompts/03-devops-agent.md`](resources/prompts/03-devops-agent.md).
 
-**Expected result:** `Dockerfile` (multi-stage, non-root, pinned base), `.dockerignore`,
-`docker-compose.yml`, and `.github/workflows/ci.yml`.
+**Expected result:** `app/app.json` (permissions and the native ML config plugins),
+`app/metro.config.js` (with `tflite` and `pte` in `assetExts`), a `.gitignore` that excludes
+build outputs and the generated native directories, and `.github/workflows/ci.yml`.
 
-**Do:** Prove the image builds. Do not take the agent's word for it.
+**Do:** Check the agent's work yourself. Do not take its word for it.
 
 ```bash
-docker build -t smart-scene-analyzer:dev .
-docker image ls smart-scene-analyzer
+python3 -c "import json; json.load(open('app/app.json')); print('app.json: valid')"
+grep -E "tflite|pte" app/metro.config.js
+git check-ignore -v app/ios app/android node_modules data/dummy runs/dummy
 ```
 
-**Expected result:** a successful build. Note the image size — you will compare against
-it in Lesson 04 once the model dependencies land.
+**Expected result:** `app.json` parses; `metro.config.js` names **both** `tflite` and
+`pte`; and `git check-ignore` prints a matching rule for every path. A path it says
+nothing about is a path that will be committed.
 
-⚠️ **OPEN — MLflow hosting.** `docker-compose.yml` needs an MLflow service, and where
+> **Why `assetExts` is worth checking by hand.** Metro silently omits an asset whose
+> extension it does not recognise. A missing `tflite` line does not fail the build — it
+> produces an app that loads, then fails at inference against a model path that looks
+> completely correct. You will meet this again in Lesson 05, step 4.
+
+⚠️ **OPEN — the build itself is not proven here.** These three commands check that the
+config *says* the right thing, not that a build *works*; `app/` has no `package.json`
+until Lesson 05, so `npx expo` and `tsc` have nothing to run against. The first real
+proof is Lesson 05 step 3, and a config error written today surfaces there. Deciding
+whether Lesson 01 should scaffold enough of `app/` to be buildable is tracked in
+`TODO.md`.
+
+⚠️ **OPEN — MLflow hosting.** Lesson 03 needs a tracking server, and where
 MLflow runs (local Docker / self-hosted server / managed) is undecided. The DevOps
 Agent defaults to local MLflow with a named volume and labels it a placeholder. Record
 the choice when it is made:
@@ -464,9 +542,15 @@ Fast automated pass:
 ```bash
 uv run ruff check .
 uv run pytest
-docker build -t smart-scene-analyzer:dev .
+python3 -c "import json; json.load(open('app/app.json')); print('app.json: valid')"
+echo '{"hook_event_name":"Stop","last_assistant_message":"hook check"}' \
+  | python3 .claude/hooks/notify_done.py && echo "notify_done: exit 0"
 git status --porcelain | grep -E '\.env$|^\?\? data/' && echo "LEAK — fix .gitignore" || echo "clean"
 ```
+
+The `notify_done.py` line is how you test any hook without waiting for its event: a hook
+reads a JSON payload on stdin and answers with an exit code, so a pipe is the entire test
+harness. You will use the same trick in Lesson 02 on a hook that actually blocks.
 
 The real check is qualitative: **open `docs/architecture.md` and find one thing you
 disagree with.** If you cannot, you have not read it critically enough. Every generated
@@ -480,11 +564,13 @@ skill.
 - ⚠️ **Inference target** — self-hosted cloud, hosted API, or on-device (step 7).
   Notion Open Decision #2. Blocks a final architecture. Lesson 04 measures all three;
   Lesson 05 revisits the on-device branch once a real client exists.
-- ⚠️ **MLflow hosting** — local Docker, self-hosted, or managed (step 10). Notion Open
-  Decision #4. Determines `docker-compose.yml` and Lesson 03's tracking setup.
-- ⚠️ **N1's shape** — client-observed with a pinned link, or server-observed with a
-  separate transit budget (step 7). You choose the shape now; Lesson 05 supplies the
-  number that fills it.
+- ⚠️ **MLflow hosting** — a local server, self-hosted, or managed (step 10). Notion Open
+  Decision #4. Determines Lesson 03's tracking setup. Note that nothing else in this
+  project needs Docker any more, so a containerized tracker would reintroduce a
+  prerequisite the rest of the course has dropped.
+- ⚠️ **N1's shape** — which device it is pinned to, and whether cold model load counts
+  toward it (step 7). Cold load is seconds long, happens once per launch, and the user
+  watches it. You choose the shape now; Lesson 05 supplies the number that fills it.
 - ⚠️ **Codex** — the course lists OpenAI Codex alongside Claude Code. This lesson is
   Claude Code only; the `AGENTS.md` and `codex plugin` equivalents are not yet written.
   Note that **Codex does not run the hooks you met in step 5** — those two constraints

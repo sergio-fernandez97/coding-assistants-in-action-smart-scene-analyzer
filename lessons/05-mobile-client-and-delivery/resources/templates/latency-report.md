@@ -1,122 +1,114 @@
-# Latency report
+# On-device latency report
 
-> Copy to your project as `docs/latency-report.md` and fill in every `<...>`.
->
 > A latency figure without its measurement conditions is not a measurement. This template
 > puts the conditions above the numbers so they cannot be quoted apart from them.
 
+## Prediction, written before measuring
+
+> Fill this in **first** and do not edit it afterwards. The gap between prediction and
+> measurement is the most useful line in this report.
+
+| Phase | Predicted p50 |
+|---|---|
+| Cold load — detection | |
+| Cold load — depth | |
+| Preprocess | |
+| Detection inference | |
+| Depth inference | |
+| Decode + NMS | |
+| Fusion | |
+| Render | |
+| Peak memory, both models loaded | |
+
 ## Measurement conditions
 
-| | Wi-Fi | Cellular |
+| | Run A | Run B |
 |---|---|---|
-| Device | `<model>` | `<model>` |
-| OS version | `<version>` | `<version>` |
-| Link, measured | `<N>` Mbit/s up, `<N>` down | `<N>` Mbit/s up, `<N>` down |
-| Measured with | `<speed test / method>` | `<...>` |
-| Prepared image size | `<N>` KB, `<W>`×`<H>` | `<N>` KB, `<W>`×`<H>` |
-| Container | `<cpu>` vCPU, `<mem>` GiB, region `<region>` | same |
-| Replica state | warm | warm |
-| Requests (n) | `<N>` | `<N>` |
-| Date | `<YYYY-MM-DD>` | `<YYYY-MM-DD>` |
+| Device or simulator, exactly | `<iPhone 15 Pro \| iOS Simulator on M2 MacBook Air>` | |
+| OS version | | |
+| Build type | `<debug \| release>` | |
+| JS dev server attached | `<yes \| no>` | |
+| Detection backend | `<CPU \| NNAPI \| CoreML \| GPU delegate>` | |
+| Depth backend | `<XNNPACK \| CoreML>` | |
+| Image used | `<filename, W×H>` | |
+| Warm runs, n | | |
+| Date | | |
 
-**The link speeds must be measured, not named.** "Cellular" is not a condition; 12 Mbit/s
-up on a named network at a named time is.
+> **Simulator and device figures never share a table.** The iOS Simulator has no Neural
+> Engine and runs on your Mac's CPU; it is faster than a phone at some phases and slower
+> at others, so it is not even uniformly wrong. A debug build with the dev server attached
+> can be several times slower than release.
 
-## Per-stage latency
+## Cold model load — reported separately
 
-Times in milliseconds. Stage boundaries as instrumented in the client.
+Happens once per launch. The user watches it. It is not part of the per-image distribution
+and averaging it in corrupts both numbers.
 
-### Wi-Fi, warm
+| Artifact | Load time | n |
+|---|---|---|
+| Detection `.tflite` | | |
+| Depth `.pte` | | |
+| **Total, first usable frame** | | |
 
-| Stage | What it covers | p50 | p95 |
+## Per-image latency, warm
+
+| Phase | p50 | p95 | Notes |
 |---|---|---|---|
-| Capture → prepared | Resize, orient, re-encode on device | | |
-| Prepared → sent | Request construction, connection setup | | |
-| Sent → first byte | **Upload + server processing + queueing** | | |
-| First byte → parsed | Download and JSON parse | | |
-| Parsed → rendered | Overlay layout and draw | | |
-| **Total** | Shutter → boxes on screen | | |
-| *of which server* | From the response's own timing field | | |
+| Preprocess | | | Decode, letterbox, normalize |
+| Detection inference | | | |
+| Decode + NMS | | | In TypeScript |
+| Depth inference | | | Usually the expensive one |
+| Fusion | | | |
+| Render | | | |
+| **Total** | | | Image selected → boxes on screen |
 
-### Cellular, warm
+## Memory
 
-| Stage | p50 | p95 |
+| Measurement | Value | Method |
 |---|---|---|
-| Capture → prepared | | |
-| Prepared → sent | | |
-| Sent → first byte | | |
-| First byte → parsed | | |
-| Parsed → rendered | | |
-| **Total** | | |
-| *of which server* | | |
+| Baseline, no models loaded | | |
+| Both models loaded, idle | | |
+| **Peak during inference** | | |
 
-### Cold start — reported separately
-
-A revision at `--min-replicas 0` has no replica running when idle. The first request pays
-for the container to start and the depth model to load. This is the price of paying nothing
-to sit idle, and it does not belong in the warm distribution.
-
-| | Value | n |
-|---|---|---|
-| Cold total | `<ms>` | `<n>` |
-| Warm total, same link | `<ms>` | |
-| Difference | `<ms>` | |
+> This is the figure that decides which phones are excluded, and it is the one nobody
+> measures until a crash report arrives. Two runtimes hold their own weights and their own
+> intermediate tensors, and they do not share an allocator.
 
 ## Comparison with Lesson 04
 
-| Measurement | Value | What it measured |
+| Measurement | Value | What it tells you |
 |---|---|---|
-| Lesson 04, loopback | `<ms>` | How fast the code is |
-| This report, Wi-Fi p95 | `<ms>` | How fast the product is |
-| This report, cellular p95 | `<ms>` | How fast the product is on a real link |
+| Python reference, this machine | | How fast the algorithm is |
+| On-device p95 | | How fast the product is |
 
-Lesson 04's number was not wrong. It answered a different question, and both belong here
-labelled — the gap between them is the network, and the network was never optional.
+The gap is the device, and the device was never optional.
 
 ## Analysis
 
-**Which stage dominates?**
+**Dominant phase:** `<which>`, `<N>`% of p95.
 
-| Link | Dominant stage | Share of p95 |
+**What code can actually change:**
+
+| Phase | Changeable? | Lever |
 |---|---|---|
-| Wi-Fi | | |
-| Cellular | | |
+| Cold load | Yes | Smaller artifact; lazy-load depth until first use |
+| Preprocess | Yes | Is it on the JS thread? Should it be? |
+| Detection | Yes | Input size, quantization |
+| Depth | Partly | The ViT is what it is — a smaller checkpoint is the main lever |
+| Decode + NMS | Check first | Often assumed significant and is not |
+| Render | Marginal | |
 
-The arithmetic that predicts this, from the prompt's round 1:
-
-```
-<N> KB × 8 / <link Mbit/s>  =  <N> ms of upload, before the server sees a byte
-```
-
-`<Does the measurement agree with the prediction? If not, that gap is the finding.>`
-
-**What can code actually change?**
-
-| Stage | Under our control? | Lever |
-|---|---|---|
-| Capture → prepared | Yes | Target resolution, JPEG quality |
-| Upload | Partly | Fewer bytes. Nothing else |
-| Server processing | Yes | Model size, batching, container size |
-| Cold start | Yes, but it costs | `--min-replicas 1` removes it and ends the free grant |
-| Download, render | Marginal | |
+**Prediction versus measurement:** `<Did they agree? If not, what did you have wrong?>`
 
 ## Recommendation for N1
 
-`docs/requirements.md` N1 has been a placeholder since Lesson 01, written as
-*client-observed* with no link specified — which cannot be passed or failed. Choose one:
-
-- [ ] **Client-observed, link pinned.** `p95 < <N> ms, measured on <link> at ≥ <N> Mbit/s
-      up, warm container, <N> KB upload.` Honest about the whole product; only meaningful
-      against a stated link.
-- [ ] **Server-observed, transit budgeted separately.** `Server p95 < <N> ms` plus a stated
-      transit allowance. Testable in CI; does not describe what a user experiences.
-
-**Chosen:** `<which, and why>`
+`<p95 < N ms, on <named device>, <release> build, <W×H> input.>`
 
 **Cold start:** `<in scope for N1, or excluded with a stated reason?>`
 
 ## What was not measured
 
-`<Devices not tested. Networks not tested. Times of day. Image content — a busy scene and
-an empty wall are not the same server-side work. Say what a reader should not conclude
-from this report.>`
+`<Other devices. Other images — a busy scene and an empty wall are not the same work.
+Thermal throttling over sustained use. Low-battery states.>`
+
+`<Say what a reader should not conclude from this report.>`

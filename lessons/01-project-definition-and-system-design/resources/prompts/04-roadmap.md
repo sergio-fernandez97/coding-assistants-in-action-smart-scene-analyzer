@@ -16,9 +16,10 @@ Read first: docs/architecture.md, docs/requirements.md, docs/decisions/, CLAUDE.
 The phases are fixed:
   Week 2 — Dataset Engineering: dataset versions, preprocessing, augmentation
   Week 3 — Model Development: YOLO11 fine-tuning, Depth Anything V2, MLflow
-  Week 4 — Backend Engineering: FastAPI, model fusion, Docker, tests
-  Week 5 — Mobile client and cloud delivery: Expo app, Azure Container Apps,
-           client-observed latency
+  Week 4 — Export, quantization and parity: model fusion, TFLite and ExecuTorch
+           export, numerical parity against the PyTorch reference, tests
+  Week 5 — On-device inference and mobile delivery: Expo development build,
+           two on-device runtimes, the artifact contract, device-vs-reference parity
   Week 6 — CI/CD/CT: GitHub Actions, continuous training, promotion logic
 
 For each phase produce:

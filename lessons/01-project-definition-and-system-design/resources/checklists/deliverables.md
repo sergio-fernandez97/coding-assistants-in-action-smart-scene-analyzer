@@ -25,6 +25,10 @@ Work top to bottom. The session is complete when every box is checked.
 ## Hooks
 
 - [ ] The `hooks` block in `.claude/settings.json` read, and each script opened
+- [ ] **`notify_done.py` observed running** — a desktop notification arrives at the end of
+      a turn, or the terminal bell does on a platform without a notification daemon
+- [ ] **A permission prompt also notified you** — the same script on the `Notification` event
+- [ ] You can say why `Stop` takes no `matcher` when `PreToolUse` does
 - [ ] **`format_python.py` observed running** — a badly formatted file came back formatted
 - [ ] **`units_guard.py` observed blocking** — a write containing "meters" was refused
 - [ ] You can say why `CLAUDE.md` saying "not metres" was not sufficient on its own
@@ -63,13 +67,13 @@ Work top to bottom. The session is complete when every box is checked.
 
 ## Environment
 
-- [ ] `docker build -t smart-scene-analyzer:dev .` succeeds
-- [ ] Final image size recorded: `__________` (compare in Lesson 04)
-- [ ] Runtime stage does **not** contain `torch`, `ultralytics`, or `mlflow`
-- [ ] `docker compose config` validates
-- [ ] `.github/workflows/ci.yml` runs lint before tests
-- [ ] No credential appears in any `ENV` or `ARG`:
-      `docker history --no-trunc smart-scene-analyzer:dev | grep -i -E 'api_key|secret|token'` returns nothing
+- [ ] `app/app.json` is valid JSON and names the native config plugins both ML runtimes need
+- [ ] `app/metro.config.js` includes **both** `tflite` and `pte` in `resolver.assetExts`
+- [ ] `git check-ignore -v app/ios app/android node_modules` prints a rule for **each**
+      (a path it says nothing about is a path that gets committed)
+- [ ] `.github/workflows/ci.yml` runs lint before tests, and has **no** build or deploy job
+- [ ] No credential is bound for the app bundle: `grep -rn "EXPO_PUBLIC" app/` returns
+      nothing, or only build flags
 
 ## Hygiene
 

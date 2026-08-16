@@ -122,7 +122,7 @@ platform, where NAS genuinely does produce the best model.
 | Reason | Detail |
 |---|---|
 | **Local training** | YOLO11 trains with `ultralytics`, on your machine, for zero credits. RF-DETR training in this ecosystem is a hosted operation |
-| **Weight access** | You need a `.pt` file to load into FastAPI in Lesson 04. On the free Public plan **weight downloads are a Core-plan feature** — a hosted-trained model is reachable only through the hosted API |
+| **Weight access** | You need a `.pt` file to **export to an on-device artifact** in Lesson 04. On the free Public plan **weight downloads are a Core-plan feature** — a hosted-trained model is reachable only through the hosted API, and an API you cannot download from is an API you cannot ship to a phone |
 | **Budget** | NAS costs 2 credits/hour, runs longer than a single fine-tune, and one upstream example produced **76 child models from 289 images**. It would consume this entire course several times over |
 | **Plan** | NAS requires Core or Growth. On the free plan `trainings_create` rejects it with `nas_not_available_for_plan` |
 
@@ -353,10 +353,16 @@ the actual afterwards.
 > weight downloads as a Core-plan differentiator. The hosted model exists, has metrics,
 > and is servable through Roboflow's API — but the `.pt` file is not yours.
 
-That is not a footnote; it decides Lesson 04's architecture. Your FastAPI service loads
-**local** weights, because those are the only weights you have. The hosted model becomes
-the thing you compare against over HTTP in Lesson 04 step 7, and the comparison is real
-precisely because you cannot collapse it into "just use the local file".
+That is not a footnote; it decides whether this project is possible at all. Lesson 04
+exports your checkpoint to a `.tflite` file that runs on the handset, and **you cannot
+export a checkpoint you cannot download.** A hosted-only model can be called over the
+network; it can never be put on a phone.
+
+Under the previous cloud architecture this constraint merely shaped a comparison. It is
+now load-bearing: the locally trained model is not the cheaper option, it is the only
+option that can ship. Keep the hosted run anyway — it is the evidence for that claim, and
+an architecture decision backed by a measurement you actually took is worth more than one
+backed by a rate card.
 
 **Do:** Note this in your ADR. A student six months from now on a Core plan should be able
 to see that this constraint was known and priced, not overlooked.
@@ -522,9 +528,14 @@ blind on two. Those need different responses, and the metric does not distinguis
 - ⚠️ **MLflow hosting beyond one machine** (step 3) — local SQLite is decided for now,
   but Lesson 06's CI needs to read runs it did not create. Revisit there.
 - ⚠️ **Weight downloads require the Core plan** (step 8) — sourced from
-  `roboflow:plans-and-pricing`, not confirmed on the platform. If it turns out free-tier
-  weight download is possible, Lesson 04's comparison becomes optional rather than
-  structural.
+  `roboflow:plans-and-pricing`, not confirmed on the platform. This is now a hard
+  dependency rather than a comparison detail: if free-tier weight download is genuinely
+  impossible, hosted training cannot produce a shippable artifact at all, and local
+  training is the only path through Lesson 04.
+- ⚠️ **The export toolchain is not installed by this lesson.** Lesson 04 owns export, and
+  its dependencies (`ultralytics` TFLite export, `optimum-executorch`) are not in
+  `pyproject.toml` yet. Confirm both install cleanly on a clean machine before a cohort —
+  they pull large, platform-sensitive trees.
 - ⚠️ **Whether `yolo11n` is sufficient for the taxonomy** — depends on the final class
   list and instance counts, which Lesson 02 left open. If small classes underperform,
   the first lever is data, not model size.
@@ -554,4 +565,4 @@ External:
 - [MLflow tracking](https://mlflow.org/docs/latest/tracking.html)
 
 **Previous:** [Lesson 02](../02-dataset-engineering/) ·
-**Next:** [Lesson 04 — Backend Engineering & Production APIs](../04-backend-engineering/)
+**Next:** [Lesson 04 — Export, Quantization & Numerical Parity](../04-backend-engineering/)

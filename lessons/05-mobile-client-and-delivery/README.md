@@ -1,563 +1,409 @@
-# Lesson 05 — Mobile Client & Cloud Delivery
+# Lesson 05 — On-Device Inference & Mobile Delivery
 
-> Notion Week 5. Estimated time: 4–5 hours.
+> Notion Week 5. Estimated time: 5–6 hours.
 
 ## Session goal
 
-Put the system in someone's hand. The service you built in Lesson 04 answers `curl`; by
-the end of this session it answers a phone, over the public internet, from an app you
-built for both iOS and Android.
+Put the system in someone's hand — and put the models in there with it. By the end of this
+session both models run on the phone, fused on the phone, with no network call anywhere on
+the inference path.
 
-The real subject is not the app. It is the **contract**. For four lessons the response
-schema has been a Pydantic class that one codebase produced and the same codebase
-consumed — which is not a contract, it is a convention. This is the session where a second
-codebase starts depending on it, written in a different language, shipped separately, and
-unable to be fixed by editing the file next to it. Every naming decision you made in
-Lesson 04 either holds up here or shows itself.
+The real subject is not the app. It is the **artifact contract**. For four lessons the
+models were things you called: a function, then a process, then a service. Here they become
+*files you ship*, and a file cannot be asked what shape it expects. The app assumes an
+input tensor layout, an output tensor order, a label ordering, and a pair of normalization
+constants. Nothing validates any of them at runtime. Get one wrong and you get boxes —
+confident, well-formed, in the wrong place, or named after the wrong class.
 
-Two things surface that no amount of local testing produces. The first is **the network**:
-Lesson 04 measured latency on loopback, which is a measurement of your CPU, not of your
-system. The second is **real photographs** — sideways, eight megabytes, taken in a room
-your dataset has never seen.
+Two things surface that no amount of server-side testing produces. The first is
+**quantization**: an int8 model is a different model, and "it still runs" is not the same
+claim as "it still works". The second is **the device**: memory that a laptop never
+noticed, a cold model load the user watches, and a Neural Engine that the simulator does
+not have.
 
 ## Prerequisites
 
-- [ ] Lesson 04 complete: `docker compose up -d` serves `POST /analyze` and `GET /health`
-- [ ] `uv run pytest` passes with no GPU and no weights on disk
-- [ ] `docs/deployment-comparison.md` exists, with local in-process at **0 credits/image**
+- [ ] Lesson 04 complete: both models exported, `app/assets/models/` populated
+- [ ] `uv run pytest` passes with no GPU and no weights on disk, **including export parity**
+- [ ] `docs/artifact-budget.md` exists, with the two model file sizes recorded
+- [ ] The model card's **Exported artifact** table is filled in — you will be reading its
+      input shape, label order, and normalization constants all session
 - [ ] Node.js 20+ — `node --version`
-- [ ] Azure CLI — `az --version`, then `az login`
-- [ ] An Azure subscription you are allowed to create resources in
-- [ ] A phone with **Expo Go** installed (iOS App Store or Google Play), on the same
-      Wi-Fi as your machine
+- [ ] **Android Studio** with an API 33+ (Android 13+) emulator — `adb --version`
+- [ ] **Xcode 16+** with an iOS 17+ runtime, if you are on a Mac — `xcodebuild -version`
 - [ ] `docs/credit-budget.md` reconciled
 
-> **Roboflow credits needed: zero.** Detection runs on your own weights inside the
-> container, so no request from the phone touches a metered endpoint. If your service
-> still calls Roboflow's hosted API on the request path, stop and fix that first — a
-> camera app makes requests at a rate a `curl` loop never did, and at 1 credit per 500
-> execution-seconds a demo afternoon is a meaningful fraction of the budget.
+> **Roboflow credits needed: zero** — and this time it is structural rather than
+> disciplined. The app ships with no API key and no network code on the inference path, so
+> a metered call is not something you must remember to avoid. It is something you would
+> have to add.
 
-> **You do not need a Mac, an Apple Developer account, or an Android build.** Expo Go runs
-> the app on both platforms from the same development server. Standalone builds are
-> step 10 and they are optional.
+> ⚠️ **You need Xcode, Android Studio, or both.** Earlier versions of this course ran the
+> client in Expo Go specifically so that no student needed a Mac. On-device inference makes
+> that impossible: both ML runtimes are native modules, and Expo Go cannot load native
+> modules. **Android-only is a complete path** — the emulator is free, its camera works,
+> and nothing in this lesson requires iOS. If you have a Mac, do both.
 
 ## Deliverables
 
 - [ ] `.claude/agents/mobile.md` in use
-- [ ] `docs/azure-budget.md` filled in, with a subscription budget alert configured
-- [ ] The service running on Azure Container Apps at a public HTTPS URL, `--min-replicas 0`
-- [ ] `app/` — an Expo client running on a real iOS **and** a real Android device
-- [ ] `app/src/api/types.ts` **generated** from the service's OpenAPI document
+- [ ] `docs/artifact-budget.md` filled in: model sizes, install size, peak memory
+- [ ] `app/` — an Expo **development build** running on the iOS Simulator and/or the
+      Android Emulator
+- [ ] Both models loading and running on-device from `app/assets/models/`
+- [ ] `app/src/fusion/` — the TypeScript port, passing the **same fixtures** as the Python
+      reference
 - [ ] `app/src/geometry/toScreen.ts` — one named function, both coordinate spaces in its
       signature, with tests
-- [ ] `docs/latency-report.md` — client-observed p95 on Wi-Fi and on cellular, with the
-      link characteristics stated
+- [ ] `docs/latency-report.md` — on-device cold load and per-inference timings, with the
+      device and the build type stated
+- [ ] `docs/parity-report.md` — the same image through the app and through Python
 - [ ] `docs/requirements.md` N1 filled in, no longer a placeholder
-- [ ] An ADR revisiting on-device versus cloud, now that a real client exists
-- [ ] Both ledgers reconciled
+- [ ] Both budgets reconciled
 
 Verify with [`resources/checklists/deliverables.md`](resources/checklists/deliverables.md).
-
----
 
 ## Step-by-step
 
 ### 1. Meet the Mobile Engineer
 
-**Do:** Read the role definition.
+**Do:** Read the role definition. It changed shape in this architecture, and the change is
+the point.
 
 ```bash
 $EDITOR .claude/agents/mobile.md
 ```
 
-**Expected result:** you can state its two hard constraints without looking.
+The role used to own presentation: capture a photo, upload it, draw what came back. It now
+owns **numerics**. The models run inside its process, the depth tensor is reduced to a
+number by its code, and no server is going to catch a mistake in it.
 
-They are worth pausing on, because both are about authority rather than capability:
-
-| Constraint | Why it is drawn there |
+| Constraint | Why it is there |
 |---|---|
-| **Does not edit `src/`** | The client adapts to the contract. A mobile engineer who can edit the server fixes a naming disagreement by renaming the server field, and the disagreement — which was information — disappears |
-| **Never prints a distance** | The `units_guard` hook enforces this in `src/`. It does not watch `app/`. The rule is the same; the enforcement is not |
+| **Never claim metric depth** | Unchanged since Lesson 01 — but `units_guard` now blocks it in `app/*.ts` too, because this is where the number is *computed* rather than merely displayed |
+| **Do not re-export the models** | The ML Engineer owns the artifacts. When the device disagrees with the reference, that disagreement is the finding — a role that could silently re-export would resolve it by changing whichever side was easier to reach |
 
-That second row is the more interesting one. Every previous lesson had the harness behind
-the rule. Here you cross a boundary the hooks do not reach, and the rule has to survive on
-its own. Notice whether it does.
+**Expected result:** you can state both constraints without looking, and say which hook
+enforces which.
 
 ---
 
-### 2. Set the Azure budget before creating anything
+### 2. Set the artifact budget before you bundle anything
 
-**This step comes before any resource, and the ordering is the same lesson as Lesson 02
-step 4.** But the mechanism is different, and the difference is the point.
-
-**Do:** Copy the Azure ledger into your project and read it.
+**Do:** Copy the budget into your project and read it.
 
 ```bash
-cp <path-to-course-repo>/template/docs/azure-budget.md docs/azure-budget.md
-$EDITOR docs/azure-budget.md
+cp <path-to-course-repo>/template/docs/artifact-budget.md docs/artifact-budget.md
+$EDITOR docs/artifact-budget.md
 ```
 
-| | Roboflow | Azure |
+This is the course's third kind of constraint, and it behaves like neither of the others:
+
+| | Roboflow credits | The artifact budget |
 |---|---|---|
-| Model | Prepaid credits | Postpaid meter with a monthly free grant |
-| Exceeding it | Operations **fail** | Operations **succeed, and you are invoiced** |
-| You find out | Immediately | At the end of the month |
+| How you exceed it | Spend more than you have | Ship a file that is too big |
+| What happens | The operation **fails** — `credit_gate.py` refuses | The build fails, or the app crashes **on somebody else's device** |
+| Who tells you | A hook, before the money moves | Nobody. A bug report, weeks later |
 
-A hard cap is a harness that costs nothing to build — it enforces itself. A meter is not.
-Nothing in Azure will stop you the way `credit_gate.py` stops a Roboflow call, and there
-is no hook to write because the spend happens on Microsoft's side of the wire, not on a
-tool call you can intercept.
+**Do:** Record the two model sizes now, before either is bundled.
 
-The closest available substitute is a budget alert. It does not block anything; it emails
-you. Set one anyway, and notice that you are accepting a weaker guarantee than you have
-had for three lessons.
-
-**Do:** Create a subscription budget with an alert in the portal under
-**Cost Management → Budgets**, or read the current CLI syntax with `az consumption budget create --help`.
-
-**The free grant** — verified against
-[learn.microsoft.com/azure/container-apps/billing](https://learn.microsoft.com/en-us/azure/container-apps/billing)
-on 2026-08-11. Re-check it; Azure revises these:
-
-| Meter | Free per subscription per calendar month |
-|---|---|
-| vCPU | 180,000 vCPU-seconds |
-| Memory | 360,000 GiB-seconds |
-| HTTP requests | 2,000,000 |
-
-At the container size this service needs, 1.0 vCPU and 2.0 GiB, both compute meters bind
-at the same place:
-
-```
-180,000 vCPU-s ÷ 1.0 vCPU = 180,000 s = 50 hours
-360,000 GiB-s  ÷ 2.0 GiB  = 180,000 s = 50 hours
-
-50 hours of replica runtime per month, free.
+```bash
+ls -l app/assets/models/
 ```
 
-Fifty hours is not tight — a replica runs while a request is in flight and for the
-cool-down after it, not while your phone is in your pocket. It becomes tight in exactly
-one way, and it is the thing to watch for the rest of this lesson:
+**Expected result:** `docs/artifact-budget.md` has both artifact sizes with today's date,
+and you have written down a target install size you have not yet measured.
 
-> ⛔ **A revision left at `--min-replicas 1` runs continuously and spends fifty hours in
-> just over two days.** This is the Roboflow dedicated-deployment mistake wearing a
-> different costume: billing for existing rather than for working. You denied that one in
-> `settings.json`. You cannot deny this one — you can only check it.
-
-**Expected result:** `docs/azure-budget.md` has your subscription, a budget alert exists,
-and you can state what the app must never be configured with.
+> **This is the step where the two-runtime decision becomes a number.** This project ships
+> `react-native-fast-tflite` *and* `react-native-executorch` — two sets of native
+> libraries, because detection went to TFLite and depth went to ExecuTorch. That was a
+> deliberate choice with a cost, and this is where the cost stops being theoretical.
 
 ---
 
-### 3. Deploy the service to Azure
+### 3. Build the development build and bring up a simulator
 
-**Do:** Use [`resources/prompts/01-azure-deploy.md`](resources/prompts/01-azure-deploy.md)
-with the `devops` agent.
-
-The Dockerfile from Lesson 04 is the deliverable being deployed. Nothing about the service
-changes in this step — if you find yourself editing `src/`, the deployment is telling you
-something about Lesson 04's containerization that is worth stopping to hear.
+**Do:** Scaffold the app and install the runtimes.
 
 ```bash
-az login
-az upgrade
-az extension add --name containerapp --upgrade --allow-preview true
-az provider register --namespace Microsoft.App
-az provider register --namespace Microsoft.OperationalInsights
-```
-
-```bash
-export RESOURCE_GROUP="rg-smart-scene-analyzer"
-export LOCATION="<your-region>"          # e.g. westeurope, eastus
-export ENVIRONMENT="env-smart-scene-analyzer"
-export APP_NAME="smart-scene-analyzer"
-
-az group create --name $RESOURCE_GROUP --location $LOCATION
-
-az containerapp up \
-  --name $APP_NAME \
-  --resource-group $RESOURCE_GROUP \
-  --location $LOCATION \
-  --environment $ENVIRONMENT \
-  --source .
-```
-
-`az containerapp up --source .` builds the image in Azure from your Dockerfile, pushes it
-to a registry it creates, makes the environment, and deploys — one command covering what
-would otherwise be five. The `EXPOSE` line in your Dockerfile sets the ingress target
-port. If it is not picked up, add `--target-port 8000 --ingress external`.
-
-**Then size it and pin the scale floor**, which `up` does not do for you:
-
-```bash
-az containerapp update \
-  --name $APP_NAME --resource-group $RESOURCE_GROUP \
-  --cpu 1.0 --memory 2.0Gi \
-  --min-replicas 0 --max-replicas 1
-```
-
-**Do:** Verify both, rather than assuming.
-
-```bash
-az containerapp show -n $APP_NAME -g $RESOURCE_GROUP \
-  --query "properties.template.scale" -o json
-
-export API_URL="https://$(az containerapp show -n $APP_NAME -g $RESOURCE_GROUP \
-  --query properties.configuration.ingress.fqdn -o tsv)"
-echo $API_URL
-
-curl -sf $API_URL/health | jq
-```
-
-**Expected result:** `minReplicas` is `0`, `/health` returns 200 over HTTPS, and the
-registry is recorded in `docs/azure-budget.md`.
-
-> **The first request after an idle period is slow** — the replica is cold, and this
-> container loads a depth model at startup. That is not a bug and it is not the latency
-> you will report in step 8; it is the cost of paying nothing to sit idle. Measure it once
-> so you know what it is, and say so in the report.
-
----
-
-### 4. Generate the client's types from the service
-
-**Do:** Export the OpenAPI document and generate TypeScript from it.
-
-```bash
-mkdir -p app
-uv run python -c "import json; from smart_scene_analyzer.api import app; print(json.dumps(app.openapi()))" > app/openapi.json
-
-cd app && npx openapi-typescript openapi.json -o src/api/types.ts
-```
-
-**Expected result:** `app/src/api/types.ts` exists and contains a type for the analyze
-response, including `relative_depth` and the box field, with the descriptions you wrote in
-Lesson 04 carried through as comments.
-
-**This is the most important step in the lesson and it takes thirty seconds.** Read the
-generated file before moving on.
-
-The alternative — a mobile engineer reading the API docs and writing a matching interface
-by hand — produces a client that is correct on the day it is written and silently wrong
-afterwards. Rename a field on the server and the hand-written client still compiles, still
-typechecks, still passes its tests, and is now wrong about every response it receives.
-Nothing fails. That is the whole problem: the failure is invisible on both sides.
-
-Your generated file is not immune, only cheaper to fix. The `contract_drift` hook
-(`.claude/hooks/contract_drift.py`) fires after any edit to `schemas.py` and tells you the
-types are stale. It does not regenerate them — a hook that rewrites your files mid-edit is
-worse than one that tells you.
-
-**Do:** Prove the hook works. Ask an agent to change a field description in
-`src/smart_scene_analyzer/schemas.py`, and watch for the drift warning.
-
-```
-Add a sentence to the relative_depth field description in schemas.py noting that
-values are comparable only within a single response.
-```
-
-**Expected result:** the edit succeeds and the hook reports `CONTRACT DRIFT`. Regenerate,
-and confirm the diff in `types.ts` is exactly the comment you changed.
-
-> Note what the hook did **not** do. It did not block — editing a schema is legitimate
-> work. Compare that against `units_guard.py`, which does block. The difference is whether
-> the action is wrong or merely has a consequence, and choosing correctly between the two
-> is most of hook design.
-
----
-
-### 5. Build the client
-
-**Do:** Use [`resources/prompts/02-client-scaffold.md`](resources/prompts/02-client-scaffold.md)
-with the `mobile` agent.
-
-```bash
-cd app
+mkdir -p app && cd app
 npx create-expo-app@latest . --template blank-typescript
-npx expo install expo-camera expo-image-manipulator
+npx expo install react-native-fast-tflite react-native-nitro-modules \
+                react-native-executorch react-native-executorch-expo-resource-fetcher \
+                expo-file-system expo-asset expo-image-picker
 ```
 
-Point the client at the deployed service. During development you may prefer your local
-container, in which case use your machine's **LAN address** — on a phone, `localhost` is
-the phone.
+**Do:** Tell Metro that model files are assets. Without this the bundler silently omits
+them and the app fails at load with a missing-file error that names nothing useful.
+
+```js
+// app/metro.config.js
+const { getDefaultConfig } = require('expo/metro-config');
+const config = getDefaultConfig(__dirname);
+config.resolver.assetExts.push('tflite', 'pte', 'bin');
+module.exports = config;
+```
+
+**Do:** Build it. This compiles native code and takes minutes — the first time only.
 
 ```bash
-echo "EXPO_PUBLIC_API_BASE_URL=$API_URL" >> .env
-npx expo start
+npx expo run:android        # to a running API 33+ emulator
+npx expo run:ios            # to the iOS Simulator (Mac only)
 ```
 
-Scan the QR code with Expo Go on your phone.
+**Expected result:** the app launches on at least one simulator and hot-reloads a text
+change without rebuilding.
 
-**Expected result:** the app runs on a real device, asks for camera permission, takes a
-photo, uploads it, and displays the raw JSON response. Boxes come in step 6 — get the
-round trip working first, because a failure now is a networking failure and a failure
-later is a geometry failure, and you want to have already ruled one out.
+> **Why a still image, not the live camera.** The iOS Simulator has no camera at all — not
+> a poor one, none — and the free workarounds do not cover it. Feeding inference from a
+> bundled asset or `expo-image-picker` runs identically on both simulators, costs nothing,
+> **and is deterministic**, which is exactly what step 9's parity check needs. Live camera
+> capture via `react-native-vision-camera` is the real-device path and is step 10.
 
-> **Anything prefixed `EXPO_PUBLIC_` is compiled into the app bundle** and readable by
-> anyone who installs it. An endpoint belongs there. A key never does. This is the same
-> rule as `.env` never being committed, applied to a distribution channel that did not
-> exist until this lesson.
+> ⚠️ **Simulator inference is unverified.** Whether both runtimes execute in the iOS
+> Simulator — which has no Neural Engine — and how far simulator latency diverges from a
+> real handset, has not been confirmed on a clean machine. If a runtime refuses to load in
+> the simulator, use the Android Emulator and say so in your report. Do not quote simulator
+> timings as device timings under any circumstances.
 
 ---
 
-### 6. Draw the boxes — the fourth coordinate space
+### 4. Bundle the models and watch the drift hook fire
 
-**Do:** Use [`resources/prompts/03-overlay-geometry.md`](resources/prompts/03-overlay-geometry.md).
+**Do:** Load both artifacts and confirm they initialize. Use
+[`resources/prompts/01-model-loading.md`](resources/prompts/01-model-loading.md) with the
+`mobile` agent.
 
-Lesson 04's fusion layer reconciled three coordinate spaces: the client image, YOLO's
-640×640 letterboxed input, and the depth model's own resolution. That was the lesson's
-hardest bug, and the fix was to name every space explicitly.
+**Do:** Prove the hook works. Touch the export config and watch what happens.
 
-Here is the fourth, and it has a property none of the others had:
+```bash
+touch scripts/export.py
+```
+
+**Expected result:** `artifact_drift.py` warns that the bundled artifacts are older than
+what produced them — and does **not** block.
+
+This is the same warn-versus-block distinction Lesson 04 raised, pointed at the seam that
+exists now:
+
+| Hook | Behaviour | Why |
+|---|---|---|
+| `units_guard.py` | **Blocks** | Writing `depth_meters` is not legitimate work. There is no version of it that is correct |
+| `artifact_drift.py` | **Warns** | Retraining and editing an export config are entirely legitimate. Re-exporting mid-edit would cost minutes of quantization to fix a problem you may be two keystrokes from causing again |
+
+Choosing correctly between *wrong* and *has a consequence* is most of hook design.
+
+---
+
+### 5. Detection on-device
+
+**Do:** Use [`resources/prompts/02-detection-decode.md`](resources/prompts/02-detection-decode.md).
+
+The runtime hands you a raw output tensor. Everything a server used to do for you —
+decoding, thresholding, non-maximum suppression — is now yours, in TypeScript.
+
+> ⚠️ **Read the real output layout before writing the decoder.** Open the model card's
+> **Exported artifact** table, and if it disagrees with what the tensor actually contains,
+> trust the tensor and fix the card. YOLO's exported shape and whether its coordinates are
+> normalized or in input-pixel space are exactly the details that change between versions,
+> and a decoder written from memory produces boxes that are plausibly wrong.
+
+**Expected result:** a bundled test image produces detections whose classes and rough
+positions you can sanity-check by eye.
+
+---
+
+### 6. Depth on-device
+
+**Do:** Use [`resources/prompts/03-depth-inference.md`](resources/prompts/03-depth-inference.md).
+
+Depth has no prebuilt hook in `react-native-executorch` — there is no `useDepthEstimation`.
+You use the generic `ExecutorchModule`, which loads a `.pte` and runs
+`forward(TensorPtr[]) → TensorPtr[]`. Preprocessing and postprocessing are yours.
+
+That is more work than the detection path and it is the honest shape of the problem: the
+library ships hooks for the tasks it has models for, and this is not one of them.
+
+**Expected result:** a depth map whose values rank a foreground object nearer than the wall
+behind it. **Ordering is the only property you can check**, because the output has no unit
+and no scale — which is the whole reason `units_guard` exists.
+
+---
+
+### 7. Port the fusion layer, and keep it honest
+
+**Do:** Use [`resources/prompts/04-fusion-port.md`](resources/prompts/04-fusion-port.md).
+
+`src/smart_scene_analyzer/fusion.py` is the reference. `app/src/fusion/` must reproduce it
+**on the same fixtures** — median reduction, every degenerate box case, no `NaN`.
+
+Two implementations of one algorithm is a standing correctness risk, and the shared fixture
+set is the only thing that makes it survivable.
+
+> **If the port and the reference disagree, that disagreement is the finding.** Do not edit
+> the fixtures until both pass. A fixture adjusted to make two implementations agree
+> destroys the only signal this arrangement produces.
+
+**Expected result:** the same fixtures pass under `uv run pytest` and under `npm test`.
+
+---
+
+### 8. Coordinate spaces — three, not four
+
+**Do:** Use [`resources/prompts/05-overlay-geometry.md`](resources/prompts/05-overlay-geometry.md).
 
 | Space | Units | Notes |
 |---|---|---|
-| Camera sensor | pixels | Whatever the device produces |
-| **Uploaded image** | pixels | What the server sees — **already downscaled by step 7** |
-| Server response | pixels, `xyxy`, absolute | Relative to the *uploaded* image |
-| **Device screen** | density-independent points | Not pixels. Varies per device |
+| Source image | pixels | What the picker or camera gave you |
+| **Model input** | pixels | Letterboxed to a square. Has a scale factor **and an offset** — the offset is what people forget |
+| Screen | density-independent points | Not pixels. Varies per device |
 
-The trap is that both of the last two are numbers in the low hundreds, so a wrong
-conversion produces boxes that are plausibly placed and consistently wrong. Exactly the
-Lesson 04 failure mode, one process boundary later.
+The upload space is gone; the letterbox space replaced it. That is not simpler, it is
+differently shaped: an uploaded image was uniformly scaled, and a letterboxed one has bars.
+A transform that ignores the offset is correct exactly when the image is already square.
 
-**Do:** Write the transform as **one named function** in `app/src/geometry/toScreen.ts`,
-with both spaces in its signature, and unit-test it against hand-computed values.
+**Do:** Write it as **one named function** in `app/src/geometry/toScreen.ts` with both
+spaces in its signature, and unit-test it against hand-computed values.
 
-```ts
-export function imagePixelsToScreenPoints(
-  box: BoxXYXYImagePixels,
-  uploadedImageSize: { width: number; height: number },
-  screenViewSize: { width: number; height: number },
-): BoxXYXYScreenPoints
-```
-
-**Expected result:** boxes land on the objects, at more than one aspect ratio. Test in
-portrait and landscape — a transform that assumes one of them works perfectly until it
-is rotated.
+**Expected result:** boxes land on objects at more than one aspect ratio. Test with a
+portrait image and a landscape one.
 
 ---
 
-### 7. Prepare the image before uploading it
+### 9. Measure on-device, and separate the phases
 
-**Do:** Use [`resources/prompts/04-upload-preparation.md`](resources/prompts/04-upload-preparation.md).
-
-Four things go wrong here, and all four are invisible until a real camera is involved:
-
-| Problem | Symptom | Fix |
-|---|---|---|
-| **Photo size** | Your Lesson 04 413 fires immediately | Resize to the server's expected long edge before upload |
-| **EXIF orientation** | Detections are confidently sideways | Apply the orientation, then strip the tag |
-| **CORS** | Works in Expo Go, fails in a browser | Add explicit origins to the FastAPI middleware — never `*` |
-| **Upload time** | Latency far worse than Lesson 04 measured | See step 8 |
-
-The size one is the one to think about rather than just fix. A phone photo is several
-megabytes; the model receives 640×640. Every byte above what the model consumes is time
-the user waits for nothing. Resizing on device is not an optimization, it is removing work
-that was never needed — and it is the single largest latency win available in this lesson.
-
-**Expected result:** a full-resolution photo from your phone's camera returns a correct
-response, in the same time as a small one, in both orientations.
-
----
-
-### 8. Measure latency with the network in it
-
-**Do:** Use [`resources/prompts/05-latency-measurement.md`](resources/prompts/05-latency-measurement.md),
-and copy the template.
+**Do:** Use [`resources/prompts/06-latency-measurement.md`](resources/prompts/06-latency-measurement.md), then
 
 ```bash
 cp <path-to-course-repo>/lessons/05-mobile-client-and-delivery/resources/templates/latency-report.md docs/latency-report.md
 ```
 
-`docs/requirements.md` N1 has been a placeholder since Lesson 01, and
-`docs/roadmap.md` flags exactly why: it is written as *client-observed* with **no link
-characteristics specified**. That is not a requirement anyone can pass or fail. You now
-have the only instrument that can settle it.
+Measure five phases separately, over at least 20 runs:
 
-**Measure capture → rendered**, on the device, over each link. Report p50 and p95 across at
-least 20 requests, with the stage breakdown: on-device preparation, upload, server
-processing (from the response), download, render.
+| Phase | Why separately |
+|---|---|
+| **Cold model load** | Once per launch, seconds long, and the user watches it. It is not part of the per-image distribution and averaging it in hides both numbers |
+| Preprocess | Decode, letterbox, normalize — pure CPU, and often larger than people expect |
+| Detection | |
+| Depth | The ViT is usually the expensive one. Knowing *which* model dominates is what tells you where to spend effort |
+| Fusion + render | |
 
-Do the arithmetic before you look at the numbers, so you know what to expect:
+**Do:** Also record peak memory with both models loaded. That figure decides which phones
+are excluded, and it is the one nobody measures until a crash report arrives.
 
-```
-A 250 KB upload at 5 Mbit/s  =  250 × 8 / 5000  ≈  400 ms
-                                 ...before the server has seen a single byte
-```
+**Expected result:** `docs/latency-report.md` with p50/p95 per phase, the device or
+simulator named, and the build type stated. Then fill in N1 in `docs/requirements.md`.
 
-**Expected result:** `docs/latency-report.md` with p50/p95 on Wi-Fi and on cellular,
-each stating the measured link speed, plus the cold-start figure reported separately.
-Then rewrite N1 in `docs/requirements.md` to name its link — or restate it as
-server-observed and give transit its own budget. Either is defensible. Leaving it
-ambiguous is not.
-
-> Compare against Lesson 04's loopback number. That measurement was not wrong; it was
-> answering a different question — how fast the code is, not how fast the product is.
-> Both belong in the report, labelled.
+> **Simulator numbers are not device numbers.** The iOS Simulator runs on your Mac's CPU
+> and has no Neural Engine. Report them in separate tables or not at all.
 
 ---
 
-### 9. Revisit the on-device decision
+### 10. Parity — the device against the reference
+
+**Do:** Use [`resources/prompts/07-parity-check.md`](resources/prompts/07-parity-check.md), then
+
+```bash
+cp <path-to-course-repo>/lessons/05-mobile-client-and-delivery/resources/templates/parity-report.md docs/parity-report.md
+```
+
+Run **the same bundled image** through the app and through `src/`. Compare the classes, the
+boxes, and the depth *ordering*.
+
+This is the strongest artifact in the lesson, and it exists only because the model moved.
+When the two disagree you have four candidates, and telling them apart is the skill:
+
+| Candidate | Typical signature |
+|---|---|
+| **Preprocessing** | Boxes systematically offset or scaled — a letterbox or normalization mismatch |
+| **Decoding** | Boxes plausible but classes wrong, or confidences oddly distributed — label order or tensor order |
+| **Quantization** | One or two classes degraded, everything else fine |
+| **The port** | Detections identical, depth values differ — fusion, not inference |
+
+**Expected result:** `docs/parity-report.md` naming which of the four you found, or stating
+the tolerance within which they agree.
+
+---
+
+### 11. Optional — the live camera, on a real device
+
+**Do:** Add `react-native-vision-camera` and drive inference from frames rather than a
+picked image.
+
+This is optional and it is real-device work: the iOS Simulator has no camera, and the
+Android Emulator's VirtualScene is a rendered room rather than a scene your model has
+opinions about. Everything before this step stands without it.
+
+---
+
+### 12. Reconcile and commit
 
 **Do:**
 
-```
-/adr on-device inference, revisited with a real client
-```
-
-ADR 0001 chose cloud inference, and its own *Revisit when* clause named this moment:
-**a real mobile client and a named target device.** Both now exist. This is not a
-formality — an ADR with a trigger condition that fires and is never revisited is a decision
-nobody is making any more.
-
-The honest answer is very likely still cloud. Write it anyway, and write it with what you
-now know instead of what you assumed:
-
-- The measured client-observed latency, and how much of it is transit rather than compute
-- The cold-start cost of scale-to-zero, and what `--min-replicas 1` would cost to remove it
-- That a model update is currently a deploy, and on-device would make it an app-store
-  release
-- What would actually change the decision — an offline requirement, a privacy requirement
-  that image bytes never leave the device, a latency target transit alone cannot meet
-
-**Expected result:** an ADR whose Context contains measurements from step 8, superseding
-or amending ADR 0001 rather than sitting beside it.
-
----
-
-### 10. Optional — a standalone build
-
-Expo Go is enough for this course and for the deliverables above. If you want an installable
-app:
-
-```bash
-npm install -g eas-cli
-eas login
-eas build --platform android --profile preview
-```
-
-Android produces an installable `.apk` from EAS's free tier. **iOS is different** — a
-device build requires an Apple Developer Program membership (paid, annual) and
-distribution goes through TestFlight or the App Store. That is a real cost and a real
-review queue, and it is why this course runs on Expo Go.
-
-Record what you did or did not do and why. "We did not build for iOS because it requires a
-paid developer account" is a project constraint worth writing down, not a gap.
-
----
-
-### 11. Reconcile and commit
-
-**Do:**
-
-1. **Roboflow:** the ledger should be unchanged. Lesson 05 spends nothing. If it moved,
-   something on the request path is calling a metered endpoint — find it.
-2. **Azure:** Cost Management → Cost analysis. Record the metered cost in
-   `docs/azure-budget.md`.
-3. **Confirm the scale floor one more time.** This is the check worth repeating because
-   it is the only one whose failure is silent and cumulative:
-
-```bash
-az containerapp show -n $APP_NAME -g $RESOURCE_GROUP \
-  --query "properties.template.scale.minReplicas"
-```
+1. Confirm the Roboflow ledger is **unchanged** — this lesson spends zero.
+2. Record final artifact and install sizes in `docs/artifact-budget.md`.
+3. Run everything:
 
 ```bash
 uv run ruff check . && uv run mypy src && uv run pytest
-cd app && npm run lint 2>/dev/null; npx tsc --noEmit; cd ..
-
-git status          # confirm: no node_modules/, no .env, no app/openapi.json
-git add -A
-git commit -m "Lesson 05: Expo client, Azure deployment, client-observed latency"
-git push
+cd app && npx tsc --noEmit && npm test; cd ..
+git status   # confirm: no node_modules/, no *.tflite, no *.pte, no app/ios/, no app/android/
 ```
 
----
+**Expected result:** both suites green, and a `git status` containing no build outputs.
 
 ## Verification
 
-Work through
-[`resources/checklists/deliverables.md`](resources/checklists/deliverables.md).
+- [ ] The app launches on a simulator and runs both models from bundled artifacts
+- [ ] `artifact_drift.py` was **observed** warning after a real export-config edit
+- [ ] `units_guard.py` was **observed** blocking a `depth_meters` write to a `.ts` file
+- [ ] The TypeScript and Python fusion suites pass the same fixtures
+- [ ] Boxes land correctly in portrait **and** landscape
+- [ ] Zero detections renders as a success, distinguishable from "model failed to load"
+- [ ] Peak memory with both models loaded is recorded
+- [ ] Cold load is reported separately from per-inference latency
+- [ ] Simulator and device figures are never mixed in one table
+
+The manual units check, now a backstop rather than the only defence:
 
 ```bash
-# The service is reachable and cheap
-curl -sf $API_URL/health | jq
-az containerapp show -n $APP_NAME -g $RESOURCE_GROUP \
-  --query "properties.template.scale.minReplicas"        # must be 0
-
-# The client typechecks against the generated contract
-cd app && npx tsc --noEmit
-
-# The types are not stale
-cd .. && uv run python -c "import json; from smart_scene_analyzer.api import app; print(json.dumps(app.openapi()))" > /tmp/openapi-check.json
-diff <(jq -S . app/openapi.json) <(jq -S . /tmp/openapi-check.json) && echo "contract in sync"
-
-# Nothing leaked
-git status --porcelain | grep -E 'node_modules|\.env$|openapi\.json' && echo "LEAK" || echo "clean"
+grep -riE 'meter|metre|\bcm\b|\bmm\b|distance|away|feet|inches' app/src/
 ```
 
-The check that matters most, and which no command performs — the `units_guard` hook covers
-`src/` and does not reach here:
+Review it hit by hit. `units_guard` catches the identifiers; it does not catch prose that
+separates a unit from its noun — "roughly 2 m away" passes the hook and fails this grep.
+That gap is known and recorded in `TODO.md`.
 
-```bash
-grep -riE 'meter|metre|\bcm\b|\bmm\b|distance|away|feet|inches' app/src/ | grep -v types.ts
-```
-
-**Read every hit.** A comment is fine. A variable name is a smell. A string that reaches
-the screen is a bug — the system cannot produce a distance, and an interface that displays
-one is making a claim about the physical world on the strength of a number that has no
-scale. Four lessons of discipline about this end at the one place a user can actually read
-it.
-
-Then, on a real device:
-
-- Boxes land on objects in portrait **and** landscape
-- Nearer objects are shaded or ordered as nearer, and nothing shows a unit
-- A photo with no recognizable objects shows an empty result, not an error
-- Airplane mode shows a network error, distinct from a timeout, distinct from empty results
-- The first request after an idle hour is slow, and the app says something rather than
-  appearing frozen
-
-The qualitative check, and the one worth the most: **take the app somewhere your dataset
-has never been.** SUN RGB-D and NYU are indoor scenes captured with particular sensors in
-particular rooms. Your kitchen at night is out of distribution, and thirty seconds of that
-tells you more about what you have built than the entire test suite.
-
----
+**And the check no list can make:** take the app somewhere your dataset has never been, and
+turn off the network first. The second half is new, and it should be uneventful — that it
+is uneventful is the entire point of this architecture.
 
 ## Open items
 
-- ⚠️ **Azure account per student** — free trial, Azure for Students, or a shared instructor
-  subscription, and who pays on overrun. The free grant is **per subscription**, so a
-  shared subscription shares one grant across the whole cohort, which is a materially
-  different design.
-- ⚠️ **Azure Container Registry is not covered by the Container Apps free grant.** Basic
-  tier bills a fixed daily rate whether or not you push. Read the current figure from the
-  ACR pricing page and record it in `docs/azure-budget.md` before creating the registry.
-- ⚠️ **iOS standalone distribution** (step 10) requires a paid Apple Developer Program
-  membership. The course runs on Expo Go for this reason. Confirm current Expo Go SDK
-  support before a cohort.
-- ⚠️ **N1's link characteristics** — this lesson provides the measurement, but which form
-  N1 finally takes (client-observed with a pinned link, or server-observed with a separate
-  transit budget) is a requirements decision, not a measurement.
-- ⚠️ **MLflow in CI** — carried from Lessons 03 and 04, resolved in Lesson 06.
+- ⚠️ **Simulator inference viability** (step 3) — whether both runtimes execute in the iOS
+  Simulator, and how far simulator latency diverges from a handset. Unverified.
+- ⚠️ **Two native ML runtimes in one binary** (step 2) — measured app size and build
+  stability on both platforms. If the combined size proves unacceptable, consolidating onto
+  one runtime is the fix, and both directions are unverified.
+- ⚠️ **Xcode / Android Studio as per-student prerequisites** — this replaces the deleted
+  "no Mac required" promise and is a real accessibility regression. Android-only works;
+  whether that is an acceptable supported path for a cohort is not decided.
+- ⚠️ **The device floor** — `react-native-executorch` requires iOS 17+ / Android 13+. The
+  memory ceiling measured in step 9 will move that upward, and nobody has measured it.
+- ⚠️ **Instructor dry run** on one clean machine, both simulators, and one real device per
+  platform. The figures in this lesson are arithmetic and documentation, not measurement.
 
-All tracked in the course [`TODO.md`](../../TODO.md).
-
----
+All tracked in the course `TODO.md`.
 
 ## Further reading
 
-- [Azure Container Apps — billing](https://learn.microsoft.com/en-us/azure/container-apps/billing) —
-  the free grant, and why scale-to-zero is the whole design
-- [Azure Container Apps — `az containerapp up`](https://learn.microsoft.com/en-us/azure/container-apps/quickstart-code-to-cloud)
-- [Azure Container Apps — scaling](https://learn.microsoft.com/en-us/azure/container-apps/scale-app)
-- [Expo — camera](https://docs.expo.dev/versions/latest/sdk/camera/)
-- [Expo — environment variables and `EXPO_PUBLIC_`](https://docs.expo.dev/guides/environment-variables/)
-- [openapi-typescript](https://openapi-ts.dev/)
-- [FastAPI — CORS middleware](https://fastapi.tiangolo.com/tutorial/cors/)
+- [React Native ExecuTorch — getting started](https://docs.swmansion.com/react-native-executorch/docs/fundamentals/getting-started) — checked 2026-08-12
+- [`ExecutorchModule` — generic model execution](https://docs.swmansion.com/react-native-executorch/docs/typescript-api/ExecutorchModule) — the depth path
+- [react-native-fast-tflite](https://github.com/mrousavy/react-native-fast-tflite) — v3.0.1, checked 2026-08-12
+- [Expo — development builds](https://docs.expo.dev/develop/development-builds/introduction/) — why Expo Go cannot run this app
+- [Ultralytics — TFLite export](https://docs.ultralytics.com/modes/export/)
 
-**Previous:** [Lesson 04](../04-backend-engineering/) ·
-**Next:** Lesson 06 — CI / CD / CT
+---
+
+**Next:** Lesson 06 — CI / CD / CT *(not yet written; its deploy half needs redesign — see
+`TODO.md`)*

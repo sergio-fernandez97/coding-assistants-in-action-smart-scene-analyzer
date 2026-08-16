@@ -2,12 +2,13 @@
 
 **When:** Lesson 04, step 5.
 
-**Which agent:** `qa`. Not `backend` — the agent that wrote the code does not grade it.
+**Which agent:** `qa`. Not `integration` or `ml-engineer` — the agent that wrote the code
+does not grade it.
 
 **Which skill:** `offline-suite`. It carries the no-GPU/no-network/no-weights constraint,
 the fixture strategy, and the "does this code use the input it claims to use" test. This
-file carries what is specific to *this* service — the endpoints, the status codes, the
-degenerate box cases.
+file carries what is specific to *this* project — the degenerate box cases, the artifact
+contract, and the fixtures Lesson 05's TypeScript suite will reuse.
 
 **Credits: zero.**
 
@@ -39,7 +40,6 @@ Fixtures:
   - fake_detections     canned detections with known boxes
   - mock_models         patches the detector and depth model so no weights load and no
                         GPU is touched
-  - client              a TestClient with mock_models applied
 
 Mock at the model boundary, not at the fusion boundary. Fusion is the logic I most want
 tested; mocking it would leave the interesting part unexercised.
@@ -66,28 +66,29 @@ tests/test_fusion.py
   - A depth map whose shape does not match the image raises, and does not silently resize
   - Ordering is stable when the same scene is given at a different aspect ratio
 
-tests/test_schemas.py
-  - No field name contains meter, metre, mm, cm, or distance. Walk fields
-    programmatically; do not hardcode the current list.
-  - The depth field's description mentions "not metres" and "nearer"
-  - Boxes are documented as xyxy absolute pixels
+tests/test_naming.py
+  - No public name in src/ contains meter, metre, mm, cm, or distance. Walk the module's
+    public surface programmatically; do not hardcode the current list.
+  - The depth function's docstring mentions "not metres" and "nearer"
+  - Boxes are documented as xyxy absolute pixels of a NAMED space
 
-tests/test_api.py
-  - POST /analyze with a valid image -> 200, schema-valid body
-  - Oversized upload -> 413
-  - Undecodable bytes -> 415
-  - Missing file field -> 422
-  - Zero detections -> 200 with an empty list, not an error
-  - Grayscale image -> handled, not a crash
-  - 1x1 image -> handled
-  - GET /health -> 200 with a model version
-  - GET /ready -> reflects whether models are loaded
+tests/test_artifact_contract.py
+  - The label order used at export time matches docs/taxonomy.md, derived from the single
+    source of truth rather than duplicated
+  - Zero detections produces an empty list, not None and not an exception
+  - Grayscale input -> handled, not a crash
+  - 1x1 input -> handled
 
-Mark anything needing a running service or real weights with the `integration` marker.
+tests/fixtures/fusion_cases.json
+  - Emit the fusion cases as plain JSON so Lesson 05's TypeScript suite can load the SAME
+    file. No pickles, no .npy.
+  - Make THIS suite load that file too, so the two can never silently diverge.
+
+Mark anything needing real weights on disk with the `integration` marker.
 `uv run pytest` must pass without them.
 
-For every test, assert on the CONTRACT — status code, schema, units, ordering — not on
-implementation details. A test asserting a specific detection confidence breaks on every
+For every test, assert on the CONTRACT — shapes, coordinate space, units, ordering — not
+on implementation details. A test asserting a specific detection confidence breaks on every
 retrain, and a suite that cries wolf gets ignored.
 ```
 
@@ -104,7 +105,7 @@ def test_fusion_actually_uses_the_depth_map(fake_detections, fake_depth_map):
 ```
 
 Every other test in the file passes on a `fuse()` that returns `0.5` for everything. The
-schema is valid, the status codes are right, the ordering assertions can be satisfied by
+shapes are right, the units are right, and the ordering assertions can be satisfied by
 accident on a single fixture. This one cannot.
 
 **Look for this shape of test elsewhere too.** "Does the code use the input it claims to
@@ -139,8 +140,9 @@ mv runs runs.hidden && uv run pytest; mv runs.hidden runs
 - The known-gradient depth fixture makes fusion assertions exact
 - The "fusion actually uses the depth map" test exists
 - All four degenerate box cases covered
-- Schema naming test walks fields programmatically
-- Boundary tests for 413, 415, 422, and empty results
+- The naming test walks the public surface programmatically
+- Fusion cases emitted as language-neutral JSON, and loaded by this suite
+- Boundary cases: empty results, grayscale, 1x1
 - Integration tests marked and excluded from the default run
 
 ## Reject and re-run if

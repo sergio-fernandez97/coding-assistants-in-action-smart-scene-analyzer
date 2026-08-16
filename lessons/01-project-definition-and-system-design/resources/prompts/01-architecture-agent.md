@@ -19,13 +19,15 @@ Read first, in this order:
 
 Produce docs/architecture.md containing:
 
-1. A component diagram of the pipeline: mobile client capture → upload →
-   preprocessing → parallel inference (YOLO11 detection, Depth Anything V2 depth)
-   → scene understanding layer → FastAPI → back to the mobile client.
+1. A component diagram of the pipeline, drawn for the inference target you chose in
+   step 7. If that choice was on-device: capture → letterbox and normalize →
+   parallel inference (YOLO11 detection, Depth Anything V2 depth) → scene
+   understanding layer → overlay, all inside the app.
 
-   The Expo client is a real component built in Lesson 05, not a box at the bottom
-   of the diagram. Show it as one, in its own deployment boundary — it ships
-   separately from the service and cannot be fixed by editing the file next to it.
+   The Expo app is a real component built in Lesson 05, not a box at the bottom of
+   the diagram. Show it as one, with its own deployment boundary — it ships on an
+   app store's timetable, and a model bug in it cannot be fixed by editing the file
+   next to it.
 
 2. A data contract for EVERY boundary between components. Each contract states the
    type, the units, and the coordinate convention. For example, do not write

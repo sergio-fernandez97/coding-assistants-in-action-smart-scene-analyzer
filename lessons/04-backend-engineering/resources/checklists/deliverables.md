@@ -4,26 +4,28 @@
 
 - [ ] Model V1 weights exist under `runs/`
 - [ ] `check_depth_ordering.py` passes on five scenes
-- [ ] `docs/credit-budget.md` reconciled, at least 2 credits remaining
-- [ ] Docker running
+- [ ] `docs/credit-budget.md` reconciled
+- [ ] The locally trained `best.pt` is on disk — a hosted-only model cannot be exported
 
 ## Roles
 
-- [ ] `backend.md`, `qa.md`, `integration.md` all read
-- [ ] You can say which agent owns a schema bug and which owns a coordinate-space bug
+- [ ] `ml-engineer.md`, `qa.md`, `integration.md` all read
+- [ ] You can say which agent owns a quantization bug and which owns a coordinate-space bug
 - [ ] The tests were written by `qa`, not by the agent that wrote the code
+- [ ] You can state why `mobile` will consume artifacts in Lesson 05 but never re-export them
 
-## Schema — designed before the handler
+## Artifact contract — written before the export
 
-- [ ] `src/smart_scene_analyzer/schemas.py` exists
-- [ ] Every field has a `Field(description=...)` stating units or meaning
+- [ ] The **Exported artifact** table in each model card is filled in, marked INTENDED
+- [ ] Input shape, dtype, and layout (NCHW vs NHWC) stated
+- [ ] Normalization mean and std stated, per channel
+- [ ] Output tensor count and order stated — the app decodes positionally
+- [ ] Label order has **exactly one** named source of truth
 - [ ] The depth field name carries "relative"
-- [ ] **No field name contains** `meter`, `metre`, `mm`, `cm`, or `distance`
-- [ ] The depth description says "not metres", "larger is nearer", and "within one image"
-- [ ] Boxes documented as `xyxy` in **absolute pixels**
-- [ ] Image dimensions included in the response, so absolute boxes are interpretable
-- [ ] The naming constraint is enforced by a test that walks fields programmatically
-- [ ] `/docs` renders the descriptions, and a stranger could tell depth is not metres
+- [ ] **No public name contains** `meter`, `metre`, `mm`, `cm`, or `distance`
+- [ ] Boxes documented as `xyxy` in absolute pixels of a **named** space
+- [ ] The naming constraint is enforced by a test that walks the surface programmatically
+- [ ] You can name the observable symptom of each contract row being wrong
 
 ## Fusion layer
 
@@ -33,23 +35,23 @@
 - [ ] Region reduction uses the **median**, justified in the docstring
 - [ ] All four degenerate cases defined and documented: zero-area, partly outside,
       entirely outside, empty after clipping
-- [ ] No `NaN` can reach a JSON response
+- [ ] No `NaN` can reach a caller — `None` plus a quality flag, in every degenerate case
 - [ ] The module is **pure** — no model loading, no file reads, no HTTP, no Roboflow
 - [ ] Verified on a real scene: the visibly nearest object has the largest value
 - [ ] Ordering is stable when the same scene is given at a different aspect ratio
 
-## Service
+## Export
 
-- [ ] `config.py` reads everything from the environment, with container-safe defaults
-- [ ] Models load **once**, in the lifespan handler, injected as dependencies
-- [ ] `POST /analyze`, `GET /health`, `GET /ready` all present
-- [ ] `/health` and `/ready` mean **different things**
-- [ ] Oversized upload → **413**, decided before decoding
-- [ ] Undecodable bytes → **415**
-- [ ] Missing file field → **422**
-- [ ] Zero detections → **200 with an empty list**
-- [ ] Route bodies are short; inference logic is importable without an HTTP client
-- [ ] Logs carry request id, dimensions, duration, detection count — and no image bytes, no key
+- [ ] `scripts/export.py` exists and is re-runnable, with `--force` protection
+- [ ] Both artifacts are in `app/assets/models/`
+- [ ] Reported tensor shapes were **read back from the exported files**, not from the config
+- [ ] Coordinate format (normalized vs input-pixel) determined from data, method stated
+- [ ] The int8 **calibration set is named**, and its effect on the parity number acknowledged
+- [ ] The depth sign convention (larger = nearer) was verified **on the export**
+- [ ] Every contract row reconciled against reality; INTENDED markings removed
+- [ ] Where card and artifact disagreed, the **artifact won** and the change was noted
+- [ ] Both file sizes recorded in `docs/artifact-budget.md`
+- [ ] Any export failure was **reported**, not worked around by changing model or recipe
 
 ## Tests
 
@@ -59,48 +61,48 @@
 - [ ] A known-gradient depth fixture makes fusion assertions exact
 - [ ] **The "fusion actually uses the depth map" test exists**
 - [ ] All four degenerate box cases covered
-- [ ] Boundary tests: 413, 415, 422, empty results, grayscale, 1×1
+- [ ] Boundary cases: empty results, grayscale, 1×1
+- [ ] `tests/fixtures/fusion_cases.json` is **plain JSON** a TypeScript suite could load
+- [ ] The Python suite loads that same file, so the two can never silently diverge
 - [ ] Integration tests carry the `integration` marker and are excluded by default
 - [ ] No assertion was loosened to make a test pass
 
-## Container
+## Export parity
 
-- [ ] Multi-stage build; runtime stage has no build tooling
-- [ ] Lockfile used
-- [ ] Runs as non-root
-- [ ] `HEALTHCHECK` present and passing
-- [ ] **Weights mounted, not baked in**, with a comment saying why
-- [ ] `opencv-python-headless`, not `opencv-python`
-- [ ] Image size is explainable — no uninvited CUDA wheels
-- [ ] `docker compose up -d` brings up api and mlflow
-- [ ] The api reaches mlflow **by service name**, not `localhost`
-- [ ] No secret in any committed file
+- [ ] Compared against the **original PyTorch weights**, not the export in another runtime
+- [ ] Marked `integration`; the default suite still passes with no weights on disk
+- [ ] Box IoU tolerance stated and justified, not chosen to fit the results
+- [ ] **Per-class** confidence delta reported, not just an aggregate
+- [ ] Depth checked by **ordering**, never by comparing values numerically
+- [ ] The sign convention asserted on both sides
+- [ ] An inverted ranking would fail loudly rather than being negated into agreement
+- [ ] Results recorded in the model card
+- [ ] A plain ship / do-not-ship verdict was written
 
-## Deployment comparison — optional, ~1 credit
+## Execution target comparison
 
-Skip entirely if you were short on credits. Record that you skipped it and why.
-
-- [ ] Rates quoted from the skills with arithmetic, not recalled
-- [ ] **Self-hosted correctly identified as metered, not free** (1 credit / 3,000 images)
-- [ ] Hosted v2 identified as billed by **execution seconds**, not per image
-- [ ] Benchmark discards warmup requests
-- [ ] Estimate recorded in the ledger **before** the hosted run
-- [ ] Actual cost reconciled against the estimate
-- [ ] **No dedicated deployment was created** — it appears as a row with reasoning
-- [ ] `docs/deployment-comparison.md` has measured latencies and cost per 1,000 images
-- [ ] The recommendation names a traffic assumption and a crossover point
-- [ ] The benchmark's limitations are stated
+- [ ] Every availability claim carries a URL and a check date, not memory
+- [ ] Targets unavailable in the iOS Simulator are flagged
+- [ ] Silent-fallback behaviour described per target
+- [ ] Unmeasurable rows marked **UNMEASURED** — not estimated, not omitted
+- [ ] The **cloud rows were kept** as contrast, not deleted
+- [ ] Costs stated in both currencies: credits *and* megabytes/device floor/release cycle
+- [ ] A default backend recommended per platform, with the device floor it implies
+- [ ] The question "could this have pointed back to cloud?" is answered plainly
 
 ## Decisions
 
 - [ ] `/adr inference target: ...` — closes the Lesson 01 open decision
 - [ ] The ADR's Context contains **numbers you measured**, not a general argument
-- [ ] It records that hosted-trained weights are not downloadable on the free plan
+- [ ] It records that hosted-trained weights are not downloadable on the free plan, and
+      therefore **cannot be exported at all**
+- [ ] It names what got **harder**: two runtimes, a second fusion implementation, an
+      app-store release cycle for model updates
 - [ ] It states what would change the decision
 
 ## Ledger
 
-- [ ] Lesson 04 spend is 0 or about 0.5
+- [ ] Lesson 04 spend is 0
 - [ ] Running total across Lessons 02–04 at or under 7
 - [ ] Reconciled against the Roboflow usage page
 
@@ -114,8 +116,8 @@ Skip entirely if you were short on credits. Record that you skipped it and why.
 
 ## The one that isn't mechanical
 
-- [ ] **You photographed a real room with your phone, sent it to the service, and looked
-      at the response.**
+- [ ] **You photographed a real room with your phone, ran the exported model on it, and
+      compared the result against the PyTorch original.**
 
 Every test image so far came from one dataset, one sensor, one set of rooms. The first
 genuinely out-of-distribution image tells you more about the system than the entire test

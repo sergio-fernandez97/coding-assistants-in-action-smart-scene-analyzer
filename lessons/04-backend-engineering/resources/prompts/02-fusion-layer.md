@@ -14,7 +14,7 @@ Three coordinate spaces are in play at once:
 
 | Producer | Resolution |
 |---|---|
-| The uploaded image | Whatever the client sent |
+| The source image | Whatever the camera or the picker gave you |
 | YOLO11 | 640×640 internally, boxes usually rescaled back |
 | Depth Anything V2 | Its own input size, output resized by your Lesson 03 module |
 
@@ -75,15 +75,15 @@ Requirements:
      - box partly outside the image (clip it — and say so)
      - box entirely outside the image
      - region empty after clipping
-   Returning NaN and letting it reach a JSON response is not a defined result. Decide,
-   document, and make the choice visible to the caller.
+   Returning NaN is not a defined result — it propagates through comparison silently and
+   sorts unpredictably. Decide, document, and make the choice visible to the caller.
 
 4. Units, in every signature and docstring: relative inverse depth, larger = nearer,
    arbitrary scale, NOT metres, comparable only within one image. No identifier may
    contain meter, metre, mm, cm, or distance.
 
 5. Keep the module PURE. Arrays and boxes in, structure out. No model loading, no file
-   reads, no HTTP, no Roboflow. That purity is what lets qa test it exhaustively without
+   reads, no network, no Roboflow. That purity is what lets qa test it exhaustively without
    a GPU.
 
 Add a helper that sorts detections near-to-far, since that is the one derived quantity

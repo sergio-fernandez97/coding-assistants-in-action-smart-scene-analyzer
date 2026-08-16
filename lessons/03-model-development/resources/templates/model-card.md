@@ -19,6 +19,28 @@
 | Trained | `<YYYY-MM-DD>`, `<local \| Roboflow hosted>` |
 | Credits consumed | `<0 \| ___>` |
 
+## Exported artifact
+
+> Filled in by **Lesson 04**, not this lesson. Leave it empty until the export exists —
+> an empty row is a to-do, and a guessed row is a lie the app will act on.
+
+The app assumes every value in this table and validates none of them at runtime. A wrong
+one produces plausible garbage rather than an error, which is why they live with the model
+rather than in the app that consumes them.
+
+| Field | Value |
+|---|---|
+| Artifact | `<app/assets/models/....tflite \| ....pte>` — not committed |
+| Format / backend | `<TFLite int8 \| ExecuTorch xnnpack>` |
+| File size | `<N MB>` — also recorded in `docs/artifact-budget.md` |
+| Input tensor | `<shape>`, `<dtype>`, `<NCHW \| NHWC>` |
+| Normalization | `mean=<...>`, `std=<...>` |
+| Output tensors | `<count and order — the app decodes positionally>` |
+| Label order | `<source of truth for class index → name>` |
+| Quantization | `<none \| int8>`, calibration set `<which split, how many images>` |
+| Parity vs PyTorch | `<tolerance accepted, and the worst per-class delta>` |
+| Ordering preserved | `<depth only: does the export still rank near vs far correctly?>` |
+
 ## Training configuration
 
 | Parameter | Value |

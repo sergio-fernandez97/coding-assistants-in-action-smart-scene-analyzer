@@ -8,8 +8,8 @@ hunting through the repo mid-lesson.
 | [01 — Project Definition & System Design](01-project-definition-and-system-design/) | Week 1 | Repository, the four-layer harness, architecture, roadmap | Ready |
 | [02 — Dataset Engineering](02-dataset-engineering/) | Week 2 | Roboflow MCP, annotation conversion, dataset versions, the credit harness | Ready |
 | [03 — Model Development](03-model-development/) | Week 3 | YOLO11 fine-tuning, MLflow, domain adaptation, depth inference | Ready |
-| [04 — Backend Engineering & Production APIs](04-backend-engineering/) | Week 4 | FastAPI, detection–depth fusion, Docker, tests, deployment economics | Ready |
-| [05 — Mobile Client & Cloud Delivery](05-mobile-client-and-delivery/) | Week 5 | Expo on iOS and Android, Azure Container Apps, the generated contract, client-observed latency | Ready |
+| [04 — Export, Quantization & Numerical Parity](04-backend-engineering/) | Week 4 | Detection–depth fusion, model export, int8 quantization, parity against the reference | Rewriting |
+| [05 — On-Device Inference & Mobile Delivery](05-mobile-client-and-delivery/) | Week 5 | Expo dev build on both simulators, two on-device runtimes, the artifact contract, device-vs-reference parity | Rewriting |
 | 06 — CI / CD / CT | Week 6 | GitHub Actions, continuous training, promotion logic | Not written |
 
 ## Lesson directory layout
@@ -83,18 +83,17 @@ the lesson that needs it and reused afterwards.
 |---|---|---|
 | `architecture` | 01 | System design, module boundaries, data contracts, engineering plan |
 | `documentation` | 01 | README, architecture prose, contribution guide, model cards |
-| `devops` | 01 | Docker, dev environment, GitHub Actions, releases |
+| `devops` | 01 | Dev environment, mobile builds, GitHub Actions, releases |
 | `dataset-engineer` | 02 | Roboflow platform: projects, annotations, versions, exports |
 | `data-pipeline` | 02 | Local data code: conversion, preprocessing, validation |
-| `ml-engineer` | 03 | Training, fine-tuning, hyperparameters, error diagnosis |
+| `ml-engineer` | 03 | Training, fine-tuning, error diagnosis, **export and quantization** |
 | `evaluation` | 03 | Metric reports, confusion matrices, performance summaries |
-| `backend` | 04 | FastAPI, dependency injection, logging |
 | `qa` | 04 | Unit, integration, and regression tests |
 | `integration` | 04 | Fusing detection, classification, and depth |
-| `mobile` | 05 | The Expo client, overlays, capture, client-observed latency |
+| `mobile` | 05 | The Expo app: on-device inference, the fusion port, overlays, latency |
 | `mlops` | 06 | Training and evaluation pipelines, promotion logic, rollback |
 
-**All eleven ship in [`template/.claude/agents/`](../template/.claude/agents/)**, with
+**All ten ship in [`template/.claude/agents/`](../template/.claude/agents/)**, with
 Codex twins under `template/plugins/smart-scene-analyzer/skills/`. "Introduced in" means
 the lesson where the student first reads the definition and uses it — not where the file
 appears. Lesson 02 already established that pattern with `dataset-engineer`.
@@ -105,12 +104,13 @@ Three boundaries in that table are load-bearing rather than tidy:
   trains a model and reports whether it is good can improve the number without improving
   the model, and will not need to be dishonest to do it. Removing the tool removes the
   shortcut.
-- **`backend` / `integration` / `qa`** — identical tool lists, different responsibilities,
-  drawn where the failure modes differ. `qa` did not write the code it tests.
-- **`mobile` / `backend`** — `mobile` does not edit `src/`. A mobile engineer who can
-  change the server resolves a naming disagreement by renaming the server field, and the
-  disagreement — which was information about the contract — disappears without anyone
-  deciding anything.
+- **`integration` / `qa`** — identical tool lists, different responsibilities, drawn where
+  the failure modes differ. `qa` did not write the code it tests.
+- **`mobile` / `ml-engineer`** — `mobile` does not change the exported artifacts, and
+  `ml-engineer` does not change the app. When the device disagrees with the Python
+  reference, that disagreement is the finding. One role owning both sides would settle it
+  by adjusting whichever side was easier to reach, and *which of the two was wrong* — the
+  only thing worth knowing — would stop being recoverable.
 
 ## The hooks
 
@@ -120,16 +120,23 @@ expensive.
 
 | Hook | Event | Effect | Introduced |
 |---|---|---|---|
+| `notify_done.py` | `Stop`, `Notification` | Desktop notification when the turn ends or a prompt is waiting. Never blocks | 01 — the free one |
 | `format_python.py` | `PostToolUse` | `ruff format` + `--fix`. Never blocks | 01 — deliberately trivial |
 | `session_balance.py` | `SessionStart` | Puts the credit balance into context | 01 |
 | `credit_gate.py` | `PreToolUse` | **Blocks** billed Roboflow calls with no ledger estimate | **02 — the load-bearing one** |
-| `units_guard.py` | `PreToolUse` | **Blocks** metric-depth identifiers in `src/` | 01 (demonstrated), 03 (earns it) |
-| `contract_drift.py` | `PostToolUse` | Warns when the client's generated types are stale | 05 |
+| `units_guard.py` | `PreToolUse` | **Blocks** metric-depth identifiers in `src/` **and `app/`** | 01 (demonstrated), 03 (earns it), 05 (needs it) |
+| `artifact_drift.py` | `PostToolUse` | Warns when the bundled model artifacts are older than what produced them | 05 |
 
 Two design points worth preserving if these are edited:
 
-- **Only two of them block.** `contract_drift` warns because editing a schema is
-  legitimate work with a consequence; `units_guard` blocks because writing `depth_meters`
+- **`notify_done` is the introduction, and it is deliberately weightless.** It observes
+  the turn ending and cannot affect it, which makes it the cheapest possible place to
+  learn that the harness runs *your* script on a Claude Code event. It is also the only
+  hook here serving the operator rather than the codebase. Keep that framing if it is
+  edited — the distance between it and `credit_gate` is what Lesson 01 step 5 is built on.
+- **Only two of them block.** `artifact_drift` warns because retraining and editing an
+  export config are legitimate work with a consequence — and because re-exporting mid-edit
+  would cost minutes of quantization. `units_guard` blocks because writing `depth_meters`
   is not legitimate at all. Choosing correctly between *wrong* and *has a consequence* is
   most of hook design, and Lesson 05 step 4 makes students compare the two directly.
 - **`credit_gate` blocks unaccounted spending, not expensive spending.** A student can
@@ -157,14 +164,15 @@ to its source:
 |---|---|
 | 02 | `data-management/SKILL.md` (upload, tags, RoboQL, versions), `data-management/labeling.md` (Auto Label and its free 4-image preview), `plans-and-pricing/SKILL.md` (the rate table behind the whole credit harness), `universe/SKILL.md`, `inference/workflows.md` (the YOLO-World block) |
 | 03 | `training-and-evaluation/SKILL.md` (exact `model_id` values, training controls, **and the RF-DETR NAS default the course overrides**), `improvement-playbook.md` (the confusion-matrix decision tree behind the error analysis), `custom-weights-upload/SKILL.md`, `plans-and-pricing/SKILL.md` (training rates, Core-plan feature list) |
-| 04 | `inference/SKILL.md` (deployment option comparison), `inference/local-tooling.md` (the metered `localhost:9001` server), `api-reference/inference.md` (v2 bills by execution seconds), `plans-and-pricing/SKILL.md` |
-| 05 | **None.** Lesson 05 spends zero Roboflow credits and touches no Roboflow surface — its sources are Microsoft Learn (the Container Apps free grant and `az containerapp up`) and the Expo docs, both cited inline in the lesson |
+| 04 | `inference/SKILL.md` (deployment option comparison, retained as the cloud contrast rows), `plans-and-pricing/SKILL.md`. Its on-device half is sourced from the RF-DETR/Ultralytics export docs and PyTorch's ExecuTorch docs, cited inline |
+| 05 | **None.** Lesson 05 spends zero Roboflow credits and touches no Roboflow surface — its sources are the Expo docs, the `react-native-fast-tflite` README, and the `react-native-executorch` docs, all cited inline in the lesson |
 
 Row 05 is worth noticing rather than skipping. Every lesson from 02 onward has drawn on
 `computer-vision-skills/` and priced its work against the credit ledger; Lesson 05 does
 neither, and instead introduces a second budget that behaves differently. If a future
-edit finds itself adding a Roboflow call to the request path in Lesson 05, that row is the
-thing it is breaking.
+edit finds itself adding a Roboflow call to the inference path in Lesson 05, that row is
+the thing it is breaking — and on-device makes the row stronger, not weaker: the phone
+has no credentials to make such a call with.
 
 ### Lesson 06 — CI / CD / CT
 
@@ -183,11 +191,13 @@ spend them without anyone noticing. Two constraints to design around from the st
   **dedicated deployments bill uptime**, so a pipeline that provisions one and fails
   before tearing it down costs 24 credits a day. Both are already denied or forbidden in
   the scaffold; the CI design has to stay inside that.
-- **Lesson 06 now has two deploy targets.** The pipeline builds and pushes to ACR and
-  deploys to Azure Container Apps alongside the continuous-training work. Whatever it
-  deploys must keep `--min-replicas 0`; a CI step that resets that quietly ends the Azure
-  free grant in about two days, which is the Azure analogue of the dedicated-deployment
-  trap above.
+- ⚠️ **Lesson 06 no longer has a deploy target, and this is unresolved.** The pipeline
+  used to build an image and push it to a registry. There is no image and no registry now:
+  "deploy" means producing an app binary plus the exported model artifacts, and shipping a
+  model update means an app-store release on somebody else's timetable. What CI can
+  usefully automate — export, quantization, the parity check, artifact-size regression —
+  is a different pipeline from the one Lesson 06 was scoped around. **Redesign this before
+  Lesson 06 is written**; do not assume the CD half survives the move.
 - **The active-learning review loop has a head start.** Lesson 02's Auto Label audit
   produced a per-class table of where a foundation model agrees with human annotators.
   That table is exactly the input the "which predictions can we accept without review"

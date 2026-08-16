@@ -1,47 +1,48 @@
-# Lesson 04 — Backend Engineering & Production APIs
+# Lesson 04 — Export, Quantization & Numerical Parity
 
-> Notion Week 4. Estimated time: 4–5 hours.
+> Notion Week 4. Estimated time: 5–6 hours.
 
 ## Session goal
 
-Turn two models and a depth estimator into one service that returns a single, coherent
-answer — and prove the cost model of the alternative rather than assuming it.
+Turn two models into two files that run on a phone — and prove they still behave like the
+models you trained.
 
-Three new roles arrive: `backend` owns the HTTP surface, `integration` owns the fusion
-between detection and depth, `qa` owns the proof that any of it works. The split matters
-because the hardest bug in this lesson lives in exactly one of those seams. Two models,
-two coordinate spaces, two resolutions, and one silent mismatch that produces numbers
-that look completely reasonable.
+Two roles arrive: `integration` owns the fusion between detection and depth, `qa` owns the
+proof that any of it works. `ml-engineer`, which you met in Lesson 03, gains a second job:
+export. The split matters because the hardest bug in this lesson lives in exactly one of
+those seams. Two models, two coordinate spaces, two resolutions, and one silent mismatch
+that produces numbers that look completely reasonable.
 
-The other thread is deployment economics. You will build a service that runs your own
-weights in-process for zero credits, then spend about one credit measuring it against
-Roboflow's hosted API — and discover that the "obviously free" middle option is not free
-either. A deployment table with real numbers in it is worth more than any amount of
-architectural opinion.
+The other thread is what export actually costs you. An exported model is not the model you
+trained — it is a quantized approximation of it, produced by a toolchain with its own
+opinions about tensor layouts. "It loads and runs" is not the same claim as "it still
+works", and the distance between those two claims is measured here rather than discovered
+in Lesson 05.
 
 ## Prerequisites
 
 - [ ] Lesson 03 complete: model V1 (and V2) trained, weights under `runs/`
 - [ ] `src/smart_scene_analyzer/depth.py` passing `check_depth_ordering.py`
-- [ ] `docs/credit-budget.md` reconciled, with **at least 2 credits remaining**
-- [ ] Docker running: `docker --version`
+- [ ] `docs/credit-budget.md` reconciled
 - [ ] `uv sync --extra ml --extra depth` runs cleanly
+- [ ] The locally trained `best.pt` is on disk — **a hosted-only model cannot be exported**
 
-> **The hosted comparison in step 7 is the only billed step, and it is optional.** If you
-> are short on credits, skip it and record the reason. Steps 1–6 and 8–9 produce a
-> working service and every other deliverable.
+> **Roboflow credits needed: zero.** Export runs entirely on your machine. Nothing in this
+> lesson touches a metered endpoint.
 
 ## Deliverables
 
-- [ ] `.claude/agents/backend.md`, `qa.md`, and `integration.md` in use
+- [ ] `.claude/agents/ml-engineer.md`, `qa.md`, and `integration.md` in use
 - [ ] `src/smart_scene_analyzer/fusion.py` — per-object depth, units stated, pure
-- [ ] `src/smart_scene_analyzer/schemas.py` — Pydantic request/response contracts
-- [ ] `src/smart_scene_analyzer/api.py` — FastAPI app, models loaded at startup
+- [ ] `scripts/export.py` — reproducible export of both models
+- [ ] `app/assets/models/` — the detection `.tflite` and the depth `.pte`
+- [ ] `tests/fixtures/fusion_cases.json` — language-neutral fixtures Lesson 05 will reuse
 - [ ] A test suite passing with **no GPU, no network, no weights on disk**
-- [ ] `Dockerfile` and `docker-compose.yml` with the service and MLflow
-- [ ] `docs/deployment-comparison.md` — three options, measured, with cost per 1,000 images
+- [ ] `tests/test_export_parity.py` — exported artifacts vs the PyTorch reference
+- [ ] The model card's **Exported artifact** table filled in
+- [ ] `docs/execution-target-comparison.md` — on-device backends, measured
 - [ ] An ADR for the inference target, closing the Lesson 01 open decision
-- [ ] The ledger updated and reconciled
+- [ ] `docs/artifact-budget.md` started, with both file sizes
 
 Verify with [`resources/checklists/deliverables.md`](resources/checklists/deliverables.md).
 
@@ -49,80 +50,69 @@ Verify with [`resources/checklists/deliverables.md`](resources/checklists/delive
 
 ## Step-by-step
 
-### 1. Meet the three new roles
+### 1. Meet the roles
 
 **Do:** Read all three definitions.
 
 ```bash
-$EDITOR .claude/agents/backend.md .claude/agents/qa.md .claude/agents/integration.md
+$EDITOR .claude/agents/ml-engineer.md .claude/agents/qa.md .claude/agents/integration.md
 ```
 
-They have identical tool lists. The boundary between them is not capability — it is
+They have overlapping tool lists. The boundary between them is not capability — it is
 **responsibility**, and it is drawn where the failure modes differ:
 
 | Role | Owns | Characteristic failure |
 |---|---|---|
-| `backend` | HTTP surface, schemas, model lifecycle | A schema that lies about units; a model loaded per request |
+| `ml-engineer` | Training **and export** | An artifact that runs and no longer matches the model |
 | `integration` | Fusing boxes with depth | A coordinate-space mismatch that produces plausible numbers |
 | `qa` | Proving it works | A test that passes on the bug it was written to catch |
 
-**Expected result:** you can say which agent owns "the response returns `depth` as a bare
-float" (`backend` — it is a schema contract) and which owns "the depth value is sampled
-from the wrong region" (`integration`).
+**Expected result:** you can say which agent owns "the int8 export lost the `lamp` class"
+(`ml-engineer` — quantization) and which owns "the depth value is sampled from the wrong
+region" (`integration`).
 
 > Lesson 03 split `ml-engineer` from `evaluation` because one agent should not both build
 > and grade. The same principle applies here, one layer down: `qa` writes the tests, and
 > `qa` did not write the code under test.
 
+> **`ml-engineer` gaining export is deliberate rather than convenient.** Whoever trained
+> the model knows what it is supposed to do, and export is where that knowledge is needed.
+> Note the boundary this creates with `mobile` in Lesson 05: the app consumes artifacts and
+> never re-exports them, so that when the device disagrees with the reference, *which side
+> is wrong* stays a question somebody has to answer rather than a thing somebody quietly
+> fixes.
+
 ---
 
-### 2. Design the response schema first
+### 2. Define the artifact contract first
 
-**Do:** Before any handler exists, use
-[`resources/prompts/01-response-schema.md`](resources/prompts/01-response-schema.md) to
-have the `backend` agent design `src/smart_scene_analyzer/schemas.py`.
+**Do:** Before exporting anything, use
+[`resources/prompts/01-artifact-contract.md`](resources/prompts/01-artifact-contract.md)
+to decide and write down what the exported models will promise.
 
-The response is the only part of this service anyone else will ever see. Once a mobile
-client parses a field, its name and its units are frozen — changing them later is a
-coordinated release, not an edit.
+For three lessons the models were things you called — a function, a process. Their inputs
+and outputs were checked by Python at every boundary. That stops next week.
 
-**That stops being hypothetical next week.** In Lesson 05 an Expo client generates its
-TypeScript types from this schema's OpenAPI document, and ships to phones on its own
-release cycle. Two consequences worth designing for now rather than discovering then:
+**An artifact makes promises nothing verifies.** A `.tflite` file does not announce that
+its input is NCHW, that its coordinates are normalized, or that class 7 is `lamp`. The app
+assumes all of it. A mismatch produces boxes: confident, well-formed, and wrong.
 
-- **The response must carry the dimensions of the image it processed.** Boxes are absolute
-  pixels, and a client that downscales before uploading cannot place them without knowing
-  which frame they are in. This is already on the deliverables checklist; Lesson 05 is why.
-- **Every `description` you write becomes a comment in the generated client.** The
-  sentence explaining that depth is not metres travels, automatically, into the codebase
-  of the person most likely to display it as a distance.
+So the contract is written down before the export exists, in the model card:
 
-**The field that decides this lesson:**
+| Field | Why the app cannot infer it |
+|---|---|
+| Input shape, dtype, layout | `[1,3,H,W]` float32 and `[1,H,W,3]` uint8 are both plausible and produce garbage when swapped |
+| Normalization mean/std | ImageNet-normalized input to a `[0,1]` model yields a smooth, wrong depth map |
+| Output tensor count and order | The app decodes positionally |
+| Label order | An off-by-one here reads as a model problem for a long time |
 
-```python
-# Wrong. Implies metres, which this project cannot provide.
-depth_meters: float
+**This is the same lesson the response schema used to teach**, moved to where the contract
+now lives. The old schema at least had a type system defending it at runtime. This has
+nothing — which makes writing it down more important, not less.
 
-# Wrong. Ambiguous, which is the same failure with better manners.
-depth: float
-
-# Right.
-relative_depth: float = Field(
-    description="Relative inverse depth. Larger is nearer. "
-                "Arbitrary scale — NOT metres. Comparable only within one image."
-)
-```
-
-`CLAUDE.md` has required this since Lesson 01: *"Ambiguity about whether a depth value is
-metres or normalized disparity is a real source of bugs in this project — say which."*
-Lesson 02 scoped depth to inference-only, Lesson 03 built a module that says so in every
-signature, and this is where the chain either holds or breaks. A consumer who divides by
-this number to get distance has been misled by the schema, and the schema is the last
-place that could have stopped them.
-
-**Expected result:** `schemas.py` with a `Detection` model (class, confidence, `xyxy`
-box in absolute pixels, relative depth) and an `AnalyzeResponse`, every field carrying a
-description that states units.
+**Expected result:** the **Exported artifact** table in your model card is filled in with
+what you intend to produce. Step 4 will check the real export against it, and any
+disagreement is a finding.
 
 ---
 
@@ -132,8 +122,13 @@ description that states units.
 with the `integration` agent to write `src/smart_scene_analyzer/fusion.py`.
 
 **This is where the real bugs live.** YOLO11 runs at 640×640. Depth Anything V2 has its
-own input size. The uploaded image has a third. Three coordinate spaces, and a box indexed
+own input size. The source image has a third. Three coordinate spaces, and a box indexed
 into the wrong one returns a number — the wrong number, in range, for the wrong region.
+
+**Write it knowing it will be ported.** In Lesson 05 this exact algorithm is reimplemented
+in TypeScript to run on the phone, and the two copies are kept honest by shared fixtures.
+That makes purity and explicit degenerate cases load-bearing rather than tidy: anything
+this function does implicitly is something the port will do differently.
 
 Non-negotiables, all of which the prompt enforces:
 
@@ -143,10 +138,14 @@ Non-negotiables, all of which the prompt enforces:
 - **Median, not mean**, for reducing a box region — an occluder in front of the object
   skews the mean, and box corners routinely contain background.
 - **Every degenerate case has a defined result**: zero-area box, box partly outside the
-  image, box entirely outside, empty region after clipping. `NaN` reaching a JSON response
-  is not a defined result.
+  image, box entirely outside, empty region after clipping. `NaN` reaching a caller is not
+  a defined result.
 - **Keep it pure.** Arrays and boxes in, structure out. No model loading, no file reads,
-  no HTTP. That is what lets `qa` test it exhaustively without a GPU.
+  no network. That is what lets `qa` test it exhaustively without a GPU — and what makes
+  it portable to TypeScript at all.
+- **Fixtures are plain JSON.** Write `tests/fixtures/fusion_cases.json` so that a
+  TypeScript suite can load the same cases. A fixture in a pickle or a `.npy` tests half
+  the system.
 
 **Expected result:** `fusion.py` with a function taking detections and a depth map and
 returning fused results, tested on a real image where you can see that the foreground
@@ -154,194 +153,172 @@ object reads as nearer.
 
 ---
 
-### 4. Build the service
+### 4. Export both models
 
-**Do:** Use [`resources/prompts/03-fastapi-service.md`](resources/prompts/03-fastapi-service.md).
+**Do:** Use [`resources/prompts/03-export-pipeline.md`](resources/prompts/03-export-pipeline.md)
+with the `ml-engineer` agent to write `scripts/export.py`.
 
-```
-POST /analyze      multipart image upload → detections with relative depth
-GET  /health       liveness, plus which model version is loaded
-GET  /ready        readiness — are the models actually loaded?
-```
-
-Three requirements that separate a service from a script:
-
-1. **Load models once, at startup**, through the FastAPI lifespan handler and dependency
-   injection. A model loaded inside a request handler is a service that times out under
-   any real load, and it will pass every test you write.
-2. **Configuration from the environment**, via `pydantic-settings`. Weights path,
-   confidence threshold, max upload size. The service must start in a container with
-   nothing but environment variables.
-3. **Correct status codes.** 413 over the size limit — mirroring Roboflow's own 20 MB
-   limit is a defensible choice worth stating. 415 for an undecodable format. 422 for a
-   malformed request. Returning 500 for a 30 MB upload is a bug report the client cannot
-   act on.
-
-**Do:** Run it and look at a real response.
+Two models, two toolchains, two output formats:
 
 ```bash
-uv run uvicorn smart_scene_analyzer.api:app --reload
-curl -F 'file=@data/v1/test/images/<sample>.jpg' localhost:8000/analyze | jq
+# Detection — Ultralytics to int8 TFLite. int8 needs calibration data.
+uv run yolo export model=runs/<run>/weights/best.pt format=tflite int8=True data=<data.yaml>
+
+# Depth — HuggingFace checkpoint to an ExecuTorch .pte
+uv run optimum-cli export executorch \
+  --model depth-anything/Depth-Anything-V2-Small-hf \
+  --task depth-estimation --recipe xnnpack \
+  --output_dir app/assets/models/
 ```
 
-**Expected result:** JSON with detections, boxes, confidences, and a relative depth per
-object — where the object you can see is closest has the largest value.
+**Do:** Immediately check the real artifacts against the contract you wrote in step 2.
+
+**Expected result:** both files in `app/assets/models/`, their sizes recorded in
+`docs/artifact-budget.md`, and the model card's **Exported artifact** table updated with
+what the export *actually* produced — not what you intended.
+
+> **Where the two disagree, the artifact wins and the card is wrong.** Exported tensor
+> layouts differ between toolchain versions, and the two details most often wrong are
+> whether coordinates are normalized or in input-pixel space, and the output tensor
+> ordering. Lesson 05 writes a decoder against this table; a wrong row there becomes a
+> confidently misplaced box there.
+
+> ⚠️ **Neither command is verified against this project's models.** The formats and flags
+> are current as of 2026-08-12, but that YOLO11 exports cleanly to int8 TFLite here, and
+> that Depth Anything V2's ViT survives the ExecuTorch recipe at acceptable speed, has not
+> been confirmed on a clean machine. If one fails, that failure is the finding — record
+> what broke rather than substituting a different model quietly.
 
 ---
 
 ### 5. Test it properly
 
-**Do:** Hand off to `qa` with
-[`resources/prompts/04-test-suite.md`](resources/prompts/04-test-suite.md).
+**Do:** Use [`resources/prompts/04-test-suite.md`](resources/prompts/04-test-suite.md)
+with the `qa` agent, and invoke the `offline-suite` skill.
 
-**The suite must run with no GPU, no network, and no weights on disk**, in seconds.
-Inference is mocked; fixtures return canned detections and depth maps. This is not a
-purity exercise — a suite that needs a GPU is a suite that does not run in CI, and
-Lesson 06 is CI.
+**The default suite runs with no GPU, no network, and no weights on disk, in seconds.**
+That constraint is not about speed; it is about whether the suite runs at all in CI, and
+whether anyone runs it locally often enough to notice a break.
 
-What actually needs testing, in order of what breaks:
+Priorities, in order:
 
-| Test | Why |
-|---|---|
-| Fusion on synthetic depth with known ordering | The core logic, testable exactly |
-| All four degenerate box cases | Where `NaN` gets in |
-| Coordinate-space handling at three different resolutions | The bug this lesson exists to prevent |
-| Oversized upload → 413 | Boundary behaviour clients depend on |
-| Corrupt / grayscale / one-pixel image | The failures that reach production |
-| Zero detections | Empty list, not an error |
-| Response schema field names and units | The contract |
+- **The fusion layer, exhaustively.** It is pure, so there is no excuse not to. Every
+  degenerate case from step 3, plus the signature test: *does this function actually use
+  its depth argument?* A fusion that ignores the depth map and returns a constant passes a
+  surprising number of naive tests.
+- **The artifact contract**, asserted rather than assumed: label order matches the
+  taxonomy, and no field name anywhere implies metres.
+- **Fixtures generated in code or stored as JSON**, never committed as binaries.
 
-**One test earns its place above all the others:** assert that the fused output changes
-when the depth map changes. A fusion function that ignores its depth argument passes every
-schema test, every status-code test, and every smoke test — and returns confident garbage.
+**Expected result:** `uv run pytest` green in seconds. Verify the offline claim rather than
+trusting it:
 
-> **Do not weaken an assertion to make a test pass.** If a test fails, either the code is
-> wrong or the test encoded the wrong expectation. Decide which, and say which. Loosening
-> a threshold until it goes green destroys the only signal the suite carries.
-
-**Expected result:** `uv run pytest` passes offline in seconds, and integration tests
-carry the `integration` marker.
+```bash
+mv runs runs.hidden && uv run pytest; mv runs.hidden runs
+```
 
 ---
 
-### 6. Containerize
+### 6. Prove the export is still the model
 
-**Do:** Use the `devops` agent from Lesson 01 with
-[`resources/prompts/05-containerize.md`](resources/prompts/05-containerize.md).
+**Do:** Use [`resources/prompts/05-export-parity.md`](resources/prompts/05-export-parity.md)
+to write `tests/test_export_parity.py`.
 
-```bash
-docker build -t smart-scene-analyzer:dev .
-docker compose up -d
-curl localhost:8000/health
-```
+This is the step that separates "the export produced a file" from "the export produced a
+model". They are not the same claim, and only one of them is worth shipping.
 
-`docker-compose.yml` runs the service alongside MLflow, finally answering Lesson 01's
-open question about MLflow hosting with a working configuration rather than an intention.
+Run the same fixtures through the exported artifact and through the **original PyTorch
+weights**, and compare:
 
-**Expected result:** the containerized service answers `/health` and `/analyze`.
+| Model | What must agree | What will not |
+|---|---|---|
+| Detection | Classes, and boxes within an IoU tolerance | Confidences exactly — int8 shifts them |
+| Depth | The **ordering** of near versus far | The values. There is no scale to compare |
 
-Two things that will cost you an hour otherwise:
+**Report the per-class delta, not the aggregate.** int8 quantization can destroy one class
+while leaving mAP almost unmoved, and an aggregate number is exactly the wrong instrument
+for finding that.
 
-- **Weights are not in the image.** Mount them, or fetch them at startup from MLflow.
-  A multi-hundred-megabyte layer that changes every retrain defeats the point of layers.
-- **`opencv-python-headless`, not `opencv-python`.** The template already specifies it.
-  The non-headless build wants a display server that a container does not have, and the
-  error it produces does not mention displays.
+> **Depth parity is an ordering check.** The output has no unit and no scale, so comparing
+> magnitudes across two runtimes is meaningless. If the near-to-far ranking survives, the
+> export works. If it inverted, say so — do not silently negate it.
+
+**Expected result:** `tests/test_export_parity.py` passing with a stated tolerance, and the
+per-class quantization delta recorded in the model card.
 
 ---
 
-### 7. ⚠️ Measure the alternatives — about 1 credit
+### 7. Compare the on-device execution targets
 
-**Optional.** Skip if you have fewer than 2 credits, and record why.
-
-You have a service running local weights for zero credits. The question this step answers
-is what the other options actually cost — not what they seem like they should cost.
-
-**Do:** Copy the template, then work through
-[`resources/prompts/06-deployment-comparison.md`](resources/prompts/06-deployment-comparison.md).
+**Do:** Use [`resources/prompts/06-execution-target-comparison.md`](resources/prompts/06-execution-target-comparison.md), then
 
 ```bash
-cp <path-to-course-repo>/lessons/04-backend-engineering/resources/templates/deployment-comparison.md docs/
+cp <path-to-course-repo>/lessons/04-backend-engineering/resources/templates/execution-target-comparison.md docs/execution-target-comparison.md
 ```
 
-Send a fixed 200-image benchmark set through each available path, measure latency, and
-compute cost per 1,000 images from the published rates.
+An exported model can run several ways on a phone, and they are not interchangeable:
 
-| Option | Rate | Cost per 1,000 images | Notes |
-|---|---|---|---|
-| **Local in-process** | — | **0** | What you built. No network, no per-image cost |
-| **Self-hosted inference server** | 1 credit / 3,000 images | **~0.33** | `localhost:9001`, Docker |
-| **Hosted serverless (v2)** | 1 credit / 500 **seconds** | **~1** at 0.5 s/image | `serverless.roboflow.com` |
-| **Dedicated (GPU)** | 1 credit / hour of **uptime** | Depends entirely on utilization | ⛔ Not in this course |
-| **Local in-process, on Azure Container Apps** | Azure meter, free grant | **0 Roboflow credits** | Lesson 05's target. Cost moves currency, not away |
+| Target | Available on | Trade |
+|---|---|---|
+| XNNPACK / CPU | Everywhere | Slowest, and the only one guaranteed to exist |
+| Android NNAPI | Android, vendor-dependent | Fast when the vendor implemented it well; silently falls back when not |
+| CoreML / ANE | iOS | Fastest on Apple silicon. **Not available in the Simulator** |
+| GPU delegate | Both, model-dependent | Good for some ops, worse for others |
 
-> **The last row is where this is going.** Lesson 05 puts your container on Azure and
-> points a phone at it. Note what that changes and what it does not: the Roboflow cost per
-> image stays zero because the weights are yours, and the compute cost becomes Azure's
-> meter instead — a *different* budget with a *different* failure mode, which is its own
-> lesson. What matters here is the row you would be on if you had chosen hosted detection:
-> **1 credit per 1,000 images, paid every time somebody taps the shutter.** A `curl` loop
-> never made that visible. A camera app would.
+**Do:** Keep the cloud rows from the previous architecture in the table, as contrast. The
+comparison "0 credits per 1,000 images on-device versus 1 credit per 1,000 hosted" is worth
+seeing next to "and the on-device one needs a 40 MB download and excludes phones older than
+2021". Neither column is free; they are expensive in different currencies.
 
-> **The correction this step exists to deliver:** the self-hosted inference server on
-> `localhost:9001` is **metered**. It runs on your hardware and it still bills, at 1 credit
-> per 3,000 images. "Run it yourself and it's free" is the intuition almost everyone has,
-> and it is wrong — `inference/workflows.md` describes the local cost model as *"metered
-> credits + your hardware"*. Carry the correct version into Lesson 06, where an automated
-> pipeline will be making these calls without a human watching.
-
-**Do:** Budget before you measure. 200 images at roughly 0.5 s each is ~100 seconds of
-hosted execution, so about **0.2 credits** — but the agent must state the estimate and
-your remaining balance before calling anything, and your `models_infer` permission rule
-will fire.
-
-⛔ **Dedicated deployments are denied in this project.** They bill uptime rather than
-usage: one deployment left running is 24 credits a day, more than the entire course
-budget. Include the row in the table with that reasoning; do not create one.
-
-**Expected result:** `docs/deployment-comparison.md` with measured latencies, computed
-cost per 1,000 images, and a recommendation tied to a traffic assumption — because the
-right answer genuinely changes with volume, and a recommendation without a stated
-assumption is just a preference.
+**Expected result:** `docs/execution-target-comparison.md` with a recommended default
+backend per platform, and the device floor that choice implies.
 
 ---
 
 ### 8. Close the Lesson 01 open decision
 
-Lesson 01 recorded ⚠️ OPEN: **cloud FastAPI vs. on-device ONNX / Core ML / TFLite.** You
-now have the evidence to close it.
+Lesson 01 recorded ⚠️ OPEN: **cloud service vs. on-device ONNX / Core ML / TFLite.** You
+now have the evidence to close it — and to close it in the direction Lesson 01 listed as
+the hardest.
 
 **Do:**
 
 ```
-/adr inference target: containerized FastAPI with local weights
+/adr inference target: on-device, TFLite detection and ExecuTorch depth
 ```
 
 The ADR must state what you learned rather than what you assumed:
 
-- Local in-process inference costs nothing per image; hosted and self-hosted both meter
-- On the free plan you cannot download hosted-trained weights, so a hosted-trained model
-  is not portable into your own service
-- The measured latency of each path, from step 7
-- What would change the decision — a traffic level, a plan upgrade, a latency requirement
+- Export works, at a measured cost: the parity tolerance from step 6, and the per-class
+  quantization delta
+- Both artifact sizes, and what they imply for install size and the device floor
+- The execution-target trade from step 7, and the default backend you chose per platform
+- On the free plan you cannot download hosted-trained weights — **so a hosted-trained
+  model cannot be exported at all**, and local training was never merely the cheaper option
+- What would change the decision
 
-**Write the *Revisit when* clause carefully.** Lesson 05 builds a real client, deploys to
-Azure, and measures latency over cellular — so at least one of your trigger conditions is
-about to fire on schedule. An ADR whose revisit condition occurs and is never revisited
-has stopped being a decision and become a piece of history.
+**Be honest that this decision costs more than it saves.** It removes a hosting bill and a
+network dependency, and in exchange it adds an export toolchain, two native runtimes, a
+second implementation of the fusion layer, and an app-store release cycle for what used to
+be a deploy. An ADR that lists only the benefits is an advertisement.
 
-Note also what your latency numbers from step 7 are and are not. They were measured on
-loopback, which means they measure how fast your code is. Lesson 05 measures how fast the
-product is, and the gap between those two is the entire network. Say in the ADR which one
-you have.
+**Write the *Revisit when* clause carefully.** Lesson 05 measures on-device latency and
+memory on real hardware, so at least one of your trigger conditions is about to fire on
+schedule. An ADR whose revisit condition occurs and is never revisited has stopped being a
+decision and become a piece of history.
 
-**Expected result:** an ADR whose Context section contains numbers you measured.
+Note also what your step 6 and 7 numbers are and are not. They were measured on your
+machine, against exported artifacts, not on a phone. Lesson 05 measures the device, and
+the gap between those two is the whole reason step 9 of that lesson exists.
+
+**Expected result:** an ADR whose Context section contains numbers you measured, and whose
+Consequences section names what got harder.
 
 > The `/adr` command tells the agent: *"If you do not know why this decision was forced,
 > ask me rather than writing a plausible-sounding rationale. A fabricated Context is worse
 > than a blank one, because it will be believed."* This is the ADR where that instruction
 > pays off — you have real measurements, and the temptation is to write the general
-> argument instead of your specific one.
+> argument for on-device instead of your specific one.
 
 ---
 
@@ -353,15 +330,15 @@ you have.
 2. Compare against `docs/credit-budget.md`
 3. Update **Remaining** and **Last reconciled**
 
-**Expected result:** Lesson 04 spend is **0** or about **0.5**. Running total across
-Lessons 02–04 at or under **7**, leaving **13 or more** for Lessons 05–06. Lesson 05
-spends nothing on Roboflow; Lesson 06 is allocated 4.
+**Expected result:** Lesson 04 spend is **0** — export runs entirely on your machine.
+Running total across Lessons 02–04 unchanged from Lesson 03. Lesson 05 also spends
+nothing; Lesson 06 is allocated 4.
 
 ```bash
 uv run ruff check . && uv run mypy src && uv run pytest
 git add -A
-git status          # confirm: no .pt, no data/, no .env
-git commit -m "Lesson 04: FastAPI service, depth fusion, tests, deployment comparison"
+git status   # confirm: no *.pt, no *.tflite, no *.pte, no data/, no .env
+git commit -m "Lesson 04: fusion layer, model export, quantization parity"
 git push
 ```
 
@@ -373,19 +350,20 @@ Work through
 [`resources/checklists/deliverables.md`](resources/checklists/deliverables.md).
 
 ```bash
-# Offline, no GPU, seconds
+# Offline, no GPU, no weights on disk, seconds
 uv run pytest
+
+# Prove the offline claim rather than trusting it
+mv runs runs.hidden && uv run pytest; mv runs.hidden runs
 
 # Quality gates
 uv run ruff check . && uv run mypy src
 
-# The container actually serves
-docker compose up -d
-curl -sf localhost:8000/health | jq
-curl -sF 'file=@data/v1/test/images/<sample>.jpg' localhost:8000/analyze | jq
+# The artifacts exist and their sizes are recorded
+ls -l app/assets/models/
 
 # Nothing leaked
-git status --porcelain | grep -E '\.pt$|^\?\? data/|\.env$' && echo "LEAK" || echo "clean"
+git status --porcelain | grep -E '\.(pt|tflite|pte|onnx)$|^\?\? data/|\.env$' && echo "LEAK" || echo "clean"
 ```
 
 The check that matters most, and which no command performs:
@@ -395,61 +373,54 @@ grep -riE 'depth_m|meter|metre|distance' src/ | grep -v 'NOT metres'
 ```
 
 **This must return nothing.** Any identifier implying absolute distance is a bug, because
-the project cannot produce one. Lesson 02 decided it, Lesson 03 built it, and this is
-where it would leak into a client contract.
+the project cannot produce one. Lesson 02 decided it, Lesson 03 built it, and this is where
+it would be baked into an artifact that ships to a phone.
 
 Then read:
 
-- Every response field's description states its units
-- Boxes are documented as `xyxy` in absolute pixels
-- The fusion layer has no model loading, file reads, or HTTP calls
-- `docs/deployment-comparison.md` shows self-hosted as **metered, not free**
-- The inference-target ADR cites measurements, not general arguments
+- Every model-card contract row is filled in from the **real** export, not the intended one
+- Boxes are documented as `xyxy` in absolute pixels of a **named** space
+- The fusion layer has no model loading, file reads, or network calls
+- `tests/fixtures/fusion_cases.json` is plain JSON that TypeScript could load
+- The parity test states a tolerance and reports per-class deltas
+- `docs/execution-target-comparison.md` names a device floor
+- The inference-target ADR cites measurements and names what got harder
 
-The qualitative check: **upload a photo of a real room from your phone and look at the
-response.** Your test images come from one dataset with one sensor. The first genuinely
-out-of-distribution image usually tells you more about the system than the whole test
-suite — and it is the last cheap opportunity to find that out before a real phone starts
-sending you images your dataset has never seen.
+The qualitative check: **run the exported model on a photo of a real room, and compare it
+against the PyTorch original.** Your test images come from one dataset with one sensor. The
+first genuinely out-of-distribution image usually tells you more than the whole test suite
+— and if quantization hurt a class, this is where it shows up first.
 
 ---
 
 ## Open items
 
-- ⚠️ **Self-hosted inference metering** (step 7) — the rate is documented as 1 credit per
-  3,000 images, but whether a locally hosted server meters *every* call or only
-  authenticated cloud-model calls is not spelled out in the skills. Measure it against the
-  usage page if you run this path.
-- ⚠️ **MLflow in CI** — `docker-compose.yml` gives one machine a tracking server. Lesson 06
-  needs CI to read runs it did not create. Carried from Lesson 03.
+- ⚠️ **The export commands are unverified against this project's models** (step 4). Formats
+  and flags are current as of 2026-08-12, but that YOLO11 exports cleanly to int8 TFLite
+  here, and that Depth Anything V2's ViT survives the ExecuTorch recipe at usable speed,
+  has not been confirmed on a clean machine. This is the single largest risk in the lesson.
+- ⚠️ **The export toolchain is not yet in `pyproject.toml`.** `ultralytics` TFLite export
+  and `optimum-executorch` pull large, platform-sensitive dependency trees. Confirm both
+  install cleanly on macOS and Linux before a cohort.
+- ⚠️ **The int8 calibration set is unspecified.** Using the val split is the obvious default
+  and also the one that makes the parity number optimistic. Decide deliberately and say so.
+- ⚠️ **MLflow in CI** — Lesson 06 needs CI to read runs it did not create. Carried from
+  Lesson 03.
 - ⚠️ **Free-plan credit allowance unconfirmed** — carried from Lesson 02.
 
-> **Resolved since this lesson was written:** *mobile app scope*. It is a real client —
-> an Expo app for iOS and Android, built in Lesson 05 against the schema you designed in
-> step 2. Which is why that step now asks you to include the processed image dimensions in
-> the response: a client that downscales before uploading cannot place an absolute box
-> without them.
-
-All tracked in the course [`TODO.md`](../../TODO.md).
-
----
+> **Resolved since this lesson was written:** *mobile app scope*. It is a real app — an Expo
+> development build for iOS and Android, running both models on-device, built in Lesson 05
+> against the artifact contract you defined in step 2. Which is why that step asks you to
+> write the contract down before the export exists: nothing at runtime will check it.
 
 ## Further reading
 
-Local skill sources, in `computer-vision-skills/skills/`:
+- [Ultralytics — model export](https://docs.ultralytics.com/modes/export/) — TFLite and int8, checked 2026-08-12
+- [Optimum ExecuTorch — export guide](https://huggingface.co/docs/optimum-executorch/en/guides/export) — the `depth-estimation` task, checked 2026-08-12
+- [ExecuTorch — export and lowering](https://docs.pytorch.org/executorch/stable/using-executorch-export.html) — what `.pte` actually is
+- [react-native-fast-tflite](https://github.com/mrousavy/react-native-fast-tflite) — the runtime Lesson 05 loads the detection artifact into
+- [React Native ExecuTorch](https://docs.swmansion.com/react-native-executorch/) — the runtime for depth
 
-- `inference/SKILL.md` — deployment option comparison with latency and cost columns
-- `inference/local-tooling.md` — the self-hosted inference server on `localhost:9001`
-- `api-reference/inference.md` — URL patterns, auth, request/response shapes, error codes.
-  Note: **"V2 is credit-billed by execution time (seconds)"**
-- `api-reference/rest-api.md` — the wider REST surface
-- `plans-and-pricing/SKILL.md` — the rates behind step 7's table
+---
 
-External:
-
-- [FastAPI — lifespan events](https://fastapi.tiangolo.com/advanced/events/)
-- [Pydantic — field descriptions](https://docs.pydantic.dev/latest/concepts/fields/)
-- [Roboflow Inference](https://inference.roboflow.com/)
-
-**Previous:** [Lesson 03](../03-model-development/) ·
-**Next:** [Lesson 05 — Mobile Client & Cloud Delivery](../05-mobile-client-and-delivery/)
+**Next:** [Lesson 05 — On-Device Inference & Mobile Delivery](../05-mobile-client-and-delivery/)
