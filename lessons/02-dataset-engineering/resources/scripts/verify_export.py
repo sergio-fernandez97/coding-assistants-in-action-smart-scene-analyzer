@@ -79,7 +79,7 @@ def parse_data_yaml(path: Path) -> list[str]:
     text = path.read_text(encoding="utf-8")
 
     try:
-        import yaml  # noqa: PLC0415 — optional dependency, resolved at call time
+        import yaml
 
         data = yaml.safe_load(text)
         names = data.get("names")
@@ -106,17 +106,52 @@ def parse_data_yaml(path: Path) -> list[str]:
     raise ValueError(f"Could not find a `names` list in {path}. Install PyYAML for robust parsing.")
 
 
+CLASS_LIST_HEADING = re.compile(r"^#{1,6}\s+class\s+list\b", re.IGNORECASE)
+HEADING = re.compile(r"^#{1,6}\s+")
+TAXONOMY_ROW = re.compile(r"^\|\s*(\d+)\s*\|\s*`?([^`|]+?)`?\s*\|")
+
+
+def _class_list_section(text: str) -> list[str] | None:
+    """Return the lines under a `## Class list` heading, or None if there is no such heading.
+
+    Scoped deliberately. A filled-in taxonomy tends to grow other tables whose first two
+    columns also look like ``| <int> | <name> |`` — Auto Label prompt tables are the usual
+    culprit — and an unscoped scan lets the last one in the file win. That failure is
+    especially nasty because it reports the class order as wrong while the class list is
+    in fact correct, sending you to fix the one thing that is not broken.
+    """
+    lines = text.splitlines()
+    for i, line in enumerate(lines):
+        if not CLASS_LIST_HEADING.match(line.strip()):
+            continue
+        section = []
+        for subsequent in lines[i + 1 :]:
+            if HEADING.match(subsequent.strip()):
+                break
+            section.append(subsequent)
+        return section
+    return None
+
+
 def parse_taxonomy(path: Path) -> list[str]:
     """Return the class names from the taxonomy markdown table, ordered by ID.
 
     Expects rows of the form ``| 0 | `chair` | notes |`` under a table whose first
     column is the integer class ID. Placeholder rows (``<...>``) are skipped.
-    """
-    classes: dict[int, str] = {}
-    row = re.compile(r"^\|\s*(\d+)\s*\|\s*`?([^`|]+?)`?\s*\|")
 
-    for line in path.read_text(encoding="utf-8").splitlines():
-        match = row.match(line.strip())
+    Reads the ``## Class list`` section when the document has one, and falls back to
+    scanning the whole file when it does not — so a taxonomy written before this rule
+    existed still verifies.
+    """
+    text = path.read_text(encoding="utf-8")
+
+    section = _class_list_section(text)
+    scoped = section is not None
+    lines = section if scoped else text.splitlines()
+
+    classes: dict[int, str] = {}
+    for line in lines:
+        match = TAXONOMY_ROW.match(line.strip())
         if not match:
             continue
         name = match.group(2).strip()
@@ -125,13 +160,21 @@ def parse_taxonomy(path: Path) -> list[str]:
         classes[int(match.group(1))] = name
 
     if not classes:
+        where = "the `Class list` section of" if scoped else "anywhere in"
         raise ValueError(
-            f"No class rows found in {path}. Expected markdown rows like: | 0 | `chair` | ... |"
+            f"No class rows found in {where} {path}. "
+            f"Expected markdown rows like: | 0 | `chair` | ... |"
         )
 
     ids = sorted(classes)
     if ids != list(range(len(ids))):
         raise ValueError(f"Taxonomy IDs are not contiguous from 0: {ids}")
+
+    if not scoped:
+        print(
+            f"  NOTE   {path} has no `## Class list` heading; scanned the whole file. "
+            f"Any other table with `| <int> | <name> |` rows can override the class list."
+        )
 
     return [classes[i] for i in ids]
 
@@ -251,8 +294,11 @@ def check_split(
             rep.error(f"{split}: stopping after 50+ bad rows — the export is systematically wrong.")
             break
 
-    scope = f"sampled {len(checked)} of {len(labels)}" if sample > 0 and len(labels) > sample \
+    scope = (
+        f"sampled {len(checked)} of {len(labels)}"
+        if sample > 0 and len(labels) > sample
         else f"all {len(labels)}"
+    )
     total_boxes = sum(class_counts.values())
     rep.note(f"{split}: {len(images)} images, {total_boxes} boxes in {scope} label files.")
 
@@ -262,9 +308,15 @@ def check_split(
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("export_dir", type=Path, help="Roboflow YOLO export root (contains data.yaml)")
-    parser.add_argument("--taxonomy", type=Path, help="Path to docs/taxonomy.md for class-list comparison")
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument(
+        "export_dir", type=Path, help="Roboflow YOLO export root (contains data.yaml)"
+    )
+    parser.add_argument(
+        "--taxonomy", type=Path, help="Path to docs/taxonomy.md for class-list comparison"
+    )
     parser.add_argument(
         "--sample",
         type=int,
@@ -306,7 +358,9 @@ def main() -> int:
         except ValueError as exc:
             rep.error(str(exc))
     else:
-        rep.warn("No --taxonomy given; skipping the class-list comparison (the most valuable check).")
+        rep.warn(
+            "No --taxonomy given; skipping the class-list comparison (the most valuable check)."
+        )
 
     for split in SPLITS:
         if not (root / split).exists():

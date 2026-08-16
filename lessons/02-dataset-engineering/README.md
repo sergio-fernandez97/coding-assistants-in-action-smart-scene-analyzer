@@ -1,7 +1,15 @@
 # Lesson 02 — Dataset Engineering
 
-> Notion Week 2. Estimated time: 4–5 hours, plus dataset download time (SUN RGB-D is
-> ~6 GB; start the download before the session).
+> Notion Week 2. Estimated time: **3–4 hours** for the required path, plus dataset
+> download time (SUN RGB-D is ~6 GB; start the download before the session). Two
+> optional steps — the Auto Label audit (10) and the NYU converter (14) — add 1 and 2–3
+> hours respectively and are marked as optional where they appear.
+
+> **This lesson has been run end to end against a real free-tier account.** Everything
+> that went wrong, what it cost, and which step it changed is in
+> [`RETROSPECTIVE.md`](RETROSPECTIVE.md). Instructors should read it before running a
+> cohort. Students do not need it — its findings are already folded into the steps
+> below.
 
 ## Session goal
 
@@ -15,10 +23,22 @@ deleted Roboflow version is not — and unlike a bad file edit, some platform op
 **cost money**. This session is as much about scoping an agent's authority over a live,
 metered system as it is about datasets.
 
-By the end you have two versioned datasets — V1 from SUN RGB-D as the initial training
-set, V2 from NYU Depth V2 standing in for newly acquired production data — sharing one
-taxonomy, ready for the fine-tuning story in Lesson 03. You will have spent about **4 of
-your 20 credits** getting there, and you will be able to say exactly where they went.
+By the end you have a versioned dataset from SUN RGB-D, a taxonomy that is a real
+contract rather than a list, and an export that a verification script has checked —
+ready for the fine-tuning story in Lesson 03. Optionally you also have a second version
+from NYU Depth V2, standing in for newly acquired production data (step 14).
+
+**You will have spent about 0.4 of your 20 credits getting there** — under half a credit
+for the entire session, and zero if you skip step 10. That figure is measured, not
+estimated: see [`RETROSPECTIVE.md`](RETROSPECTIVE.md).
+
+That number is the point rather than a footnote. Step 4 builds a four-layer harness
+around a budget that this lesson then barely touches, and it is worth noticing that the
+harness was never the thing at risk. **Every credit actually wasted in the reference run
+went on a misunderstanding, not on an expensive operation** — a version regenerated
+because a control group had been destroyed by a misread instruction. Compute is what
+costs money, and you do not reach it until Lesson 03. What costs you *today* is a
+plausible number believed too quickly.
 
 ## Prerequisites
 
@@ -40,20 +60,29 @@ your 20 credits** getting there, and you will be able to say exactly where they 
 ## Deliverables
 
 - [ ] Roboflow plugin installed; `/mcp` shows `roboflow` connected
-- [ ] `docs/credit-budget.md` filled in, with a starting balance and a planned allocation
+- [ ] `docs/credit-budget.md` filled in, with a starting balance, a planned allocation,
+      and **the workspace slug and project ID you actually worked in**
 - [ ] `.claude/settings.json` carries the credit-gating permission rules
 - [ ] `.claude/agents/dataset-engineer.md` and `data-pipeline.md` in use
 - [ ] A Roboflow object-detection project for the Smart Scene Analyzer
-- [ ] `docs/taxonomy.md` — the class list, shared by both dataset versions
-- [ ] `scripts/convert_sunrgbd.py` and `scripts/convert_nyu.py`, with conversion reports
-- [ ] Dataset **version 1** generated from SUN RGB-D
-- [ ] Dataset **version 2** generated from NYU Depth V2
-- [ ] The Auto Label audit result — per-class agreement between Grounding DINO and the
-      human annotations, recorded in the dataset card
-- [ ] `docs/dataset-card-v1.md` and `docs/dataset-card-v2.md`
-- [ ] Export of version 1 in `data/`, passing `verify_export.py`
-- [ ] The ledger reconciled against the Roboflow usage page
-- [ ] ADRs recording the acquisition path and the depth scope decision
+- [ ] `docs/taxonomy.md` — the class list, **numbered alphabetically** (step 12 explains
+      why that is not a style choice)
+- [ ] `scripts/convert_sunrgbd.py`, with a conversion report
+- [ ] All uploaded images carry the `sun-rgbd` tag — verified by a count, not assumed
+- [ ] A dataset version generated from SUN RGB-D
+- [ ] `docs/dataset-card-<n>.md` for the version you generated
+- [ ] Export in `data/`, passing `verify_export.py`
+- [ ] The ledger reconciled against the Roboflow usage dashboard
+- [ ] ADRs recording the acquisition path, the depth scope decision, and the class-ID
+      order
+
+*Optional, and each one states what you give up by skipping it:*
+
+- [ ] Step 10 — the Auto Label audit: per-class agreement between Grounding DINO and the
+      human annotations, recorded in the dataset card. **1 credit.**
+- [ ] Step 14 — `scripts/convert_nyu.py` and a second dataset version from NYU Depth V2,
+      sharing the taxonomy. **Free, but 2–3 hours, and Lesson 03's V1-vs-V2 comparison
+      depends on it.**
 
 Verify with [`resources/checklists/deliverables.md`](resources/checklists/deliverables.md).
 
@@ -70,6 +99,18 @@ copy the **Private API Key**, and export it in the shell you launch `claude` fro
 export ROBOFLOW_API_KEY=<your-key>
 export ROBOFLOW_WORKSPACE=<your-workspace-slug>   # from app.roboflow.com/<workspace-slug>
 ```
+
+> ⚠️ **Get the slug from your browser's address bar, not from memory and not from the
+> settings page's display name.** Open `app.roboflow.com`, click into the workspace you
+> intend to use, and copy the path segment out of the URL. A display name of "Sergio's
+> Workspace" can have a slug of `sergios-workspace-rdowu`, and accounts routinely have
+> more than one workspace after any experimentation.
+>
+> This matters more than it looks. **A wrong-but-valid slug authenticates, lists, and
+> returns an empty project list** — which reads exactly like "nothing has been uploaded
+> yet". In the reference run it cost forty minutes and a genuine belief that 1,504
+> uploaded images had been lost. Step 3 verifies it; do not skip that verification
+> because this step felt easy.
 
 Also record it in your gitignored `.env`:
 
@@ -183,14 +224,18 @@ claude
 - `/mcp` lists `roboflow` with status **connected**
 - The skills list includes `roboflow:data-management`, `roboflow:training-and-evaluation`, `roboflow:inference`, `roboflow:universe`, and others
 
-**Do:** Confirm authentication with a read-only call.
+**Do:** Confirm authentication *and identity* with a read-only call. These are two
+different things and only the second one catches the failure that actually happens.
 
 ```
-List my Roboflow workspaces and projects.
+List every Roboflow workspace my key can see, with its slug and its project count.
+Tell me which one matches $ROBOFLOW_WORKSPACE. If more than one workspace exists,
+list them all and ask me which to use — do not choose.
 ```
 
-**Expected result:** your workspace name appears. An empty project list is correct if
-this is a new account.
+**Expected result:** every workspace your account owns is listed, and exactly one of
+them matches the slug you exported. An empty project list is correct if this is a new
+account — but only once you are certain you are looking at the right workspace.
 
 **Troubleshooting:**
 
@@ -200,10 +245,32 @@ this is a new account.
 | Tools present, skills missing | MCP configured but plugin not installed | Run step 2 |
 | 401 / unauthorized | Wrong key type — the *publishable* key is not the *private* key | Re-copy from the settings page |
 | Plugin listed but disabled | Not enabled after install | Enable it in `/plugin` |
+| **Zero images / zero projects in work you know you did** | **Wrong workspace slug — the most common cause by far.** Not a lost upload | Re-read the slug from the browser URL (step 1) and re-export |
+| More than one workspace listed | Normal after any experimentation | Pick deliberately and record it in the ledger — see below |
+
+**Do:** Write the identity into the ledger, so that no later step has to guess it.
+
+```bash
+$EDITOR docs/credit-budget.md    # record: workspace slug, project ID, and the full URL
+```
+
+**Expected result:** `docs/credit-budget.md` names the workspace slug, the project ID
+(the URL segment after the workspace — it has a random suffix, e.g.
+`smart-scene-analyzer-gc2rv`), and the dashboard URL. Every subsequent step and every
+agent reads the target from here rather than reconstructing it.
 
 > Do not continue until `/mcp` reports connected. Every remaining step depends on it,
 > and an agent that cannot reach the platform will explain what it *would* do in a way
 > that reads almost exactly like having done it.
+
+> **A rule for the rest of the lesson, and it is the one worth carrying out of it.**
+> From here on you are reading numbers off a live system. When a count disagrees with
+> what you expected, **the assumption is the more likely thing to be wrong.** Zero
+> images means you are looking in the wrong place before it means the upload failed.
+> Four tags where you expected a hundred means you have misread the design before it
+> means the tagging broke. Every expensive mistake in the reference run was this, and
+> none of them raised an error — the platform returned a perfectly plausible number
+> every single time.
 
 ---
 
@@ -223,15 +290,28 @@ $EDITOR docs/credit-budget.md
 ```
 
 Fill in your workspace slug, confirm the starting balance, and read the rate table. Then
-check what you actually have:
+check what you actually have — **yourself, in a browser**:
 
 ```
-Open app.roboflow.com/<workspace>/settings/usage and tell me my current credit balance
-and this month's consumption.
+app.roboflow.com/<workspace>/settings/usage
 ```
 
-**Expected result:** the ledger has a workspace, a starting balance, a planned
-allocation per lesson, and a date.
+Read "Credits used" off the page and type it into the ledger.
+
+> ⚠️ **Do not ask the agent to fetch this.** There is no MCP tool for usage, no
+> documented REST endpoint for it on the free plan, and the dashboard is behind session
+> authentication that `WebFetch` cannot carry. The reference run watched an agent try
+> five distinct routes to this number and fail on all five before the student read it
+> off the screen in four seconds.
+>
+> This is the same lesson step 10 teaches about Auto Label, arriving early: **tool
+> coverage is never the whole product surface**, and the gap is not announced. An agent
+> asked for a number it cannot reach will keep finding new ways to try, because every
+> individual attempt looks reasonable. Recognising a missing capability is your job, and
+> it is faster than watching it be rediscovered.
+
+**Expected result:** the ledger has a workspace slug, a project ID, a starting balance
+you read yourself, a planned allocation per lesson, and a date.
 
 #### What one credit buys
 
@@ -411,9 +491,10 @@ resize" (`dataset-engineer`).
 
 ---
 
-### 6. Survey what already exists on Roboflow Universe
+### 6. Survey what already exists on Roboflow Universe — 10 minutes, timeboxed
 
-**Do:** Before building a dataset, look for one. Ask the Dataset Engineer:
+**Do:** Before building a dataset, spend ten minutes looking for one. Ask the Dataset
+Engineer:
 
 ```
 Search Roboflow Universe for indoor scene object detection datasets covering
@@ -422,23 +503,20 @@ For each candidate report: image count, class list, license, and whether it look
 suitable as a base for the Smart Scene Analyzer taxonomy.
 ```
 
-**Expected result:** a shortlist with counts, classes, and licenses.
+**Expected result:** a shortlist with counts, classes, and licenses. **Step 7 then goes
+with the converter regardless** — this step exists so that "we built it ourselves" is a
+decision you made rather than one you defaulted into, and ten minutes is enough to make
+it honestly. Do not let it run longer.
 
-Two tools exist and they are not interchangeable:
-
-| Tool | Use when |
-|---|---|
-| `universe_search` | You want structured JSON to filter or compare programmatically |
-| `universe_search_app` | **A human must look before choosing.** Opens the Universe UI with previews, sample images, license, and metrics |
-
-Dataset selection is a judgment call that depends on seeing the images. Use
-`universe_search_app` here. A dataset whose "chair" class is 90% office chairs is a
-domain-shift problem you will only notice by looking.
+Two tools exist and they are not interchangeable. `universe_search` returns structured
+JSON for programmatic comparison; **`universe_search_app` opens the UI with previews and
+sample images, and dataset selection is a judgment call that depends on seeing them.** A
+dataset whose "chair" class is 90% office chairs is a domain-shift problem you will only
+notice by looking.
 
 Searching and browsing Universe is free. ⚠️ Whether *forking* a Universe dataset into
-your workspace bills is not documented in the skills — a fork materializes images in
-your workspace, so it plausibly hits the Uploads and Storage rates and is negligible
-either way, but do not assume. See [Open items](#open-items).
+your workspace bills is not documented in the skills. Negligible either way, but do not
+assume. See [Open items](#open-items).
 
 ---
 
@@ -487,9 +565,9 @@ Path A gives you both: no labeling spend, and metrics that mean something. This 
 noticing as a general pattern — a hard constraint often rules out the option you would
 have regretted anyway, and forces you to articulate why.
 
-You are not skipping auto-labeling as a topic. Step 10 spends **one** credit measuring
-how good it would have been, which you can only do *because* you have human labels to
-compare against.
+You are not skipping auto-labeling as a topic either — not entirely. Step 10 is an
+optional one-credit measurement of how good it *would* have been, which is only possible
+*because* you have human labels to compare against.
 
 **Do:** Have the `data-pipeline` agent write the converter. Use
 [`resources/prompts/01-sunrgbd-converter.md`](resources/prompts/01-sunrgbd-converter.md).
@@ -512,11 +590,35 @@ the daily work of a Dataset Engineer.
 
 Either way, record what you did: `/adr dataset acquisition path for SUN RGB-D`.
 
-#### Subsample before you upload
+#### Subsample before you upload — and carve out the holdout here
 
 You do not need all 10,335 images. **1,500 is ample** for a course-scale fine-tune, and
-it keeps storage at roughly 0.6 credits/month across both datasets. Sample across the
-capture sessions rather than taking the first 1,500, or you will train on one building.
+it keeps storage at roughly 0.6 credits/month. Sample across the capture sessions rather
+than taking the first 1,500, or you will train on one building. Use a fixed seed so the
+sample is reproducible.
+
+**Have the converter emit two disjoint sets in the same pass:**
+
+| Set | Count | Where it goes | Why here |
+|---|---|---|---|
+| Training pool | ~1,500 | Uploaded to Roboflow in step 9 | The dataset |
+| **Audit holdout** | **100** | **`data/audit-gt/` on disk. Not part of the step 9 upload.** | Step 10's control group |
+
+**The holdout's only job is to be data the dataset version has never seen.** Its
+converter-produced YOLO labels stay on your disk permanently — those are the ground
+truth step 10 measures against, and they are never uploaded to anything. The *images* go
+up only if you choose to do step 10, and only in step 10, where they are tagged `audit`
+so that step 13 can exclude them. A control group that trained the model measures
+nothing.
+
+Carving both sets out of one seeded sampling pass is what guarantees they are disjoint.
+Do it later, by hand, and you are picking 100 images out of a pool you already uploaded
+— which is not a holdout, however it is labelled.
+
+> ⚠️ **Track where the holdout is at each step; the reference run got this wrong and it
+> was the most expensive mistake in the session.** After step 7 it is on disk. After
+> step 9 it is *still* on disk — step 9 uploads the training pool only. It reaches the
+> platform in step 10, or never. Step 13 filters it out either way.
 
 #### Depth: a scope decision, not a storage problem
 
@@ -591,24 +693,71 @@ Limits worth knowing before you start a multi-hour upload: **20 MB per image**,
 **16,400 × 10,900 px** maximum, and **duplicate images are skipped automatically** (by
 content hash, so re-running an interrupted upload is safe).
 
-**Do:** Tag the source at upload time.
+**Do:** Tag the source — **after** the upload, because the CLI cannot do it during one.
 
-Tags are how you keep V1 and V2 separable inside one project. Tag the SUN RGB-D images
-`sun-rgbd` and the NYU images `nyu-v2`. Version generation can then filter by tag,
-which is what makes step 14 possible without a second project.
+Tags are how you keep two sources separable inside one project. Tag the SUN RGB-D images
+`sun-rgbd`, and the NYU images `nyu-v2` if you do step 14. Version generation then
+filters by tag, which is what makes a second source possible without a second project.
 
-**Do:** Hold back 100 images for step 10. Upload them **unlabeled**, tagged `audit`, and
-keep their converter-produced labels on disk at `data/audit-gt/`. They are the control
-group, and they must not go into any dataset version.
+> ⚠️ **`roboflow import` applies no tags.** There is no tag flag on it, and no way to
+> attach one at upload time from the CLI. Tagging is a separate pass over images that
+> already exist. Earlier drafts of this lesson said "tag at upload time" and gave the
+> untagged import command directly above it; the reference run discovered the gap four
+> steps later, at version generation, when `tag:sun-rgbd` matched **zero** images.
 
-**Ledger:** ~1,600 images uploaded ≈ 0.16 credits. Round up and record 0.2.
+Ask the Dataset Engineer:
+
+```
+Every image now in the smart-scene-analyzer project came from SUN RGB-D. Apply the
+tag `sun-rgbd` to all of them.
+
+Before you start: tell me how many images are in the project, and how many already
+carry the tag. After you finish: re-query and tell me both numbers again.
+
+Work in batches and key on image ID, never on filename — the project contains
+duplicate filenames across distinct image IDs.
+```
+
+**Expected result:** the after-count for `tag:sun-rgbd` equals the project's total image
+count. Verify it yourself rather than accepting the report:
+
+```
+How many images match `tag:sun-rgbd`? How many match `NOT tag:sun-rgbd`?
+```
+
+The second number must be **zero**. An untagged remainder produces a version quietly
+missing images, and nothing downstream will mention it.
+
+**The audit holdout is not part of this upload.** Step 7 carved 100 images out to
+`data/audit-gt/` and they stay there for now. Do not upload them here, and do not tag
+anything `audit` here. They go up in step 10 if you do step 10, and not at all if you
+do not.
+
+> **So `tag:audit` matching 0 at this point is the correct state** — as is a small
+> number like 4, if a previous session ran Auto Label's free preview. Neither means
+> tagging is broken. In the reference run this count was misread as a second instance of
+> the `sun-rgbd` failure above; 100 images were pulled out of the *training pool* and
+> tagged `audit` to "repair" it, which manufactured a control group out of data that was
+> already in the dataset and cost a discarded version. **A count that disagrees with
+> your assumption is evidence about the assumption** — the rule from step 3, and this is
+> the step that charges you for ignoring it.
+
+**Ledger:** ~1,500 images uploaded ≈ 0.15 credits. Round up and record 0.2. Tagging is
+free.
 
 ---
 
-### 10. Audit the auto-labeler — 1 credit
+### 10. ⏭️ OPTIONAL — Audit the auto-labeler — 1 credit, ~45–60 min
 
-You skipped auto-labeling as a *strategy*. Now spend one credit finding out what that
-decision was worth, on your own data.
+**Skip this if you are short on time.** It is the largest single credit line in the
+lesson and the only one, and nothing in Lessons 03, 04, or 05 reads its output. What you
+give up: the Auto Label audit table in the dataset card, and the evidence base that
+Lesson 06's active-learning review loop is designed to build on. If you skip it, say so
+in the dataset card rather than leaving the section blank, and leave the 100 holdout
+images on disk — a later session can still run this against them.
+
+If you do it: you skipped auto-labeling as a *strategy* in step 7. Spend one credit
+finding out what that decision was worth, on your own data.
 
 **The question:** if you had taken Path D, how good would the labels have been? Everyone
 in this field has an opinion about foundation-model labeling. You are about to have a
@@ -619,23 +768,34 @@ compare against.
 [`resources/prompts/04-autolabel-audit.md`](resources/prompts/04-autolabel-audit.md).
 The shape of the session:
 
-1. **Have the agent draft your class prompts** from `docs/taxonomy.md`, and — more
+1. **Upload the 100 holdout images now, unlabeled and tagged `audit`**, from
+   `data/audit-gt/`. This is the one moment they go onto the platform — Auto Label is a
+   web-app action and cannot reach images on your disk. Upload the **images only**;
+   their ground-truth labels stay on disk, because comparing the machine's boxes against
+   them is the entire experiment.
+
+   **They are now in the project, so step 13's `NOT tag:audit` filter is what keeps them
+   out of the dataset version.** That filter is not optional and not a formality. Check
+   it after generating, not before.
+2. **Have the agent draft your class prompts** from `docs/taxonomy.md`, and — more
    usefully — predict which classes will be unreliable *before* you spend anything.
-2. **Run the free 4-image test** in the Roboflow UI (Images → Annotate → your `audit`
-   batch → Auto Label → Generate Test Results). **No credits, unlimited retries.** This
-   is your prompt-engineering loop, and it is why the audit is cheap to get right.
-3. **Iterate on class names, descriptions, and per-class confidence** until the four
+3. **Run the free 4-image test** in the Roboflow UI (Images → Annotate → the batch your
+   upload created → Auto Label → Generate Test Results). **No credits, unlimited
+   retries.** This is your prompt-engineering loop, and it is why the audit is cheap to
+   get right. It also creates the only four images in the project that legitimately
+   carry the `audit` tag.
+4. **Iterate on class names, descriptions, and per-class confidence** until the four
    results look correct.
-4. **Run Auto Label on the 100-image `audit` batch. This costs 1 credit.** Record it in
-   the ledger before you click.
-5. **Export and compare** against the converter's labels for those same 100 images:
+5. **Run Auto Label on the 100-image batch. This costs 1 credit.** Record it in the
+   ledger before you click.
+6. **Export and compare** against the converter's labels for those same 100 images:
 
 ```bash
 uv run python scripts/compare_autolabel.py data/audit-export data/audit-gt --report
 ```
 
 **Expected result:** a per-class table of precision, recall, and IoU-matched agreement
-between Grounding DINO and the SUN RGB-D annotators. Record it in `docs/dataset-card-v1.md`.
+between Grounding DINO and the SUN RGB-D annotators. Record it in your dataset card.
 
 **What to expect** — and check the predictions from sub-step 1 above against it:
 
@@ -725,12 +885,28 @@ generation, the version is frozen and a bad one has to be regenerated.
 > deletes what it judges to be bad annotations has made a curriculum decision on your
 > behalf, irreversibly.
 
-> **A note on splits, if you have read about this elsewhere.** Roboflow *rebalances*
-> splits during version generation, which is a problem for anyone mixing trusted and
-> untrusted labels in one project — they need their verified images pinned to valid and
-> test, and it is not documented whether a manual assignment survives generation. Under
-> Path A every label came from the same human-annotated source, so the rebalance is
-> harmless and the question does not arise. Worth knowing that you dodged it.
+> **Note also what the prompt asks for: "counts per query with example image IDs."**
+> That phrasing is doing real work. An agent handed a live API and a broad question will
+> enumerate every record it can reach — the reference run killed a subagent that tried to
+> pull 1,504 image records into its context before answering anything. RoboQL queries
+> return a total; ask for the total. Fetch individual records only for the handful you
+> then want to look at.
+
+> **A note on splits.** Two separate claims get run together here, and only one of them
+> is reassuring.
+>
+> *The reassuring one:* Roboflow rebalances splits during version generation, which is a
+> problem for anyone mixing trusted and untrusted labels in one project — they need
+> verified images pinned to valid and test, and it is not documented whether a manual
+> assignment survives generation. Under Path A every label came from the same
+> human-annotated source, so that concern does not arise. You dodged it.
+>
+> *The one that still bites:* generation rebalances **within the set it selects**. It
+> does not repair a project whose split assignment is already skewed, and **images with
+> no annotations are not in the pool at all** — they sit outside every split and simply
+> do not appear. If your `max-annotations:0` count above was non-trivial, expect the
+> generated splits to be smaller than the project total, and expect the difference to be
+> exactly those images. Step 13 rebalances explicitly before generating for this reason.
 
 ---
 
@@ -741,6 +917,36 @@ generation, the version is frozen and a bad one has to be regenerated.
 ```bash
 cp <path-to-course-repo>/lessons/02-dataset-engineering/resources/templates/taxonomy.md docs/taxonomy.md
 ```
+
+#### ⚠️ Number the list alphabetically, and do it now
+
+**Roboflow sorts class names alphabetically when it exports a dataset version. This is
+not configurable, and the export is what your training data actually says.** Whatever
+order you write into `docs/taxonomy.md`, `data.yaml` will come back as
+`bed, cabinet, chair, door, …`.
+
+So if you number the list in the order the classes occur to you — `chair` first because
+it is the obvious one — then `docs/taxonomy.md` says `chair = 0` and every label file in
+your export says `bed = 0`. Nothing errors. `verify_export.py` catches it in step 17,
+which is five steps and one dataset version too late; in the reference run, discovering
+it there cost ninety minutes, an ADR, a renumber across five files, and a converter
+re-run.
+
+**Write the class list in alphabetical order from the start.** It costs nothing to do
+now and it makes the taxonomy agree with the artifact by construction.
+
+Two consequences worth internalizing rather than just complying with:
+
+- **"Append only" is no longer sufficient.** The template's rule — add new classes at the
+  end, never renumber — assumes you control the order. Under alphabetical sorting, adding
+  `desk` to this list *inserts* it at index 3 and shifts five classes down. Adding a class
+  is therefore a **retrain and re-export**, not an append. Say this out loud once; it is
+  the kind of thing that gets discovered in Lesson 06.
+- **The export defines the contract, not your document.** This is the same principle as
+  `app/assets/models/` being what runs. Where the two disagree, the platform wins, and
+  your job is to make the document match rather than the other way round.
+
+Record the decision: `/adr class ID order follows the export`.
 
 The taxonomy is a **contract between two datasets that were annotated by different
 people with different conventions**. SUN RGB-D and NYU Depth V2 both label indoor
@@ -767,16 +973,35 @@ untouched.
 list and the mapping tables to fill in. Settle it against the two source label sets before
 generating a version. This is Notion Open Decision #1.
 
-**Expected result:** `docs/taxonomy.md` with a numbered class list and a completed
-source-label mapping table for both datasets.
+**Expected result:** `docs/taxonomy.md` with an **alphabetically numbered** class list, a
+completed source-label mapping table, and an ADR recording why the order is alphabetical.
 
 ---
 
-### 13. Generate Dataset Version 1
+### 13. Generate the dataset version
+
+**Do first — rebalance the splits, before generating anything.**
+
+```
+Rebalance the smart-scene-analyzer project's splits to 70/20/10 using
+datasets_rebalance_splits. Then tell me the resulting per-split counts and the
+project's total image count.
+```
+
+**Expected result:** the three split counts sum to the project's **annotated** image
+count. If they sum to less than the total, the difference is your unannotated images —
+they belong to no split and will not appear in any version. That is usually correct
+(the `audit` images, if you uploaded them, are exactly this), but you should be able to
+name the number rather than discover it later.
+
+Generation rebalances within what it selects; it does not fix a skewed project. Doing it
+explicitly here means the counts you see next are the counts you reasoned about.
 
 **Do:** Use [`resources/prompts/02-dataset-version.md`](resources/prompts/02-dataset-version.md),
 with `tag:sun-rgbd AND NOT tag:audit` as the source filter — the audit images are a
-control group and must stay out of every version.
+control group and must stay out of every version. The filter is harmless if you skipped
+step 10 and nothing carries the tag; leave it in either way, so the same prompt works
+whichever path you took.
 
 Recommended configuration — and the reasoning, because the defaults are not neutral:
 
@@ -799,11 +1024,29 @@ orientation carries no information.
 validation would inflate your metrics against images that do not exist.
 
 **Ledger:** version generation is 1 credit per 20,000 images — this run is under 0.25.
-Record it anyway. ⚠️ It is not documented whether the count is source or
-post-augmentation images; at 3× that is a 3× difference on a small line item. Note which
-you assumed.
+Record it anyway. It is not documented whether the count is source or post-augmentation
+images; at 3× that is a 3× difference on a small line item. Note which you assumed. (The
+reference run's reconciled total came in at roughly the **source**-count estimate, but
+that is one measurement on one small dataset, not a confirmation.)
 
-**Expected result:** version 1 exists, with per-split image counts reported.
+**Expected result:** the version exists, with per-split image counts reported.
+
+> ⚠️ **The image count in `versions_generate`'s immediate response is not your answer.**
+> It reports the project's image count — before the tag filter and before augmentation.
+> In the reference run it said `3261` where the filter should have selected `3021`, and
+> the version was briefly and wrongly declared contaminated.
+>
+> Confirm against the finished version instead:
+>
+> ```
+> Call versions_get on the version you just created and report its per-split image
+> counts and its total.
+> ```
+>
+> Then check the arithmetic yourself: train + valid + test should equal the total, and
+> the total should reflect your filter. This is a thirty-second check that distinguishes
+> "the filter was ignored" from "I read the wrong field", and those have very different
+> costs.
 
 > **A version is an immutable snapshot.** Changes to the project afterwards do not
 > affect it. Always reference it by number in code and docs — never as "the latest".
@@ -811,10 +1054,27 @@ you assumed.
 
 ---
 
-### 14. Repeat for NYU Depth V2 → Version 2
+### 14. ⏭️ OPTIONAL — Repeat for NYU Depth V2 → a second version
 
-**Do:** The same flow, abbreviated. Convert, upload with `tag:nyu-v2`, review,
-generate version 2 filtered to `tag:nyu-v2`, **applying the same taxonomy**.
+> ⚠️ **OPEN — is this required?** It is the longest step in the lesson (2–3 hours) and it
+> costs nothing but time, and **Lesson 03's entire V1-vs-V2 domain-adaptation comparison
+> is built on it.** Skipping it makes today shorter and Lesson 03 structurally different,
+> not merely lighter. The instructor decides this before the cohort runs, not the student
+> mid-session. Tracked in [`TODO.md`](../../TODO.md).
+>
+> **If you skip it:** you still finish Lesson 02 with a real versioned dataset, a
+> taxonomy, and a verified export — everything Lesson 03 needs to *train*. What you lose
+> is the second dataset it fine-tunes onto. Ask your instructor which Lesson 03 variant
+> you are running before you decide.
+>
+> **If you are short on time but want to keep the comparison:** the conversion is the
+> expensive part, not the platform work. Doing step 14 in a later session costs you
+> nothing — the project, the tags, and the taxonomy are all still there, and versions are
+> additive.
+
+**Do:** The same flow, abbreviated. Convert, upload, tag `nyu-v2` (a separate pass — see
+step 9), review, generate a version filtered to `tag:nyu-v2`, **applying the same
+taxonomy in the same alphabetical order**.
 
 **NYU is the harder conversion, and it is worth the time.** It ships as a single ~2.8 GB
 HDF5 file (`nyu_depth_v2_labeled.mat`) containing per-pixel instance and class maps —
@@ -850,16 +1110,22 @@ taxonomy or that comparison is meaningless.
 > which is why both mapping tables have to resolve to the same class list, with the same
 > conventions about what a `cabinet` includes.
 
-**Expected result:** version 2 exists, same class list as version 1, tagged distinctly.
+**Expected result:** the NYU version exists, with a class list **identical in name and
+order** to the SUN RGB-D version, and tagged distinctly.
 
 ---
 
-### 15. Export version 1 for training
+### 15. Export the version for training
+
+Throughout this step, `<N>` is **the version number Roboflow actually assigned** in step
+13 — not necessarily 1. If you discarded a version along the way, numbers are not reused
+and yours will be higher. Name the export directory after the real number, because
+`data/v1/` holding version 2 is a trap you set for yourself in Lesson 03.
 
 **Do:**
 
 ```
-Export dataset version 1 of smart-scene-analyzer in YOLOv11 format and give me the
+Export dataset version <N> of smart-scene-analyzer in YOLOv11 format and give me the
 download link and the exact SDK snippet to fetch it into ./data/.
 ```
 
@@ -871,11 +1137,11 @@ from roboflow import Roboflow
 import os
 rf = Roboflow(api_key=os.environ['ROBOFLOW_API_KEY'])
 project = rf.workspace(os.environ['ROBOFLOW_WORKSPACE']).project('smart-scene-analyzer')
-project.version(1).download('yolov11', location='./data/v1')
+project.version(<N>).download('yolov11', location='./data/v<N>')
 "
 ```
 
-**Expected result:** `data/v1/` contains `data.yaml` and `train/`, `valid/`, `test/`
+**Expected result:** `data/v<N>/` contains `data.yaml` and `train/`, `valid/`, `test/`
 directories, each with `images/` and `labels/`.
 
 **Do:** Confirm it is not tracked by git.
@@ -891,20 +1157,26 @@ git status --porcelain data/     # must be empty
 **Do:**
 
 ```bash
-cp <path-to-course-repo>/lessons/02-dataset-engineering/resources/templates/dataset-card.md docs/dataset-card-v1.md
+cp <path-to-course-repo>/lessons/02-dataset-engineering/resources/templates/dataset-card.md docs/dataset-card-v<N>.md
 ```
 
-Fill it in for version 1, then repeat for version 2. The Documentation Agent can draft
-from the version metadata, but **you** supply the known-limitations section — that
-requires having looked at the images.
+Name the file after the version number Roboflow actually gave you, not after "v1" —
+if you discarded a version along the way, those numbers no longer match and a card
+pointing at the wrong snapshot is worse than no card. Repeat for the NYU version if you
+did step 14. The Documentation Agent can draft from the version metadata, but **you**
+supply the known-limitations section — that requires having looked at the images.
 
 Two sections are specific to the path you took:
 
 - **Conversion provenance** — the script, its commit, records in, records out, and
   records skipped by reason. This is what makes a count discrepancy diagnosable in
-  Lesson 03 instead of mysterious.
+  Lesson 03 instead of mysterious. Record whether the skips were random or systematic;
+  "we dropped 145 images with zero boxes" is a different fact from "we dropped 145
+  images at random".
 - **Auto-label audit** — the per-class agreement table from step 10, and the prompts
-  that produced it.
+  that produced it. **If you skipped step 10, write "not run" and why**, rather than
+  leaving the section empty. An empty section reads as an oversight; a stated omission
+  is a decision someone can revisit.
 
 **Expected result:** two dataset cards recording source, license, acquisition path,
 conversion provenance, class distribution, split sizes, preprocessing, augmentation,
@@ -923,7 +1195,7 @@ audit results, and known biases.
 
 ```bash
 cp <path-to-course-repo>/lessons/02-dataset-engineering/resources/scripts/verify_export.py scripts/
-uv run python scripts/verify_export.py data/v1 --taxonomy docs/taxonomy.md
+uv run python scripts/verify_export.py data/v<N> --taxonomy docs/taxonomy.md
 ```
 
 **Expected result:** all checks pass.
@@ -934,22 +1206,47 @@ reordered class list silently mislabels the entire dataset), every image has a l
 file, no split is empty, coordinates are normalized within `[0, 1]`, and every class ID
 is within range.
 
+**If the class-order check fails**, work through these in order — the first is by far
+the most likely and the last is the trap:
+
+| Message | Meaning |
+|---|---|
+| `Same class names in a DIFFERENT ORDER` | Step 12's alphabetical rule was not applied. Fix `docs/taxonomy.md`, not the export |
+| `In taxonomy but not in export` | A class has no instances, or Modify Classes dropped it |
+| `In export but not in taxonomy` | Modify Classes did not run, so raw source labels came through |
+| Order looks correct but the check still fails | **A second `\| <id> \| <name> \|` table in `docs/taxonomy.md`.** The parser reads the `## Class list` section; if your class list lives under a different heading, it falls back to scanning the whole file and any other ID-shaped table will override it |
+
+That last row is a real failure from the reference run, and note which way it was fixed:
+**the document was wrong and the check was right.** The temptation when a verification
+script fails on something you believe you have already fixed is to conclude the script
+is broken. It had found a second, contradicting statement of the class order sitting in
+the same file — which is exactly the class of problem it exists to find.
+
 ---
 
 ### 18. Reconcile the ledger and commit
 
-**Do:** Close the loop on the budget before you close the session.
+**Do:** Close the loop on the budget before you close the session. **This is a human
+step by construction** — as in step 4, there is no tool that can read your usage page.
 
-1. Open `app.roboflow.com/<workspace>/settings/usage`.
+1. Open `app.roboflow.com/<workspace>/settings/usage` **in your browser**.
 2. Compare the platform's total against `docs/credit-budget.md`.
 3. Update **Remaining** and **Last reconciled**.
 
-**Expected result:** the two totals agree, at roughly **4 credits or less** spent.
+**Expected result:** the two totals agree, at roughly **0.5 credits or less** spent — or
+about 1.5 if you did step 10. The reference run reconciled at **0.40 used of 20**, and
+that figure included 0.16 wasted on regenerating a version.
 
 **If they do not agree, that is the most valuable output of this lesson.** It means
 something billed that you did not model. Find out what, and write it in the ledger's
 Notes table. You are carrying that budget through three more lessons, and an unmodeled
 cost compounds.
+
+**Also record what you predicted.** Put the estimate and the measurement side by side in
+the ledger, even when they agree — especially when they disagree by a factor of ten, as
+this lesson's own published estimate did until it was measured. A ledger that only
+records actuals tells you what happened; one that records both tells you how good your
+model of the system is, which is the thing you are actually carrying into Lesson 03.
 
 **Do:**
 
@@ -973,21 +1270,26 @@ Work through
 Fast automated pass:
 
 ```bash
-uv run python scripts/verify_export.py data/v1 --taxonomy docs/taxonomy.md
+uv run python scripts/verify_export.py data/v<N> --taxonomy docs/taxonomy.md
 git status --porcelain | grep -E '^\?\? data/|\.env$' && echo "LEAK" || echo "clean"
 ```
 
-Platform-side, confirm in the web app or via the agent:
+Platform-side, confirm in the web app or via `versions_get` — **not** from the
+`versions_generate` response:
 
-- Both versions exist and their class lists are **identical**
-- Per-split counts are non-zero and roughly 70/20/10
+- The version's class list is alphabetical and matches `docs/taxonomy.md` exactly
+- If you did step 14, both versions' class lists are **identical in name and order**
+- Per-split counts are non-zero, roughly 70/20/10, and **sum to the version total**
 - Augmented images appear only in the train split
-- The 100 `audit` images are in **neither** version
+- `NOT tag:sun-rgbd` matches **zero** images — nothing was left untagged
+- If you did step 10, the 100 `audit` images are in **no** version
 
 Budget-side:
 
-- `docs/credit-budget.md` reconciles against the Roboflow usage page
-- Spend is at or under 4 credits, leaving 16 for Lessons 03–05
+- `docs/credit-budget.md` reconciles against the Roboflow usage dashboard, read by you
+- The ledger names the workspace slug **and** the project ID you actually worked in
+- Spend is at or under 0.5 credits (1.5 with step 10), leaving ~19 for Lessons 03–05
+- Estimated and actual are both recorded, including where they diverged
 - `.claude/settings.json` prompts before `trainings_create`
 
 The qualitative check: **open twenty random annotated images in the Roboflow UI and
@@ -999,20 +1301,30 @@ that, and catching it before training rather than after is worth the ten minutes
 
 ## Open items
 
-- ⚠️ **Object taxonomy** (step 12) — the nine-class list and the source-label mapping
-  tables for both datasets. Notion Open Decision #1.
+- ⚠️ **Is step 14 (NYU) required?** The largest time cost in the lesson, and Lesson 03's
+  V1-vs-V2 domain-adaptation comparison depends on it. Optional as written; the
+  instructor must settle it before a cohort runs, because it changes Lesson 03.
+- ⚠️ **Object taxonomy** (step 12) — the class list and the source-label mapping tables.
+  Notion Open Decision #1. Whatever it settles on, it is numbered **alphabetically**.
 - ⚠️ **Free-plan credit allowance unconfirmed.** `roboflow:plans-and-pricing` describes
   the Public plan as "~$60/mo worth included" and gives no credit count. This course
   assumes 20 credits are available. Confirm at `roboflow.com/credits` before relying on
-  the budget.
+  the budget. *Lower risk than it was:* the measured cost of this lesson is ~0.4 credits,
+  not 4, so the allowance would have to be very small indeed to bind.
 - ⚠️ **Do Universe forks or downloads consume credits?** (step 6) Not stated in the
   skills. A fork materializes images in your workspace and plausibly bills Uploads and
   Storage; a download to your own machine plausibly bills nothing. Negligible either way,
   but unconfirmed.
 - ⚠️ **Is version generation billed on source or post-augmentation image count?**
-  (step 13) At 3× augmentation the difference is 3× a small line item.
+  (step 13) At 3× augmentation the difference is 3× a small line item. One reconciled run
+  is consistent with the source count; too small a measurement to call it settled.
+- ⚠️ **An unattributed "Deploy credits" line appeared on the usage dashboard** (0.0812 in
+  the reference run) with nothing in this lesson that should produce it. Small, but
+  unmodeled costs are the ones worth naming.
 - ⚠️ **Cohort Roboflow plan** — the free Public plan makes data and models public;
-  personal free workspaces vs. a shared paid workspace is undecided.
+  personal free workspaces vs. a shared paid workspace is undecided. Note that a public
+  workspace also publishes a **license declaration** you did not necessarily verify
+  against the source dataset's terms.
 
 All tracked in the course [`TODO.md`](../../TODO.md).
 
