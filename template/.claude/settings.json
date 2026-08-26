@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git add:*)",
+      "Bash(git branch:*)",
+      "Bash(uv sync:*)",
+      "Bash(uv run:*)",
+      "Bash(uv python:*)",
+      "Bash(roboflow:*)",
+      "Bash(npx expo:*)",
+      "Bash(npm run:*)",
+      "Bash(npx tsc:*)",
+      "Bash(adb devices:*)",
+      "Bash(adb logcat:*)",
+      "Bash(xcrun simctl list:*)",
+      "Bash(xcrun simctl boot:*)",
+      "Read(//Users/**)",
+      "WebFetch(domain:docs.roboflow.com)",
+      "WebFetch(domain:docs.claude.com)",
+      "WebFetch(domain:code.claude.com)",
+      "WebFetch(domain:docs.expo.dev)",
+      "WebFetch(domain:docs.swmansion.com)",
+      "WebFetch(domain:docs.pytorch.org)",
+      "WebFetch(domain:huggingface.co)"
+    ],
+    "ask": [
+      "Bash(git push:*)",
+      "Bash(git commit:*)",
+      "Bash(uv add:*)",
+      "Bash(npm install:*)",
+      "Bash(npx expo prebuild:*)",
+      "Bash(npx expo run:*)",
+      "Bash(eas build:*)",
+      "Bash(eas submit:*)",
+      "mcp__roboflow__trainings_create",
+      "mcp__roboflow__models_infer",
+      "mcp__roboflow__versions_generate",
+      "mcp__roboflow__workflows_run",
+      "mcp__plugin_roboflow_roboflow__trainings_create",
+      "mcp__plugin_roboflow_roboflow__models_infer",
+      "mcp__plugin_roboflow_roboflow__versions_generate",
+      "mcp__plugin_roboflow_roboflow__workflows_run"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.local)",
+      "Read(./**/*.pem)",
+      "Bash(git push --force:*)",
+      "Bash(rm -rf:*)",
+      "mcp__roboflow__datasource_trigger",
+      "mcp__roboflow__connect_cloud_storage",
+      "mcp__plugin_roboflow_roboflow__datasource_trigger",
+      "mcp__plugin_roboflow_roboflow__connect_cloud_storage"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PROJECT_DIR}/.claude/hooks/session_balance.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PROJECT_DIR}/.claude/hooks/notify_done.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PROJECT_DIR}/.claude/hooks/notify_done.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "mcp__(plugin_roboflow_)?roboflow__(trainings_create|models_infer|versions_generate|workflows_run)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PROJECT_DIR}/.claude/hooks/credit_gate.py",
+            "statusMessage": "Checking the credit ledger...",
+            "timeout": 15
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PROJECT_DIR}/.claude/hooks/units_guard.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PROJECT_DIR}/.claude/hooks/format_python.py",
+            "timeout": 45
+          },
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PROJECT_DIR}/.claude/hooks/artifact_drift.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  },
+  "env": {
+    "PYTHONDONTWRITEBYTECODE": "1"
+  }
+}

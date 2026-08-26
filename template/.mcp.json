@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "roboflow": {
+      "type": "http",
+      "url": "https://mcp.roboflow.com/mcp",
+      "note": "Official Roboflow MCP server. Set ROBOFLOW_API_KEY in the environment that launches Claude Code. This project-scoped config is the FALLBACK path — Lesson 02 installs the roboflow plugin instead, which bundles this same server config plus the skills. If you installed the plugin, you do not need this file; keeping both is harmless but redundant."
+    }
+  }
+}

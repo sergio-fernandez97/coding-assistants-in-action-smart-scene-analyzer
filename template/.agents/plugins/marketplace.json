@@ -1,0 +1,20 @@
+{
+  "name": "smart-scene-analyzer-course",
+  "interface": {
+    "displayName": "Smart Scene Analyzer Course"
+  },
+  "plugins": [
+    {
+      "name": "smart-scene-analyzer",
+      "source": {
+        "source": "local",
+        "path": "./plugins/smart-scene-analyzer"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

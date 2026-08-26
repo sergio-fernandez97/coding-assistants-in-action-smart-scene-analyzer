@@ -1,0 +1,76 @@
+[project]
+name = "smart-scene-analyzer"
+version = "0.1.0"
+description = "On-device indoor scene perception: object detection and monocular depth. Python trains and exports; the app runs them on the handset."
+readme = "README.md"
+requires-python = ">=3.11"
+
+# Nothing here serves HTTP. `src/` trains the models, exports the artifacts, and
+# remains the reference implementation the device is checked against — so these are
+# the array, image, and validation libraries that job needs, and nothing else.
+dependencies = [
+    "pydantic>=2.9",
+    "pydantic-settings>=2.6",
+    "numpy>=1.26",
+    "opencv-python-headless>=4.10",
+    "pillow>=11.0",
+]
+
+# Model, dataset, and MLOps dependencies are added in the lessons that introduce
+# them, so students see each one arrive with a reason.
+[project.optional-dependencies]
+dataset = [
+    "roboflow>=1.1",   # Lesson 02 — SDK + `roboflow import` CLI
+    "h5py>=3.12",      # Lesson 02 — NYU Depth V2 ships as HDF5
+    "scipy>=1.14",     # Lesson 02 — SUN RGB-D ships MATLAB .mat metadata
+]
+ml = [
+    "ultralytics>=8.3",  # Lesson 03 — YOLO11
+    "torch>=2.5",        # Lesson 03
+    "mlflow>=2.17",      # Lesson 03
+]
+depth = [
+    "transformers>=4.46",  # Lesson 03 — Depth Anything V2, inference only
+    "timm>=1.0",           # Lesson 03 — backbone Depth Anything V2 depends on
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-cov>=6.0",
+    "ruff>=0.8",
+    "mypy>=1.13",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/smart_scene_analyzer"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "SIM", "RUF"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+files = ["src"]
+
+[[tool.mypy.overrides]]
+module = ["cv2.*", "roboflow.*", "ultralytics.*", "transformers.*", "timm.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+# The default suite runs with no GPU, no network, and no weights on disk — see
+# .claude/skills/offline-suite. Anything that needs a checkpoint or an exported
+# artifact is marked, so it can be deselected with `-m "not integration"`.
+markers = [
+    "integration: requires model weights or exported artifacts on disk",
+]
