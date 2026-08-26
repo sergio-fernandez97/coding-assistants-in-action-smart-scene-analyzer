@@ -1,6 +1,6 @@
 # Prompt — domain adaptation and the V1-vs-V2 comparison
 
-**When:** Lesson 03, step 6.
+**When:** Lesson 03, **H2**. Homework.
 
 **Which agent:** `ml-engineer` to train, `evaluation` to compare. Keep them separate.
 

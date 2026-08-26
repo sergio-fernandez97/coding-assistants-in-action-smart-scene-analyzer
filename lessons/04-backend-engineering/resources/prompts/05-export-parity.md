@@ -64,6 +64,13 @@ per-class table is the deliverable; the aggregate is a summary of it.
 ```
 Assert depth parity:
 
+  - Feed BOTH sides the same letterboxed 518x518 square (the DEPTH_INPUT space).
+    The artifact is compiled for that fixed shape; depth.py's own preprocessing is
+    aspect-preserving and non-square, so if you let the reference use its own recipe
+    you are comparing two different inputs and calling the difference quantization
+    error. Reconcile it explicitly in the test.
+  - Compare the RAW 518x518 rasters, before either side's resize. depth.py resizes to
+    SOURCE and the app resizes to MODEL_INPUT; those resizes are ours, not the export's.
   - Do NOT compare depth values numerically. The output is relative inverse depth with an
     arbitrary scale; magnitudes across two runtimes are not comparable and an assertion
     on them is meaningless even when it passes.

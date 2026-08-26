@@ -78,11 +78,18 @@ Export the depth model to ExecuTorch:
     --task depth-estimation --recipe xnnpack \
     --output_dir app/assets/models/
 
+The artifact must accept a FIXED [1, 3, 518, 518] input — the DEPTH_INPUT square from
+the contract in step 2. Not a dynamic shape, and not the aspect-preserving non-square
+raster depth.py's reference preprocessing produces. If the recipe gives you a dynamic
+or differently-shaped graph, say so rather than working around it.
+
 Then report:
   - Input and output tensor shapes and dtypes, read from the .pte
   - The file size
   - Whether the exported model still outputs relative inverse depth with the same sign
     convention — larger means nearer. Verify this, do not assume it.
+  - Confirm the output is the model's NATIVE 518x518 raster and that no resize happens
+    inside the graph. The resize to MODEL_INPUT is the app's job, at the depth boundary.
 
 If the export fails, report the actual error. Do not substitute a different checkpoint,
 a different recipe, or a different task without saying so.
@@ -91,6 +98,12 @@ a different recipe, or a different task without saying so.
 **Verify the sign convention on the exported model specifically.** A convention flipped
 somewhere in the export produces a system that is confidently backwards and passes every
 check that does not test ordering.
+
+**The fixed 518² input is settled, not a choice you are making here.** It comes from step
+2's contract: `518 = 14 × 37` is a legal ViT-S/14 edge and `640` is not. If the export
+tool insists on something else, that is a finding for the model card — record it, and note
+that `depth.py`'s own preprocessing constants now describe the *reference's* recipe rather
+than the artifact's, which is a reconciliation this step owns.
 
 ---
 

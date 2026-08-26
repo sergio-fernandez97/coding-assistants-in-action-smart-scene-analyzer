@@ -1,35 +1,67 @@
 # Lesson 03 — Model Development
 
-> Notion Week 3. Estimated time: 4–5 hours, most of it waiting for training runs.
-> Start the first one early.
+> Notion Week 3. **Session: 90 minutes.** Homework: 2–3 hours, most of it unattended
+> while training runs.
+>
+> Read the [retrospective](RETROSPECTIVE.md) before teaching this. It records what broke
+> the first time and what changed because of it.
 
 ## Session goal
 
-Turn two dataset versions into two trained models and one defensible comparison.
+Turn a dataset into a model you have looked at with your own eyes, and a depth channel
+that says exactly what it means.
 
 The engineering content is **where computation happens and who decides**. Lesson 02
 connected the harness to a live platform; this session connects it to a live platform
 that charges by the minute. Training is the first operation in this course that can
-consume your entire remaining budget in a single call, and the agent proposing it will
-do so with complete confidence.
+consume your entire remaining budget in a single call, and the agent proposing it will do
+so with complete confidence.
 
-So this lesson runs local-first. You fine-tune YOLO11 on your machine for free,
-iterate as much as you like, and spend credits exactly twice: never, if you use the free
-platform path, and once — deliberately, behind a permission prompt you wrote yourself in
-Lesson 02 — on a hosted run whose purpose is comparison rather than production.
+So this lesson runs local-first. You fine-tune YOLO11 on your machine for free, iterate as
+much as you like, and spend credits exactly twice: never, if you use the free platform
+path, and once — deliberately, behind a permission prompt you wrote yourself in Lesson 02
+— on a hosted run whose purpose is comparison rather than production.
 
-By the end you have model V1, model V2, an honest account of whether V2 is actually
-better, and a depth channel that says what it means.
+By the end of the **session** you have a depth module whose signatures cannot be misread,
+both models running together on your own camera, and a demonstration of why depth in this
+project can be ranked and never measured. By the end of the **homework** you have model
+V1, model V2, and an honest account of whether V2 is actually better.
+
+### ⚠️ Session budget — 90 minutes, and it is a constraint on the lesson, not on you
+
+**Waiting is not teaching.** Anything whose dominant cost is elapsed time — a training
+run, a hyperparameter sweep, a long evaluation — is homework. The session keeps the parts
+that need a room: decisions with real trade-offs, the harness blocking something and you
+deciding what to do about it, and looking at model output with your own eyes.
+
+This is a standing constraint on this lesson, not a one-off. Anything added here later
+must fit inside it or go to homework.
+
+| | Budget |
+|---|---|
+| 1. Meet the two new roles | 5 min |
+| 2. Choose the architecture — and override the skill | 10 min |
+| 3. Stand up MLflow, and start V1 training in the background | 10 min |
+| 4. Depth Anything V2 — inference only | 20 min |
+| 5. Prove the sign convention | 5 min |
+| 6. Both models, on your own camera | 20 min |
+| 7. Reference Depth Calibration | 15 min |
+| 8. Reconcile, and hand off to homework | 5 min |
+| **Total** | **90 min** |
+
+> **If you are running behind, cut step 2 to the punchline and keep steps 6 and 7.** The
+> architecture override is a story you can read; the camera and the calibration are the
+> two things that do not work as reading.
 
 ## Prerequisites
 
-- [ ] Lesson 02 complete: `data/v1/` exported and passing `verify_export.py`
-- [ ] Dataset version 2 exists in Roboflow with the same class list
+- [ ] Lesson 02 complete: a dataset version exported and passing `verify_export.py`
 - [ ] `docs/credit-budget.md` reconciled, with **at least 3 credits remaining**
 - [ ] `.claude/settings.json` has `ask` on `mcp__roboflow__trainings_create`
 - [ ] `uv sync --extra ml --extra depth` runs cleanly
-- [ ] A GPU is *helpful* but not required — `yolo11n` on 1,500 images trains on a
-      modern laptop CPU in roughly an hour, and on Apple Silicon MPS considerably faster
+- [ ] **A webcam** for steps 6 and 7. No webcam is survivable — both scripts accept
+      `--image` — but you lose the part students remember
+- [ ] A GPU is *helpful* but not required. Training is homework, so it runs while you sleep
 
 Check the budget before you start:
 
@@ -37,20 +69,31 @@ Check the budget before you start:
 grep -A2 'Remaining' docs/credit-budget.md
 ```
 
-> **If you have fewer than 3 credits left, do not start step 8.** Steps 1–7 and 9–11 cost
-> nothing and produce every deliverable that matters. The hosted run is the one piece of
-> this lesson that is optional by design, and the lesson says so at the point of spending.
+> **This lesson refers to your dataset version by number, never as "the latest".** The
+> examples below use `data/v2/`. If your versions are numbered differently, substitute —
+> and if you built only one version, the homework's V1-vs-V2 comparison needs a second one
+> first.
 
 ## Deliverables
 
+### From the session
+
 - [ ] `.claude/agents/ml-engineer.md` and `evaluation.md` in use
 - [ ] `docs/decisions/` — an ADR for the detection architecture (YOLO11, and why not RF-DETR)
-- [ ] A local MLflow tracking server with at least two runs
-- [ ] `scripts/train.py` — parameterized by dataset version, logging to MLflow
-- [ ] **Model V1** fine-tuned on dataset v1, with per-class metrics on the v1 test split
-- [ ] **Model V2** fine-tuned from V1 on dataset v2
-- [ ] An evaluation report comparing them, with the measurement conditions stated
+- [ ] A local MLflow tracking server, with a V1 run started
 - [ ] `src/smart_scene_analyzer/depth.py` — Depth Anything V2 inference, units stated
+- [ ] The ordering check passing on real scenes, and a depth map you have looked at
+- [ ] `docs/live-validation.md` — both models on a frame from your own camera
+- [ ] A Reference Depth Calibration result, including the transfer test
+
+### From the homework
+
+- [ ] `scripts/train.py` — parameterized by dataset version, logging to MLflow
+- [ ] **Model V1**, with per-class metrics on the test split
+- [ ] **Model V2** fine-tuned from V1, and all three comparisons
+- [ ] `docs/evaluation-v1.md` — the error analysis
+- [ ] `tests/test_depth.py` — the offline suite for the depth module
+- [ ] N5 measured over the test split
 - [ ] `docs/model-card-v1.md` and `docs/model-card-v2.md`
 - [ ] The ledger updated and reconciled
 
@@ -59,6 +102,8 @@ Verify with [`resources/checklists/deliverables.md`](resources/checklists/delive
 ---
 
 ## Step-by-step
+
+## Part 1 — In session
 
 ### 1. Meet the two new roles
 
@@ -82,18 +127,18 @@ tools: Read, Grep, Glob, Write, Bash, Skill
 **The Evaluation Agent has no `Edit`.** It can write reports; it cannot modify training
 code. That is the whole design.
 
-An agent that both trains the model and reports whether the model is good has an
-incentive problem, and it does not need to be malicious to act on it — asked to "improve
-the results", the shortest path is to adjust the threshold, or evaluate on the train
-split, or quietly drop the class that was dragging the average down. None of those are
-lies. All of them produce a better number and a worse model.
+An agent that both trains the model and reports whether the model is good has an incentive
+problem, and it does not need to be malicious to act on it — asked to "improve the
+results", the shortest path is to adjust the threshold, or evaluate on the train split, or
+quietly drop the class that was dragging the average down. None of those are lies. All of
+them produce a better number and a worse model.
 
 Splitting the roles removes the shortcut. The Evaluation Agent cannot change what it
 measures, so its only way to produce a better number is for the number to be better.
 
-> This generalizes past this project. When you give an agent a goal and the tools to
-> reach it, check whether any of those tools reach the goal *without* doing the work.
-> That is where harness design earns its keep.
+> This generalizes past this project. When you give an agent a goal and the tools to reach
+> it, check whether any of those tools reach the goal *without* doing the work. That is
+> where harness design earns its keep.
 
 **Expected result:** you can state why `evaluation` lacks `Edit` without rereading this.
 
@@ -110,44 +155,30 @@ non-COCO indoor object detection dataset of ~1,500 images, and what does its dec
 tree say at step 14? Give me the exact model_id values. Do not start any training.
 ```
 
-**Expected result:** the agent reports the decision tree's recommendation — **RF-DETR
-NAS** (`rfdetr-nas-parent`), falling back to `rfdetr-medium`. Not YOLO11.
+**Expected result:** the agent reports the decision tree's recommendation — **RF-DETR NAS**
+(`rfdetr-nas-parent`), falling back to `rfdetr-medium`. Not YOLO11.
 
-That is a real conflict and it is worth understanding rather than papering over. The
-skill is not out of date and it is not wrong. It optimizes for accuracy on Roboflow's
-platform, where NAS genuinely does produce the best model.
+That is a real conflict and it is worth understanding rather than papering over. The skill
+is not out of date and it is not wrong. It optimizes for accuracy on Roboflow's platform,
+where NAS genuinely does produce the best model.
 
-**This course chooses YOLO11 anyway**, for reasons the skill has no way to know:
+**This course chooses YOLO11 anyway**, for reasons the skill has no way to know: the
+artifact has to run on a handset, a NAS run trains dozens of child models over hours at 2
+credits/hour against a 20-credit lifetime budget, and NAS fails outright on non-Core plans.
 
-| Reason | Detail |
-|---|---|
-| **Local training** | YOLO11 trains with `ultralytics`, on your machine, for zero credits. RF-DETR training in this ecosystem is a hosted operation |
-| **Weight access** | You need a `.pt` file to **export to an on-device artifact** in Lesson 04. On the free Public plan **weight downloads are a Core-plan feature** — a hosted-trained model is reachable only through the hosted API, and an API you cannot download from is an API you cannot ship to a phone |
-| **Budget** | NAS costs 2 credits/hour, runs longer than a single fine-tune, and one upstream example produced **76 child models from 289 images**. It would consume this entire course several times over |
-| **Plan** | NAS requires Core or Growth. On the free plan `trainings_create` rejects it with `nas_not_available_for_plan` |
+**Do:** Record it — `/adr detection architecture: YOLO11 over RF-DETR`. The ADR must state
+what the skill recommends, why you departed, **and what the departure costs**.
 
-**Do:** Record the decision.
-
-```
-/adr detection architecture: YOLO11 over RF-DETR
-```
-
-The ADR should say what the skill recommends, why the project departs from it, and what
-the departure costs — likely a few points of mAP. A decision recorded only as "we use
-YOLO11" is not a decision; it is a fact with its reasoning deleted.
-
-> **This is the lesson, not a detour.** Vendor knowledge encodes vendor defaults, which
-> are correct on average and wrong for specific projects. Your `CLAUDE.md` is where the
-> specifics live. When the two conflict, the constraint layer wins — and an agent that
-> silently followed the skill here would have spent your entire budget being right in
-> general.
+> **The punchline, if you are short on time:** a vendor skill encodes the vendor's
+> defaults, and the vendor does not know your budget or your target device. Overriding one
+> is normal. Overriding one *without recording why* is how a project forgets its own
+> constraints.
 
 ---
 
-### 3. Stand up MLflow
+### 3. Stand up MLflow, and start V1 training in the background
 
-**Do:** Start a local tracking server. This costs nothing and runs entirely on your
-machine.
+**Do:** Start a local tracking server. This costs nothing and runs on your machine.
 
 ```bash
 uv run mlflow server --host 127.0.0.1 --port 5000 --backend-store-uri sqlite:///mlflow.db
@@ -170,219 +201,25 @@ and `http://127.0.0.1:5000` loads in a browser.
 
 **Do:** Confirm `mlflow.db` and `mlruns/` are gitignored. Tracking data is not source.
 
-> Lesson 01 left MLflow hosting as an ⚠️ OPEN decision. Local SQLite is the answer for a
-> course-scale project: zero cost, zero setup, and every run reproducible on one machine.
-> Record it — `/adr mlflow hosting: local sqlite` — and note the consequence, which is
-> that runs are not shared across machines. Lesson 06 revisits this when CI needs to see
-> them.
-
----
-
-### 4. Train model V1 locally
-
 **Do:** Use [`resources/prompts/01-local-training.md`](resources/prompts/01-local-training.md)
-to have the ML Engineer write `scripts/train.py`.
-
-The script must take the dataset version as an argument, not hardcode it, and must log
-to MLflow: the dataset version number, the base checkpoint, every hyperparameter, and
-the resulting metrics. A run you cannot reproduce from its MLflow record did not happen.
-
-Then train:
+to have the ML Engineer write `scripts/train.py`, then **start a run now so it trains while
+you do the rest of the session**:
 
 ```bash
-uv run python scripts/train.py --data data/v1/data.yaml --model yolo11n.pt --epochs 50 --name v1-baseline
+uv run python scripts/train.py --data data/v2/data.yaml --model yolo11n.pt --epochs 50 --name v1-baseline
 ```
 
-**Expected result:** a completed run visible in the MLflow UI, with `mAP@50`,
-`mAP@50-95`, precision, and recall logged, and weights saved under `runs/`.
+**Expected result:** a run appears in the MLflow UI and starts logging. You will read its
+results in the homework, not now.
 
-**Credits: zero.** Iterate freely — this is the phase where free compute matters most.
-If the run looks wrong at epoch 5, kill it and fix it. That instinct is exactly what a
-metered environment suppresses, which is why the expensive path comes later and only
-once.
-
-**Sizing guidance**, so you do not spend the session waiting:
-
-| Situation | Suggestion |
-|---|---|
-| CPU only | `yolo11n`, 25–50 epochs, batch 8. Expect ~1 hour on 1,500 images |
-| Apple Silicon | `yolo11n` or `yolo11s`, `device=mps`, 50 epochs |
-| NVIDIA GPU | `yolo11s`, 100 epochs, batch 16 |
-
-Start smaller than you think you need. A finished 25-epoch run tells you more than a
-75-epoch run you abandoned.
+> Lesson 01 left MLflow hosting as an ⚠️ OPEN decision. Local SQLite is the answer for a
+> course-scale project: zero cost, zero setup, every run reproducible on one machine.
+> Record it — `/adr mlflow hosting: local sqlite` — and note the consequence, which is that
+> runs are not shared across machines. Lesson 06 revisits this when CI needs to see them.
 
 ---
 
-### 5. Evaluate, and diagnose
-
-**Do:** Hand off to the Evaluation Agent with
-[`resources/prompts/02-error-analysis.md`](resources/prompts/02-error-analysis.md).
-
-It computes per-class precision, recall, mAP@50 and mAP@50-95 on the **v1 test split**,
-builds a confusion matrix, and reads it through the decision tree in
-`roboflow:training-and-evaluation` → `improvement-playbook.md`.
-
-**Expected result:** a per-class table, a confusion matrix, the top confusion pairs named
-in prose, and a diagnosis that ties each weak class back to the data.
-
-> **Roboflow's own evaluation UI — Production Metrics Explorer, the confusion matrix
-> viewer, Model Improvement Recommendations — is a paid-plan feature.** On the free
-> Public plan you compute these locally, which `ultralytics` does natively. No loss for
-> this course; worth knowing before you go looking for a tab that is not there.
-
-**Now go back to your dataset card.** Every weak class has two candidate explanations,
-and they call for opposite responses:
-
-| Symptom | Data explanation | Model explanation |
-|---|---|---|
-| One class near zero recall | Too few instances — check the card | Underfitting; train longer |
-| Two classes confused symmetrically | The taxonomy merged things it should not have, or split things it should not have | Insufficient capacity |
-| High precision, low recall everywhere | Confidence threshold too high | Genuine underfitting |
-| Good train metrics, poor test | — | Overfitting; more augmentation |
-
-**Most "model problems" in this project are dataset problems**, and the dataset card is
-what lets you tell in seconds instead of an afternoon. If it records "only 47 instances
-of `lamp`, mostly ceiling-mounted", then `lamp` at 0.11 recall is not a training failure.
-It is a data collection finding, and no amount of retraining fixes it.
-
-This is also where the audit table from Lesson 02 earns its credit: if a class scored
-badly for the auto-labeler *and* trains badly now, the class itself is hard — not your
-pipeline.
-
----
-
-### 6. Train model V2, and compare honestly
-
-**Do:** Export dataset version 2, then fine-tune **from model V1's weights** rather than
-from COCO. Use [`resources/prompts/03-domain-adaptation.md`](resources/prompts/03-domain-adaptation.md).
-
-```bash
-uv run python scripts/train.py \
-  --data data/v2/data.yaml \
-  --model runs/v1-baseline/weights/best.pt \
-  --epochs 50 --name v2-adapted
-```
-
-This is the course's central experiment. V2 stands in for newly acquired production
-data; the question is whether adapting to it helps.
-
-**Do:** Have the Evaluation Agent produce the comparison — and hold it to the standard in
-its own definition: two runs are comparable only if measured on the same split of the
-same dataset version at the same threshold.
-
-That constraint bites here, and the bite is the lesson. There are three defensible
-comparisons and they answer different questions:
-
-| Compare | On | Answers |
-|---|---|---|
-| V1 vs V2 | **v1 test** | Did adapting to the new domain break the old one? (catastrophic forgetting) |
-| V1 vs V2 | **v2 test** | Did adaptation work? |
-| V1 vs V2 | both, reported side by side | The actual trade-off |
-
-**Report all three.** A single number here is almost always the flattering one. If V2
-gains 8 points on v2 test and loses 12 on v1 test, "V2 is better" is false, and it is the
-kind of false that ships.
-
-**Expected result:** a comparison table with the measurement conditions stated once
-above it, covering both test splits, and a plain-language verdict — including "no
-significant difference" if that is what happened.
-
-> **These metrics mean something because Lesson 02 kept human labels.** Had the test
-> split been auto-labeled, every number in this step would measure agreement with
-> Grounding DINO rather than accuracy, and this comparison would be unreadable. That
-> decision, made three weeks ago to save credits, is what makes this step valid.
-
----
-
-### 7. The free platform path — Roboflow Instant
-
-**Do:** Train a model on Roboflow without spending anything.
-
-**Roboflow Instant is free.** It is few-shot, object-detection only, uses images as-is
-with no preprocessing or augmentation, and trains in minutes. It is not competitive with
-your fine-tune and it is not supposed to be.
-
-Trigger it at **Project → Models → Train Model → Roboflow Instant Model**, or ask:
-
-```
-Start a Roboflow Instant training run on dataset version 1. Confirm first that Instant
-is free and that this will not consume credits, citing roboflow:training-and-evaluation.
-```
-
-**Expected result:** an Instant model appears on the Models page, and your credit balance
-is unchanged. Verify the second part on the usage page — checking that a "free" operation
-was free is a habit worth forming.
-
-**Do:** Compare its metrics against your local V1 and write one paragraph on what the
-platform path costs and buys: minutes instead of an hour, no configuration, no
-preprocessing control, no local weights, and a model you cannot inspect.
-
----
-
-### 8. ⚠️ One hosted training run — 2 credits
-
-**This is the only deliberately expensive step in the course, and it is optional.**
-
-**Do not run it if you have fewer than 3 credits left.** Skip to step 9; you lose one
-comparison row and no deliverable.
-
-**Do:** Use [`resources/prompts/04-hosted-training.md`](resources/prompts/04-hosted-training.md).
-The agent must state, before calling anything:
-
-1. The `model_id` — `yolov11s`, matching your local architecture so the comparison is meaningful
-2. The epoch count, capped so wall time stays **under one hour**
-3. The arithmetic: 1 credit per 30 minutes → **≤ 2 credits**
-4. Your remaining balance from `docs/credit-budget.md`
-
-Then it calls `trainings_create` — and your Lesson 02 permission rule fires.
-
-**Stop and read the prompt when it appears.** This is the moment the whole harness was
-built for. You are being asked to approve a specific, irreversible, billed operation, with
-the cost in front of you. Approving it should feel different from approving a file edit,
-and the fact that it does is the design working.
-
-**Do:** Record the estimate in the ledger *before* approving. Then approve, and record
-the actual afterwards.
-
-**Expected result:** a hosted model with metrics, and a ledger entry with both numbers.
-
-#### What this run cannot give you
-
-> **On the free Public plan you cannot download the weights.** `plans-and-pricing` lists
-> weight downloads as a Core-plan differentiator. The hosted model exists, has metrics,
-> and is servable through Roboflow's API — but the `.pt` file is not yours.
-
-That is not a footnote; it decides whether this project is possible at all. Lesson 04
-exports your checkpoint to a `.tflite` file that runs on the handset, and **you cannot
-export a checkpoint you cannot download.** A hosted-only model can be called over the
-network; it can never be put on a phone.
-
-Under the previous cloud architecture this constraint merely shaped a comparison. It is
-now load-bearing: the locally trained model is not the cheaper option, it is the only
-option that can ship. Keep the hosted run anyway — it is the evidence for that claim, and
-an architecture decision backed by a measurement you actually took is worth more than one
-backed by a rate card.
-
-**Do:** Note this in your ADR. A student six months from now on a Core plan should be able
-to see that this constraint was known and priced, not overlooked.
-
-<details>
-<summary><b>Training controls worth knowing before you approve</b></summary>
-
-| Control | Effect | Billing |
-|---|---|---|
-| **Cancel Training** | Stops the job, no weights saved | Refund if cancelled early |
-| **Early Stopping** | Stops the job, **saves weights** | **Charges for credits used** |
-
-If the curves converge at epoch 30 of 100, Early Stopping saves you the remaining credits
-and keeps the model. Cancelling discards it. Know which button you want *before* you are
-watching a run you regret.
-</details>
-
----
-
-### 9. Depth Anything V2 — inference only
+### 4. Depth Anything V2 — inference only
 
 **Do:** Use [`resources/prompts/05-depth-inference.md`](resources/prompts/05-depth-inference.md)
 to have the ML Engineer write `src/smart_scene_analyzer/depth.py`.
@@ -390,80 +227,170 @@ to have the ML Engineer write `src/smart_scene_analyzer/depth.py`.
 Runs locally through `transformers`. **Zero credits, and no training** — this is a
 pretrained model you run, not one you fine-tune.
 
-**The deliverable here is the units, not the code.** Lesson 02 recorded the decision:
-depth is inference-only, there is no ground truth, and there will be no depth error
-metric. That has a specific consequence which every signature in this module must carry:
+**The deliverable here is the units, not the code.** The inference call is about fifteen
+lines. The module that cannot be misread downstream is the exercise.
 
-> Depth Anything V2 outputs **relative inverse depth**. Larger values are nearer. The
-> scale is arbitrary and it is **not metres**. With no ground truth there is nothing to
-> calibrate against, so the relative units travel all the way to the API response.
+> Depth Anything V2 outputs **relative inverse depth**. Larger values are nearer. The scale
+> is arbitrary and it is **not a distance in any unit**. With no scale to calibrate
+> against, the relative units travel all the way to the screen.
 
 A function called `estimate_depth` returning an array called `depth` is ambiguous and
-therefore wrong. `estimate_relative_inverse_depth`, returning an array documented as
-"larger = nearer, arbitrary scale, not metres", is right. `CLAUDE.md` has demanded this
-since Lesson 01 — "Ambiguity about whether a depth value is metres or normalized
-disparity is a real source of bugs in this project" — and this is where the demand
-becomes concrete.
+therefore wrong. `estimate_relative_inverse_depth` is right. `CLAUDE.md` has demanded this
+since Lesson 01 — "Ambiguity about whether a depth value is metres or normalized disparity
+is a real source of bugs in this project" — and this is where the demand becomes concrete.
 
-**This is also the step where `units_guard.py` starts earning its place.** You watched it
-block a contrived comment in Lesson 01 step 5. Here it is guarding real code, at the exact
-moment the temptation is highest: you are writing a module about depth, every natural
-identifier for the concept is a metric one, and the model in front of you produces
-numbers that look like distances.
+#### ⚠️ The hook will block you, and it will be right
 
-Any write to `src/` containing `meters`, `metres`, `_mm`, `_cm`, `distance_`, or
-`to_metres` is refused. If it fires, do not reword around it — read the message and ask
-whether the name was reaching for a claim the system cannot support. That is usually
-exactly what happened.
+`units_guard.py` greps the **entire file**, not just identifiers. The natural sentence for
+"this is not measured in metres" contains the word it blocks — so writing the docstring
+that denies the claim gets the write refused.
 
-> Notice which layer of the harness finally caught this. `CLAUDE.md` has stated the rule
-> for three lessons. The rule was correct, prominent, and loaded into every session — and
-> it is *advice*, competing with a plausible-looking identifier at the moment of writing.
-> The hook does not compete with anything.
+**That is the hook working.** It cannot read intent, and a rule that let a denial through
+would let every plausible-looking violation through with a denial bolted on.
 
-**Do:** Validate what you actually can:
+**Do not edit the hook, and do not route around it.** Satisfy it. `Not a distance, in any
+unit.` says the same thing and passes. This is the lesson's own rule — *if a hook blocks
+you, satisfy it or stop* — with a worked example attached, and it was found the hard way
+(see [RETROSPECTIVE.md §4](RETROSPECTIVE.md)).
 
-```bash
-uv run python scripts/check_depth_ordering.py <image> --boxes <detections.json>
-```
+> Notice which layer of the harness caught this. `CLAUDE.md` has stated the rule for three
+> lessons. The rule was correct, prominent, and loaded into every session — and it is
+> *advice*, competing with a plausible-looking identifier at the moment of writing. The
+> hook does not compete with anything.
 
-Since absolute error is unavailable, check **relative ordering**, which is falsifiable:
-on a scene where a chair sits in front of a wall, the chair's region must read as nearer.
-[`resources/scripts/check_depth_ordering.py`](resources/scripts/check_depth_ordering.py)
-does this and fails loudly if the sign convention is inverted — the single most likely
-bug in this module, and one that produces perfectly plausible numbers.
-
-**Expected result:** a depth module whose signatures state units, and an ordering check
-that passes on at least five real scenes.
-
-> **Say what you cannot do, in the model card.** "Depth is relative; no absolute error is
-> reported because no ground truth exists" is a complete, honest statement. Silence on
-> the subject invites a downstream reader to assume metres, and the first person to
-> divide by that number will be building on sand.
+**Expected result:** `depth.py` with `estimate_relative_inverse_depth` and
+`region_relative_depth`, every degenerate box case defined, and the model cached rather
+than loaded per call.
 
 ---
 
-### 10. Write the model cards
+### 5. Prove the sign convention
 
-**Do:**
+An inverted sign convention produces output that looks entirely reasonable. Every value is
+in range, the map has structure, the visualization looks like a depth map. It is simply
+backwards, and nothing downstream will tell you.
+
+**Do:** Copy the checker in, then run it on scenes where you can see which object is nearer.
 
 ```bash
-cp <path-to-course-repo>/lessons/03-model-development/resources/templates/model-card.md docs/model-card-v1.md
+cp <path-to-course-repo>/lessons/03-model-development/resources/scripts/check_depth_ordering.py scripts/
 ```
 
-Fill in for V1, repeat for V2. The Documentation Agent can draft from MLflow run data;
-**you** write the known-failure-modes section.
+Give it two or more boxes, **nearest first**:
 
-Each card records: architecture and size, base checkpoint, dataset version *by number*,
-hyperparameters, per-class metrics with the split and threshold they were measured at,
-the comparison against the other version, and what the model is not for.
+```bash
+uv run python scripts/check_depth_ordering.py <image>.jpg \
+  --box 20,270,550,438 --box 195,84,586,251 --render /tmp/depth.png
+```
 
-**Expected result:** two model cards where every metric names its split, its dataset
-version, and its confidence threshold.
+Or put several scenes in one file and run them together:
+
+```bash
+uv run python scripts/check_depth_ordering.py --cases cases.json
+```
+
+```json
+[
+  {"image": "data/v2/test/images/<file>.jpg", "boxes_near_to_far": [[20,270,550,438], [195,84,586,251]]}
+]
+```
+
+**Expected result:** every case ordered correctly, exit 0. A row reading `none` means that
+box reduced to `None` — a degenerate case from step 4, not a crash.
+
+**Do:** Open `/tmp/depth.png` and look at it. **Nearer surfaces must be brighter.** This
+takes thirty seconds and catches what the numbers will not: a map that is structurally
+wrong rather than merely inverted.
 
 ---
 
-### 11. Reconcile and commit
+### 6. Both models, on your own camera
+
+**Do:** Use [`resources/prompts/06-live-validation.md`](resources/prompts/06-live-validation.md).
+
+```bash
+cp <path-to-course-repo>/lessons/03-model-development/resources/scripts/check_live_capture.py scripts/
+uv run python scripts/check_live_capture.py --camera 0
+```
+
+No webcam? `--image <some-photo>.jpg` works identically.
+
+This is the first time detection and depth run on **the same pixels** and produce one
+answer. That fusion is the product, and Lesson 04 exports it.
+
+Every number so far came from the test split — same sensor family, same kind of room, same
+annotation process. That is a comfortable place to be wrong. Your desk is not.
+
+**Expected result:** two PNGs and a near-to-far table. **Open both PNGs.** Then answer two
+questions no metric in this lesson answers:
+
+1. **Are the boxes on the right things, and what is missing?**
+2. **Is the near-to-far order right?**
+
+You are running COCO-pretrained weights, which know five of this project's eight classes
+under their own names — and `cabinet`, `door`, and `lamp` not at all:
+
+| ours | `bed` | `chair` | `sofa` | `table` | `tv` | `cabinet` | `door` | `lamp` |
+|---|---|---|---|---|---|---|---|---|
+| COCO | `bed` | `chair` | `couch` | `dining table` | `tv` | — | — | — |
+
+**That gap is the argument for fine-tuning**, and watching your own desk come back
+half-labelled makes it better than a mAP table does.
+
+> The script writes files and never opens a window. The project depends on
+> `opencv-python-headless`, which has no GUI backend — a deliberate dependency choice, and
+> one fewer platform-specific thing to break in a classroom.
+
+---
+
+### 7. Reference Depth Calibration
+
+**Do:** Use [`resources/prompts/07-reference-depth.md`](resources/prompts/07-reference-depth.md).
+
+**What this is:** calibration in the metrology sense — checking an instrument against a
+reference you trust. You place objects at positions you measured, photograph them, and find
+out what the model's numbers track.
+
+**What it is not:** deriving a conversion from model output to a distance. That is
+impossible here, and **demonstrating the impossibility is the exercise.**
+
+This lesson has been asserting since step 4 that the scale is arbitrary. Asserting is weak.
+Now you fit a conversion, watch it work beautifully on the scene it was fitted to, apply it
+to a second scene, and watch it fall apart.
+
+```bash
+cp <path-to-course-repo>/lessons/03-model-development/resources/scripts/check_reference_depth.py scripts/
+uv run python scripts/check_reference_depth.py --cases reference_scenes.json --transfer
+```
+
+Build **two genuinely different scenes**, three to five objects each, spread out, with the
+camera properly moved between them. Measure positions however you like — **the script uses
+only the order and the ratios, and never converts them, so no unit enters the project.**
+
+**Expected result**, and a real one, from two indoor scenes:
+
+```
+scene A                 ordering 11/11 = 100%    rank correlation -0.943
+scene B                 ordering 13/13 = 100%    rank correlation -1.000
+
+fit on A:  value = 13671.370 * (1/position) + -2.719
+  scene A error   5.2%   <- fitted here
+  scene B error  57.2%
+```
+
+**Perfect ordering. An eleven-fold blow-up in the fit.** Both halves are the point: the
+model is excellent at what this project asks of it, and useless at what this project has
+forbidden since Lesson 01. The `units_guard` hook, the `relativeDepth` naming rule, and the
+"may order and shade, may not print a distance" rule in `CLAUDE.md` all trace back to this
+one measurement, and now you have taken it yourself.
+
+> **If your two transfer errors come out similar, you did not move the camera enough.**
+> Similar framing at a similar range agrees by coincidence, and a coincidence is not a
+> calibration. Move properly and run it again.
+
+---
+
+### 8. Reconcile, and hand off to homework
 
 **Do:**
 
@@ -471,15 +398,16 @@ version, and its confidence threshold.
 2. Compare against `docs/credit-budget.md`
 3. Update **Remaining** and **Last reconciled**
 
-**Expected result:** spend for this lesson is **0 credits** (if you skipped step 8) or
-**about 2** (if you did not). Running total across Lessons 02–03 should be at or under 6,
-leaving 14 or more for Lessons 04–05.
+**Expected result:** spend for this session is **0 credits**. Everything in Part 1 runs
+locally.
+
+**Do:** Check on the training run you started in step 3, and read the homework list below
+before you leave.
 
 ```bash
 git add -A
 git status          # confirm: no runs/, no *.pt, no mlflow.db, no data/
-git commit -m "Lesson 03: YOLO11 V1 and V2, evaluation, depth inference"
-git push
+git commit -m "Lesson 03 session: depth module, live validation, reference calibration"
 ```
 
 > **Do not commit weights.** `runs/`, `*.pt`, `mlflow.db`, and `mlruns/` all stay out.
@@ -488,13 +416,193 @@ git push
 
 ---
 
+## Part 2 — Homework
+
+Roughly 2–3 hours, most of it unattended. **Start H1 the moment you get home** — everything
+else depends on it, and it is the part that runs while you do something else.
+
+### H1. Finish V1, then evaluate and diagnose
+
+Let the run from step 3 finish, then hand off to the Evaluation Agent with
+[`resources/prompts/02-error-analysis.md`](resources/prompts/02-error-analysis.md).
+
+It computes per-class precision, recall, mAP@50 and mAP@50-95 on the **test split**, builds
+a confusion matrix, and reads it through the decision tree in
+`roboflow:training-and-evaluation` → `improvement-playbook.md`.
+
+**Now go back to your dataset card.** Every weak class has two candidate explanations, and
+they call for opposite responses:
+
+| Symptom | Data explanation | Model explanation |
+|---|---|---|
+| One class near zero recall | Too few instances — check the card | Underfitting; train longer |
+| Two classes confused symmetrically | The taxonomy merged or split things it should not have | Insufficient capacity |
+| High precision, low recall everywhere | Confidence threshold too high | Genuine underfitting |
+| Good train metrics, poor test | — | Overfitting; more augmentation |
+
+**Most "model problems" in this project are dataset problems**, and the dataset card is what
+lets you tell in seconds instead of an afternoon.
+
+> **Roboflow's own evaluation UI is a paid-plan feature.** On the free Public plan you
+> compute these locally, which `ultralytics` does natively. No loss for this course; worth
+> knowing before you go looking for a tab that is not there.
+
+**Deliverable:** `docs/evaluation-v1.md`.
+
+### H2. Train V2, and compare honestly
+
+Export a second dataset version, then fine-tune **from V1's weights** rather than from
+COCO. Use [`resources/prompts/03-domain-adaptation.md`](resources/prompts/03-domain-adaptation.md).
+
+```bash
+uv run python scripts/train.py \
+  --data data/v2/data.yaml \
+  --model runs/v1-baseline/weights/best.pt \
+  --epochs 50 --name v2-adapted
+```
+
+This is the course's central experiment. Two runs are comparable only if measured on the
+same split of the same dataset version at the same threshold, and that constraint bites
+here. There are three defensible comparisons:
+
+| Compare | On | Answers |
+|---|---|---|
+| V1 vs V2 | **v1 test** | Did adapting to the new domain break the old one? |
+| V1 vs V2 | **v2 test** | Did adaptation work? |
+| V1 vs V2 | both, side by side | The actual trade-off |
+
+**Report all three.** If V2 gains 8 points on v2 test and loses 12 on v1 test, "V2 is
+better" is false, and it is the kind of false that ships.
+
+> **These metrics mean something because Lesson 02 kept human labels.** Had the test split
+> been auto-labeled, every number here would measure agreement with Grounding DINO rather
+> than accuracy.
+
+### H3. Re-run the camera check against your own weights
+
+```bash
+uv run python scripts/check_live_capture.py --camera 0 --weights runs/v1-baseline/weights/best.pt
+```
+
+Put it beside the annotated image from step 6. The classes COCO could not see should now
+appear — and the classes it could see may be *worse*, because 1,500 indoor images is a
+narrower world than COCO. Both directions belong in the model card's failure modes.
+
+### H4. Write the depth module's test suite
+
+`.claude/skills/offline-suite` is the procedure. The suite must run with **no GPU, no
+network, and no weights on disk** — `depth.py` makes that possible by putting model loading
+behind a replaceable seam.
+
+**Verify the offline claim by breaking it, not by reading the code:**
+
+```bash
+HF_HOME=$(mktemp -d) HF_HUB_OFFLINE=1 uv run pytest
+```
+
+> A marker nobody has exercised is a marker that does not work. This lesson shipped an
+> `integration` marker that nothing deselected for months — see
+> [RETROSPECTIVE.md §6](RETROSPECTIVE.md).
+
+**Deliverable:** `tests/test_depth.py`.
+
+### H5. Measure N5 over the test split
+
+Step 7 checked ordering on scenes you built. N5 in `docs/requirements.md` asks for a
+**rate** over annotated object pairs on the held-out split, and that needs a reference for
+every pair.
+
+**Check what your source dataset actually ships before concluding you cannot.** SUN RGB-D
+is an RGB-D dataset — every capture carries a sensor raster next to the RGB frame. Roboflow
+does not store depth maps, which is why no depth term can enter training; it does not follow
+that no reference exists on disk. Getting that backwards is
+[RETROSPECTIVE.md §7](RETROSPECTIVE.md).
+
+**Deliverable:** a rate, its conditions, and its margin — declared *before* you compute the
+rate, not tuned to it. Use the reference for **ordering only**; no value from it may enter
+the project as a magnitude.
+
+### H6. Free and paid platform paths
+
+**Roboflow Instant is free.** Few-shot, detection only, trains in minutes, not competitive
+with your fine-tune and not supposed to be.
+
+```
+Start a Roboflow Instant training run on dataset version 2. Confirm first that Instant is
+free and that this will not consume credits, citing roboflow:training-and-evaluation.
+```
+
+Verify your balance is unchanged afterwards. Checking that a "free" operation was free is a
+habit worth forming.
+
+<details>
+<summary><b>⚠️ Optional: one hosted training run — 2 credits</b></summary>
+
+**Do not run it if you have fewer than 3 credits left.** You lose one comparison row and no
+deliverable.
+
+Use [`resources/prompts/04-hosted-training.md`](resources/prompts/04-hosted-training.md).
+The agent must state, before calling anything: the `model_id` (`yolov11s`, matching your
+local architecture), the epoch count capped so wall time stays under an hour, the arithmetic
+(1 credit per 30 minutes → ≤ 2 credits), and your remaining balance.
+
+Then it calls `trainings_create` — and your Lesson 02 permission rule fires. **Stop and read
+the prompt.** Record the estimate in the ledger *before* approving, and the actual after.
+
+**On the free Public plan you cannot download the weights.** That is not a footnote: Lesson
+04 exports your checkpoint to a file that runs on the handset, and **you cannot export a
+checkpoint you cannot download.** The locally trained model is not the cheaper option, it is
+the only option that can ship. Keep the hosted run anyway — it is the evidence for that
+claim.
+
+| Control | Effect | Billing |
+|---|---|---|
+| **Cancel Training** | Stops the job, no weights saved | Refund if cancelled early |
+| **Early Stopping** | Stops the job, **saves weights** | **Charges for credits used** |
+
+</details>
+
+### H7. Write the model cards
+
+```bash
+cp <path-to-course-repo>/lessons/03-model-development/resources/templates/model-card.md docs/model-card-v1.md
+```
+
+Fill in for V1, repeat for V2. The Documentation Agent can draft from MLflow run data;
+**you** write the known-failure-modes section.
+
+Each card records architecture and size, base checkpoint, dataset version *by number*,
+hyperparameters, per-class metrics with the split and threshold they were measured at, the
+comparison against the other version, and what the model is not for. The Depth section
+carries your step 7 result and your H5 rate.
+
+---
+
 ## Verification
 
 Work through
 [`resources/checklists/deliverables.md`](resources/checklists/deliverables.md).
 
+**Session checks:**
+
 ```bash
-# Two runs exist and are reproducible from their records
+# The depth sign convention is right — nearest first, at least two boxes
+uv run python scripts/check_depth_ordering.py --cases cases.json
+
+# Both models on one frame
+uv run python scripts/check_live_capture.py --image <any-photo>.jpg
+
+# The calibration does not transfer, and you can show it
+uv run python scripts/check_reference_depth.py --cases reference_scenes.json --transfer
+
+# Nothing large or secret staged
+git status --porcelain | grep -E '\.pt$|^\?\? runs/|mlflow\.db|\.env$' && echo "LEAK" || echo "clean"
+```
+
+**Homework checks:**
+
+```bash
+# Runs exist and are reproducible from their records
 uv run python -c "
 import mlflow, os
 mlflow.set_tracking_uri(os.environ['MLFLOW_TRACKING_URI'])
@@ -502,46 +610,49 @@ df = mlflow.search_runs()
 print(df[['tags.mlflow.runName', 'params.dataset_version', 'metrics.map50']])
 "
 
-# Depth sign convention is right
-uv run python scripts/check_depth_ordering.py data/v1/test/images/<sample>.jpg
-
-# Nothing large or secret staged
-git status --porcelain | grep -E '\.pt$|^\?\? runs/|mlflow\.db|\.env$' && echo "LEAK" || echo "clean"
+# The suite runs with no weights and no network
+HF_HOME=$(mktemp -d) HF_HUB_OFFLINE=1 uv run pytest
 ```
 
 Then confirm by reading:
 
 - Every metric in both model cards names its **split, dataset version, and threshold**
 - The V1-vs-V2 comparison reports **both** test splits, not the flattering one
-- `depth.py` signatures say "relative inverse depth", and no identifier contains `meter`
+- `depth.py` signatures say "relative inverse depth", and no identifier names a unit
 - The architecture ADR states what Roboflow's skill recommends and why you departed
 - The ledger reconciles, and the hosted run (if any) has an estimate *and* an actual
 
-The qualitative check: **run inference on ten test images and look at the boxes.** A
-model at mAP@50 = 0.55 can be uniformly slightly loose, or excellent on four classes and
-blind on two. Those need different responses, and the metric does not distinguish them.
+The qualitative check, and the one this lesson now builds a whole step around: **you looked
+at the output.** A model at mAP@50 = 0.55 can be uniformly slightly loose, or excellent on
+four classes and blind on two. Those need different responses, and the metric does not
+distinguish them.
 
 ---
 
 ## Open items
 
-- ⚠️ **MLflow hosting beyond one machine** (step 3) — local SQLite is decided for now,
-  but Lesson 06's CI needs to read runs it did not create. Revisit there.
-- ⚠️ **Weight downloads require the Core plan** (step 8) — sourced from
-  `roboflow:plans-and-pricing`, not confirmed on the platform. This is now a hard
-  dependency rather than a comparison detail: if free-tier weight download is genuinely
-  impossible, hosted training cannot produce a shippable artifact at all, and local
-  training is the only path through Lesson 04.
+- ⚠️ **The depth-scope ADR does not exist.** The model-card template asserted it did for
+  months. The decision is recorded in `docs/requirements.md`; the ADR is still unwritten.
+- ⚠️ **N5 has a measured value but no target.** `docs/requirements.md` says how it is
+  measured and now what it measured. It still does not say what would be good enough.
+- ⚠️ **`template/pyproject.toml` still ships the un-deselected `integration` marker.**
+  Fixed in the run-through project, not in the scaffold new students copy.
+- ⚠️ **MLflow hosting beyond one machine** (step 3) — local SQLite is decided for now, but
+  Lesson 06's CI needs to read runs it did not create. Revisit there.
+- ⚠️ **Weight downloads require the Core plan** (H6) — sourced from
+  `roboflow:plans-and-pricing`, not confirmed on the platform. This is a hard dependency: if
+  free-tier weight download is genuinely impossible, hosted training cannot produce a
+  shippable artifact at all.
 - ⚠️ **The export toolchain is not installed by this lesson.** Lesson 04 owns export, and
-  its dependencies (`ultralytics` TFLite export, `optimum-executorch`) are not in
-  `pyproject.toml` yet. Confirm both install cleanly on a clean machine before a cohort —
-  they pull large, platform-sensitive trees.
-- ⚠️ **Whether `yolo11n` is sufficient for the taxonomy** — depends on the final class
-  list and instance counts, which Lesson 02 left open. If small classes underperform,
-  the first lever is data, not model size.
+  its dependencies are not in `pyproject.toml` yet. Confirm both install cleanly on a clean
+  machine before a cohort.
+- ⚠️ **Whether `yolo11n` is sufficient for the taxonomy** — depends on the final class list
+  and instance counts. If small classes underperform, the first lever is data, not model
+  size.
 - ⚠️ **Free-plan credit allowance unconfirmed** — carried from Lesson 02.
 
-All tracked in the course [`TODO.md`](../../TODO.md).
+All tracked in the course [`TODO.md`](../../TODO.md). What went wrong the first time this
+lesson ran is in [`RETROSPECTIVE.md`](RETROSPECTIVE.md).
 
 ---
 
@@ -552,11 +663,17 @@ Local skill sources, in `computer-vision-skills/skills/`:
 - `training-and-evaluation/SKILL.md` — architectures, **exact `model_id` values**,
   checkpoint strategy, training controls, post-training metrics
 - `training-and-evaluation/improvement-playbook.md` — the confusion-matrix diagnostic
-  decision tree behind step 5
+  decision tree behind H1
 - `custom-weights-upload/SKILL.md` — uploading locally trained weights back to Roboflow.
   Note `models_upload_custom_weights` is a **guide, not an uploader** — the MCP server
   cannot read local files, so the actual upload goes through the Python SDK
 - `plans-and-pricing/SKILL.md` — training credit rates, and the Core-plan feature list
+
+Project skills:
+
+- `.claude/skills/offline-suite` — the procedure behind H4, including *verify the offline
+  claim by breaking it*
+- `.claude/skills/error-triage` — the DATA / TAXONOMY / MODEL / EXPORT classification
 
 External:
 

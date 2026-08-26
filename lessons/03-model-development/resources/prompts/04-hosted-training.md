@@ -1,6 +1,6 @@
 # Prompt — the one hosted training run
 
-**When:** Lesson 03, step 8. **Optional.**
+**When:** Lesson 03, **H6**. Homework, and **optional.**
 
 **Which agent:** `ml-engineer`.
 
@@ -19,7 +19,7 @@ infrastructure so you can compare the two paths on evidence rather than assumpti
 so that Lesson 04 has a hosted endpoint to benchmark against.
 
 It is also the one moment in this course where the permission rule you wrote in Lesson 02
-step 4 fires on something that genuinely matters. Pay attention to how that feels.
+Lesson 02 fires on something that genuinely matters. Pay attention to how that feels.
 
 ---
 

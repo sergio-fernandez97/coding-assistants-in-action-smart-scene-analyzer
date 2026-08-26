@@ -10,13 +10,21 @@
 
 ## Where the bug lives
 
-Three coordinate spaces are in play at once:
+**Four** coordinate spaces are in play at once — `docs/architecture.md` §2 names them, and
+the fourth exists because 640 is not a multiple of the depth model's ViT patch size:
 
-| Producer | Resolution |
-|---|---|
-| The source image | Whatever the camera or the picker gave you |
-| YOLO11 | 640×640 internally, boxes usually rescaled back |
-| Depth Anything V2 | Its own input size, output resized by your Lesson 03 module |
+| Space | Producer | Resolution |
+|---|---|---|
+| `SOURCE` | The camera or the picker | Whatever it gave you |
+| `MODEL_INPUT` | YOLO11 | **640×640**, letterboxed. Boxes usually rescaled back |
+| `DEPTH_INPUT` | Depth Anything V2 | **518×518**, letterboxed. `518 = 14 × 37` |
+| `SCREEN` | The overlay | Density-independent points, per device |
+
+**Fusion runs in exactly one of these and converts between none of them.** The depth
+boundary resizes out of `DEPTH_INPUT` before fusion sees anything — to `SOURCE` in the
+Python reference, to `MODEL_INPUT` on the handset. If a 518×518 map reaches your fusion
+function, something upstream skipped its resize, and the correct response is to **raise
+naming both shapes**, not to resize it yourself.
 
 A box indexed into the wrong space **returns a number**. It is in range. It is the wrong
 region of the image, and nothing in the type system, the schema, or a smoke test will

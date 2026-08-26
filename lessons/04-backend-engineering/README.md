@@ -1,6 +1,11 @@
 # Lesson 04 — Export, Quantization & Numerical Parity
 
-> Notion Week 4. Estimated time: 5–6 hours.
+> Notion Week 4. Estimated time: 5–6 hours end to end.
+>
+> **The live session is 90 minutes**, so this lesson is split across pre-session homework,
+> the session itself, and follow-up work. The split — what happens in the room, what you
+> do before, what you do after, and why — is in
+> [`RETROSPECTIVE.md`](RETROSPECTIVE.md), alongside the two course assets it depends on.
 
 ## Session goal
 
@@ -37,6 +42,8 @@ in Lesson 05.
 - [ ] `scripts/export.py` — reproducible export of both models
 - [ ] `app/assets/models/` — the detection `.tflite` and the depth `.pte`
 - [ ] `tests/fixtures/fusion_cases.json` — language-neutral fixtures Lesson 05 will reuse
+- [ ] `scripts/check_fusion_live.py` — written, not copied: the fusion layer run on your
+      own room, with a near-to-far table and the quality flags
 - [ ] A test suite passing with **no GPU, no network, no weights on disk**
 - [ ] `tests/test_export_parity.py` — exported artifacts vs the PyTorch reference
 - [ ] The model card's **Exported artifact** table filled in
@@ -106,6 +113,15 @@ So the contract is written down before the export exists, in the model card:
 | Output tensor count and order | The app decodes positionally |
 | Label order | An off-by-one here reads as a model problem for a long time |
 
+**Two rows are given to you rather than decided by you.** The input squares are fixed:
+`MODEL_INPUT` is **640×640** for detection, `DEPTH_INPUT` is **518×518** for depth, both
+letterboxed. Depth Anything V2 Small is a ViT-**S/14**, so its input edge must be a
+multiple of 14 — and `640 / 14 = 45.71`. The detection square is not a legal input to the
+depth model, which is why the project carries a fourth coordinate space rather than three.
+`docs/architecture.md` §2 holds the arithmetic, the alternative that was rejected, and the
+reason the second square is cheap: the two are the same letterbox at two edge lengths, so
+converting between them is a uniform scale **with no offset term**.
+
 **This is the same lesson the response schema used to teach**, moved to where the contract
 now lives. The old schema at least had a type system defending it at runtime. This has
 nothing — which makes writing it down more important, not less.
@@ -121,9 +137,13 @@ disagreement is a finding.
 **Do:** Use [`resources/prompts/02-fusion-layer.md`](resources/prompts/02-fusion-layer.md)
 with the `integration` agent to write `src/smart_scene_analyzer/fusion.py`.
 
-**This is where the real bugs live.** YOLO11 runs at 640×640. Depth Anything V2 has its
-own input size. The source image has a third. Three coordinate spaces, and a box indexed
-into the wrong one returns a number — the wrong number, in range, for the wrong region.
+**This is where the real bugs live.** YOLO11 runs at 640×640. Depth Anything V2 runs at
+518×518. The source image is a third, and the screen is a fourth. A box indexed into the
+wrong one returns a number — the wrong number, in range, for the wrong region.
+
+**Fusion converts between none of them.** The depth boundary resizes out of `DEPTH_INPUT`
+before fusion sees anything. A 518×518 map arriving in fusion means something upstream
+skipped its resize, and the right answer is to raise naming both shapes.
 
 **Write it knowing it will be ported.** In Lesson 05 this exact algorithm is reimplemented
 in TypeScript to run on the phone, and the two copies are kept honest by shared fixtures.
@@ -150,6 +170,67 @@ Non-negotiables, all of which the prompt enforces:
 **Expected result:** `fusion.py` with a function taking detections and a depth map and
 returning fused results, tested on a real image where you can see that the foreground
 object reads as nearer.
+
+---
+
+### 3b. Point it at your own room
+
+**Do:** Use [`resources/prompts/07-live-check.md`](resources/prompts/07-live-check.md)
+with the `integration` agent to **write** `scripts/check_fusion_live.py`, then run it on
+your webcam.
+
+```bash
+uv run python scripts/check_fusion_live.py --camera 0
+```
+
+**You write this one; it is not copied in.** It is about fifty lines of wiring, and the
+wiring is the point — it is the first code in the project that puts detection, depth, and
+fusion on the same pixels, and it has to get the coordinate space right to produce
+anything at all. It must **import** `fuse_detections_with_depth` rather than reduce boxes
+itself: a verification script that reimplements what it verifies proves only that two
+things you wrote in the same hour agree.
+
+`cv2.imshow` is not available — the project depends on `opencv-python-headless`, which has
+no GUI backend on purpose. The script writes an annotated PNG and a grayscale depth map.
+
+**Every image in your test split came from the same sensor family, in the same kind of
+room, annotated by the same process.** Your desk is none of those. `docs/evaluation-v1.md`
+measures the model; this measures nothing — it shows you a frame and lets you disagree
+with it. A model that scores well on the split and falls apart on your own room has told
+you something no metric in this lesson would have.
+
+Three things to look at, in order:
+
+1. **The boxes.** Right objects? Anything obvious missed? `cabinet`, `door`, and `lamp`
+   are the rare classes and are where you should expect to be disappointed.
+2. **The near-to-far ORDER**, not the values. The values are relative inverse depth: no
+   unit, no scale, this frame only. The rank is the part that means something.
+3. **The quality flags.** `mixed_region` means the box straddles a real depth
+   discontinuity, and the fusion layer is disclosing that its single value summarises two
+   different things. A frame full of them usually means loose boxes, not broken depth.
+
+**Optional, and provided rather than written** — a continuous version that streams to
+`http://127.0.0.1:8000`:
+
+```bash
+cp <path-to-course-repo>/lessons/04-backend-engineering/resources/scripts/watch_fusion_live.py scripts/
+uv run python scripts/watch_fusion_live.py --camera 0
+```
+
+It is provided because building it teaches nothing this lesson is about — it is an MJPEG
+server, a worker thread, and a frame buffer, none of which is detection, depth, fusion, or
+export. It runs depth every fifth frame by default and **prints how stale the map is on
+screen**: this project's characteristic failure, made visible. `--depth-every 1` makes it
+honest and slow.
+
+**Expected result:** `scripts/check_fusion_live.py` exists and runs, and you can say —
+from your own room rather than from a metric — where this model is weak. That sentence
+belongs in the model card's **Known failure modes**, which `docs/evaluation-v1.md` cannot
+write for you.
+
+> These are viewers, not tests. They prove nothing and nothing depends on them — step 5
+> is where the claims get asserted. Skip this step if you are short of time; skip step 5
+> and the suite is not a suite.
 
 ---
 

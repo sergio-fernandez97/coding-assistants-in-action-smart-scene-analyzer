@@ -127,8 +127,11 @@ def check_case(depth, image_path: Path, boxes: list[tuple[int, int, int, int]],
     values = [depth.region_relative_depth(depth_map, box) for box in boxes]
 
     print(f"\n  {image_path.name}   (declared nearest first)")
-    for box, value in zip(boxes, values):
-        print(f"    {str(box):<28} {value:>10.4f}")
+    for box, value in zip(boxes, values, strict=True):
+        # `region_relative_depth` returns None for a degenerate box by design, so this
+        # cannot format unconditionally — a correct depth module would crash the checker.
+        shown = f"{value:10.4f}" if isinstance(value, (int, float)) else "      none"
+        print(f"    {box!s:<28} {shown}")
 
     ok = True
     for i in range(len(values) - 1):

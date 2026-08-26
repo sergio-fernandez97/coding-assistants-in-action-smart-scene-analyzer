@@ -1,6 +1,6 @@
 # Prompt — evaluation and error analysis
 
-**When:** Lesson 03, step 5.
+**When:** Lesson 03, **H1**. Homework — it runs after training finishes.
 
 **Which agent:** `evaluation`. **Not** `ml-engineer` — the agent that trained the model
 does not get to grade it.

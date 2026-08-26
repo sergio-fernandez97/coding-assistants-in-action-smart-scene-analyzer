@@ -33,12 +33,13 @@ rather than in the app that consumes them.
 | Artifact | `<app/assets/models/....tflite \| ....pte>` — not committed |
 | Format / backend | `<TFLite int8 \| ExecuTorch xnnpack>` |
 | File size | `<N MB>` — also recorded in `docs/artifact-budget.md` |
-| Input tensor | `<shape>`, `<dtype>`, `<NCHW \| NHWC>` |
+| Input tensor | `<shape>`, `<dtype>`, `<NCHW \| NHWC>` — **the square is fixed by the course: `MODEL_INPUT` 640×640 for detection, `DEPTH_INPUT` 518×518 for depth. Both letterboxed.** Only the dtype and layout are yours to read off the export |
 | Normalization | `mean=<...>`, `std=<...>` |
 | Output tensors | `<count and order — the app decodes positionally>` |
 | Label order | `<source of truth for class index → name>` |
 | Quantization | `<none \| int8>`, calibration set `<which split, how many images>` |
 | Parity vs PyTorch | `<tolerance accepted, and the worst per-class delta>` |
+| Output raster space | `<depth only: the .pte returns its native 518×518 DEPTH_INPUT raster and does NOT resize inside the graph. The resize to MODEL_INPUT (handset) or SOURCE (reference) belongs to the depth boundary, never to fusion>` |
 | Ordering preserved | `<depth only: does the export still rank near vs far correctly?>` |
 
 ## Training configuration
@@ -98,9 +99,17 @@ This project's depth channel is **inference only**. It is not part of this train
 across images, or average them into anything with physical units. Ordering within one
 image is the only claim they support.
 
-> Why there is no depth metric: Roboflow does not store depth maps, and this course chose
-> not to build a parallel storage path for them. See `docs/decisions/` → *depth scope:
-> inference only*. This is a recorded decision, not an oversight.
+> Why there is no depth metric **in training**: Roboflow stores images and annotations,
+> not depth maps, so no depth term could enter the training loop or a Roboflow-side
+> evaluation. Recorded in `docs/requirements.md` — the Out-of-scope entry on metric depth,
+> and N5, which replaced a metric-accuracy requirement with pairwise ordering.
+>
+> ⚠️ **This is not the same as having no reference at all.** If your source dataset ships
+> depth (SUN RGB-D does), you can measure N5 — ordering only, never scale. Do not write
+> "no evaluation is possible" into a card without checking what is on disk.
+>
+> ⚠️ **There is no depth-scope ADR**, though earlier drafts of this template claimed
+> there was. Cite `docs/requirements.md`, or write the ADR.
 
 ## Comparison
 

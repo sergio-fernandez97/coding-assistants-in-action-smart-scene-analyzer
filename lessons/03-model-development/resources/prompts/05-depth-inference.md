@@ -1,6 +1,6 @@
 # Prompt — Depth Anything V2, inference only
 
-**When:** Lesson 03, step 9.
+**When:** Lesson 03, step 4. **In session.** Budget 20 minutes.
 
 **Which agent:** `ml-engineer`.
 
@@ -35,18 +35,32 @@ via transformers, for INFERENCE ONLY. No training, no fine-tuning.
 
 Requirements:
 
-- Load the model once, lazily, and cache it. This module gets imported by a FastAPI
-  service in Lesson 04 where per-request loading is a bug.
+- Load the model once, lazily, and cache it. Model loading must sit behind an interface a
+  test can replace — the default suite runs with no network and no weights on disk.
 - Auto-detect device (cuda / mps / cpu), overridable.
 - The main function takes a PIL Image or an HxWx3 uint8 numpy array and returns an HxW
   float32 array at the SAME resolution as the input image.
+- The model's own raster is NOT that resolution. Depth Anything V2 Small is a ViT-S/14,
+  so its input edges must be multiples of 14; this module resizes the model's raster back
+  to the source resolution before returning, so that fusion can assert one shape and
+  reduce in one space. Keep that resize as its own named step, and state both spaces.
+  Lesson 04 compares the RAW raster — before your resize — against the exported artifact,
+  so it must be reachable rather than buried inside the public function.
 
 Units, and this is the actual point of the exercise:
 
 - Name the function so its output is unambiguous. `estimate_depth` returning `depth` is
   ambiguous and therefore wrong. The name must carry "relative inverse depth".
-- The docstring must state: larger = nearer, scale is arbitrary, NOT metres, no ground
-  truth available in this project.
+- The docstring must make four claims: larger = nearer; the scale is arbitrary; the
+  output is not a distance in any unit; and this project has no ground truth to calibrate
+  against.
+
+  **Choose the wording yourself, and expect `units_guard.py` to reject your first
+  attempt.** The hook greps the whole file, not just identifiers, so the obvious phrasing
+  for "this is not measured in metres" contains the very word it blocks. That is the hook
+  working, not a bug: it cannot read intent, and a rule that let a denial through would
+  let every plausible-looking violation through. Satisfy it — do not edit it, and do not
+  route around it. `Not a distance, in any unit.` passes and says the same thing.
 - No identifier anywhere in this module may contain "meter", "metre", "mm", "cm", or
   "distance". Grep for them before you finish.
 - Type hints on every public function, with the array shape and dtype in the docstring.
@@ -154,7 +168,8 @@ gets prevented, and it costs one paragraph.
 
 ## Reject and re-run if
 
-- Any identifier or docstring implies metres, distance, or absolute scale
+- Any identifier or docstring implies a metric unit, a distance, or an absolute scale
+- The module was written by weakening, editing, or bypassing `units_guard.py`
 - The reduction is a mean without justification
 - Degenerate boxes return `NaN` with no documented handling
 - The model loads inside the inference function rather than being cached

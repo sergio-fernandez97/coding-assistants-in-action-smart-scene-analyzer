@@ -17,6 +17,44 @@ contract you invented afterwards to match what it produced is not.
 
 ---
 
+## Given, before you start: the input geometry is already decided
+
+Two of the rows you are about to fill in are **course facts, not exercises**. They are
+fixed here because getting them wrong costs a re-export, and because one of them is
+arithmetic rather than judgement.
+
+| Space | Size | Fed to |
+|---|---|---|
+| `MODEL_INPUT` | **640 × 640**, letterboxed | YOLO11 detection |
+| `DEPTH_INPUT` | **518 × 518**, letterboxed | Depth Anything V2 |
+
+Both are the same letterbox — aspect preserved, centre-padded, never stretched — of the
+same `SOURCE` image, at two edge lengths.
+
+**Why two squares and not one.** Depth Anything V2 Small is a ViT-**S/14**: every input
+edge must be a multiple of 14, and `640 / 14 = 45.71`. The detection square is not a legal
+input to the depth model. The nearest square legal for both is 672 (`14 × 48 = 32 × 21`),
+and it was rejected: 672² is 2,304 patches against 518²'s 1,369 — 68% more work on the
+slower of the two models, on every inference — and it would re-export detection at a size
+the model was never evaluated at.
+
+**Why the second square is affordable.** The two differ by one uniform factor and nothing
+else, because the padding scales with the image:
+
+```
+scale_depth = scale_model × (518 / 640)
+padX_depth  = padX_model  × (518 / 640)
+padY_depth  = padY_model  × (518 / 640)
+```
+
+So a depth raster resampled from 518² to 640² lands in exact `MODEL_INPUT` geometry — a
+uniform resize, **with no offset term to forget**. That resize belongs to the depth
+boundary, not to fusion. Fusion still asserts and never converts.
+
+Take both as given. Everything else in this prompt is yours to determine.
+
+---
+
 ## Round 1 — what does the app actually need to know?
 
 ```

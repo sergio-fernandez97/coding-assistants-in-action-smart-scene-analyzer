@@ -1,6 +1,6 @@
 # Prompt — local YOLO11 training with MLflow
 
-**When:** Lesson 03, step 4.
+**When:** Lesson 03, step 3 (started in session) and **H1** (finished as homework).
 
 **Which agent:** `ml-engineer`.
 
