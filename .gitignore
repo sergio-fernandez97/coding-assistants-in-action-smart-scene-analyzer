@@ -1,0 +1,48 @@
+# Upstream Roboflow skills repo — cloned locally for reference only.
+# It carries its own .git; committing it would nest a repository.
+# Lesson 02 installs it as a Claude Code plugin from GitHub instead.
+computer-vision-skills/
+
+# The course's own worked instance of the project students build. Same reasoning as
+# above: it carries its own .git and its own remote, so committing it would nest a
+# repository. It also holds a real .env with a live Roboflow key and ~5 GB under
+# data/. Lesson 01 links to one file inside it (ADR 0003) as a worked example; the
+# directory itself is deliberately not part of this repo's history.
+smart-scene-analyzer/
+
+# Secrets
+.env
+.env.local
+*.pem
+*.key
+
+# Datasets and model artifacts (never committed — versioned in Roboflow / MLflow)
+data/
+datasets/
+runs/
+mlruns/
+*.pt
+*.onnx
+*.mlpackage
+*.tflite
+*.engine
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+
+# Notebooks
+.ipynb_checkpoints/
+
+# OS / editor
+.DS_Store
+.idea/
+*.swp
+
+TODO.md
