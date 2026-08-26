@@ -616,6 +616,54 @@ setup section verbatim, and see whether it works.
 rm -rf .venv && uv sync && uv run pytest
 ```
 
+**Expected result:** `uv` rebuilds the environment from nothing and the suite passes. The
+shape to look for — not the exact numbers, which depend on what your Architecture Agent
+scaffolded:
+
+```
+Using CPython 3.13.9
+Creating virtual environment at: .venv
+Resolved 166 packages in 0.79ms
+Installed 24 packages in 117ms
+ + annotated-types==0.8.0
+ + coverage==7.15.4
+ + mypy==2.3.0
+ + numpy==2.5.2
+ + opencv-python-headless==4.10.0.84
+ + pillow==12.3.0
+ + pydantic==2.13.4
+ + pytest==9.1.1
+ + ruff==0.16.2
+ + smart-scene-analyzer==0.1.0 (from file:///<your-project-path>)
+ ... (24 total)
+
+............xx.                                                          [100%]
+13 passed, 2 xfailed in 0.26s
+```
+
+Three things in that output are worth reading rather than skimming:
+
+- **`Creating virtual environment at: .venv`.** If this line is missing, the `rm -rf` did
+  not delete what you thought it did, and you have just tested nothing.
+- **`smart-scene-analyzer==0.1.0 (from file://...)`.** Your own package installed from the
+  working tree. Without it, `uv run pytest` collects nothing and still exits 0.
+- **`xfailed`, not `failed`.** Expected failures are tests that assert a stub is still a
+  stub. They turn green on their own as Lessons 03–05 fill the stubs in, which is the point
+  of writing them now.
+
+⚠️ If `uv` prints this instead of running clean:
+
+```
+warning: `VIRTUAL_ENV=<some-other-path>/.venv` does not match the project
+environment path `.venv` and will be ignored
+```
+
+you have a virtualenv activated from another directory — usually a parent, if you nested
+this project inside another one. `uv` ignored it and used the right environment, so the
+commands above still work. Clear it anyway with `deactivate`, because anything you run
+**without** the `uv run` prefix will silently use the other interpreter. That is why every
+command in this course is written with the prefix.
+
 If a step is missing or wrong, that is a documentation bug — fix it now, while you
 still remember what the correct step was.
 
