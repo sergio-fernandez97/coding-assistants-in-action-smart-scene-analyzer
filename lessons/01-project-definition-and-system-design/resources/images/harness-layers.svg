@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="560" viewBox="0 0 1440 560" role="img" aria-labelledby="title desc">
+  <title id="title">The four-layer harness</title><desc id="desc">A request moves through rules, roles, procedures, then enforcement before producing a reviewable result. The enforcement layer may block the action.</desc>
+  <defs><style>text{font-family:Arial,sans-serif}.h{font-size:33px;font-weight:700;fill:#f6f8fb}.p{font-size:19px;fill:#c4d2e3}.b{font-size:25px;font-weight:700;fill:#092033}.s{font-size:17px;fill:#17354d}.tag{font-size:14px;font-weight:700;fill:#fff}</style><marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#8ba5c9"/></marker></defs>
+  <rect width="1440" height="560" rx="28" fill="#0c1424"/><text x="72" y="82" class="h">The harness changes every future response</text><text x="72" y="116" class="p">A prompt asks once. These layers shape, assign, repeat, and finally enforce work.</text>
+  <g transform="translate(72 188)">
+    <g><rect width="240" height="220" rx="20" fill="#d9efff"/><rect width="240" height="42" rx="20" fill="#497fc3"/><text x="23" y="28" class="tag">1 · READ</text><text x="23" y="91" class="b">Rules</text><text x="23" y="124" class="s">CLAUDE.md</text><text x="23" y="157" class="s">Persistent project</text><text x="23" y="181" class="s">constraints.</text></g>
+    <path d="M255 110H310" stroke="#8ba5c9" stroke-width="5" marker-end="url(#a)"/>
+    <g transform="translate(330)"><rect width="240" height="220" rx="20" fill="#d9f8ee"/><rect width="240" height="42" rx="20" fill="#259b7c"/><text x="23" y="28" class="tag">2 · SCOPE</text><text x="23" y="91" class="b">Roles</text><text x="23" y="124" class="s">.claude/agents</text><text x="23" y="157" class="s">Separate context,</text><text x="23" y="181" class="s">tools, responsibility.</text></g>
+    <path d="M585 110H640" stroke="#8ba5c9" stroke-width="5" marker-end="url(#a)"/>
+    <g transform="translate(660)"><rect width="240" height="220" rx="20" fill="#fff2ce"/><rect width="240" height="42" rx="20" fill="#c99022"/><text x="23" y="28" class="tag">3 · INVOKE</text><text x="23" y="91" class="b">Procedures</text><text x="23" y="124" class="s">.claude/skills</text><text x="23" y="157" class="s">Repeatable methods</text><text x="23" y="181" class="s">and acceptance criteria.</text></g>
+    <path d="M915 110H970" stroke="#8ba5c9" stroke-width="5" marker-end="url(#a)"/>
+    <g transform="translate(990)"><rect width="300" height="220" rx="20" fill="#ffdeda"/><rect width="300" height="42" rx="20" fill="#c85551"/><text x="23" y="28" class="tag">4 · BLOCK</text><text x="23" y="91" class="b">Enforcement</text><text x="23" y="124" class="s">.claude/hooks</text><text x="23" y="157" class="s">Runs on the tool call.</text><text x="23" y="181" class="s">Allows or refuses the action.</text></g>
+  </g>
+  <text x="72" y="496" class="p">The first three depend on cooperation. The final layer protects the project even when a confident assistant gets it wrong.</text>
+</svg>

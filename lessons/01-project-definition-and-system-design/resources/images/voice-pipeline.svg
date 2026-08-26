@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="520" viewBox="0 0 1440 520" role="img" aria-labelledby="title desc">
+  <title id="title">VoiceMode conversation pipeline</title>
+  <desc id="desc">Audio moves from microphone through local voice activity detection and Whisper transcription, then text goes to Claude Code. Claude's text response goes through local Kokoro speech synthesis to speakers.</desc>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#26b7a0"/></marker><style>text{font-family:Arial,sans-serif}.k{font-size:18px;fill:#9bb0c8}.h{font-size:25px;font-weight:700;fill:#f5f7fb}.p{font-size:17px;fill:#c7d4e5}.n{font-size:15px;font-weight:700;fill:#062625}</style></defs>
+  <rect width="1440" height="520" rx="28" fill="#0c1424"/>
+  <text x="72" y="78" class="h" font-size="34">How a spoken request becomes a Claude Code response</text>
+  <text x="72" y="111" class="k">VoiceMode keeps audio processing local; your transcript is still sent to Claude Code as a prompt.</text>
+  <g transform="translate(72 182)">
+    <g><rect width="190" height="180" rx="18" fill="#17304a"/><text x="24" y="57" class="h">Microphone</text><text x="24" y="91" class="p">You speak your</text><text x="24" y="116" class="p">goal or review.</text><circle cx="150" cy="136" r="22" fill="#26b7a0"/><rect x="145" y="99" width="10" height="47" rx="5" fill="#062625"/></g>
+    <path d="M210 90H270" stroke="#26b7a0" stroke-width="5" marker-end="url(#arrow)"/>
+    <g transform="translate(290)"><rect width="210" height="180" rx="18" fill="#123c45"/><text x="24" y="54" class="h">VAD</text><text x="24" y="86" class="p">Detects speech</text><text x="24" y="111" class="p">and stops at silence.</text><rect x="24" y="135" width="140" height="24" rx="12" fill="#26b7a0"/><text x="36" y="153" class="n">LOCAL · not a model</text></g>
+    <path d="M520 90H580" stroke="#26b7a0" stroke-width="5" marker-end="url(#arrow)"/>
+    <g transform="translate(600)"><rect width="220" height="180" rx="18" fill="#183a68"/><text x="24" y="54" class="h">Whisper base</text><text x="24" y="86" class="p">Local speech-to-text</text><text x="24" y="111" class="p">creates a transcript.</text><rect x="24" y="135" width="120" height="24" rx="12" fill="#78c8ff"/><text x="37" y="153" class="n">LOCAL STT</text></g>
+    <path d="M840 90H900" stroke="#f5bd4f" stroke-width="5" marker-end="url(#arrow)"/>
+    <g transform="translate(920)"><rect width="230" height="180" rx="18" fill="#4c355f"/><text x="24" y="54" class="h">Claude Code</text><text x="24" y="86" class="p">The selected Claude model</text><text x="24" y="111" class="p">receives text and responds.</text><rect x="24" y="135" width="152" height="24" rx="12" fill="#f5bd4f"/><text x="37" y="153" class="n">TEXT PROMPT</text></g>
+    <path d="M1170 90H1230" stroke="#26b7a0" stroke-width="5" marker-end="url(#arrow)"/>
+    <g transform="translate(1250)"><rect width="118" height="180" rx="18" fill="#17304a"/><text x="21" y="54" class="h">Kokoro</text><text x="21" y="86" class="p">Local</text><text x="21" y="111" class="p">TTS</text><path d="M29 143q12-18 24 0t24 0t24 0" fill="none" stroke="#26b7a0" stroke-width="6"/></g>
+  </g>
+</svg>

@@ -1,6 +1,17 @@
 # Lesson 01 — Deliverables checklist
 
-Work top to bottom. The session is complete when every box is checked.
+Complete this in the README's order. The live session is complete after its live boxes;
+the lesson is complete when every box is checked after post-session homework.
+
+## Voice workflow
+
+- [ ] `ffmpeg -version` succeeds before the session
+- [ ] VoiceMode is visible in `/mcp`
+- [ ] `/voicemode:converse` completes one short spoken exchange, or the typed fallback
+      card was used and the failure was recorded for follow-up
+- [ ] You can name VAD, Whisper STT, Claude, and Kokoro TTS in the conversation pipeline
+- [ ] You can say why VoiceMode is user-scoped and why the course Roboflow MCP config is
+      project-scoped
 
 ## Repository
 

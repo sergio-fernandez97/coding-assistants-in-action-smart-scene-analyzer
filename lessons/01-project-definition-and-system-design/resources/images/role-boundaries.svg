@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="560" viewBox="0 0 1440 560" role="img" aria-labelledby="title desc">
+  <title id="title">Voice-led coordination and role boundaries</title><desc id="desc">The student coordinates Claude Code by voice. Claude delegates architecture, documentation, and DevOps work to specialized agents, all constrained by the harness.</desc>
+  <defs><style>text{font-family:Arial,sans-serif}.h{font-size:33px;font-weight:700;fill:#f6f8fb}.p{font-size:18px;fill:#c4d2e3}.b{font-size:25px;font-weight:700;fill:#fff}.s{font-size:17px;fill:#d8e3f0}.l{font-size:14px;font-weight:700;fill:#6ee7cf}</style><marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#6ee7cf"/></marker></defs>
+  <rect width="1440" height="560" rx="28" fill="#0c1424"/><text x="72" y="82" class="h">Speak the goal; keep the boundaries</text><text x="72" y="116" class="p">Specialized agents make outputs easier to review because no one role owns every decision.</text>
+  <g transform="translate(72 178)">
+    <g><rect width="235" height="230" rx="22" fill="#19445b"/><text x="27" y="64" class="b">You</text><text x="27" y="101" class="s">Voice-led coordinator</text><text x="27" y="141" class="s">Set intent, approve</text><text x="27" y="166" class="s">actions, review output.</text><text x="27" y="204" class="l">SPEAK · DECIDE · REVIEW</text></g>
+    <path d="M255 115H350" stroke="#6ee7cf" stroke-width="5" marker-end="url(#a)"/>
+    <g transform="translate(370)"><rect width="275" height="230" rx="22" fill="#3b3560"/><text x="28" y="64" class="b">Claude Code</text><text x="28" y="101" class="s">Coordinates work and</text><text x="28" y="126" class="s">asks before tool actions.</text><text x="28" y="204" class="l">CONTEXT + PERMISSIONS</text></g>
+    <path d="M660 115H730" stroke="#6ee7cf" stroke-width="5" marker-end="url(#a)"/>
+    <g transform="translate(750)"><rect width="185" height="230" rx="22" fill="#266f86"/><text x="22" y="64" class="b">Architecture</text><text x="22" y="101" class="s">Design, contracts,</text><text x="22" y="126" class="s">trade-offs.</text><text x="22" y="204" class="l">DESIGN</text></g>
+    <g transform="translate(965)"><rect width="185" height="230" rx="22" fill="#567246"/><text x="22" y="64" class="b">Documentation</text><text x="22" y="101" class="s">README, guides,</text><text x="22" y="126" class="s">contributor docs.</text><text x="22" y="204" class="l">EXPLAIN</text></g>
+    <g transform="translate(1180)"><rect width="185" height="230" rx="22" fill="#8a5d37"/><text x="22" y="64" class="b">DevOps</text><text x="22" y="101" class="s">Environment, CI,</text><text x="22" y="126" class="s">delivery config.</text><text x="22" y="204" class="l">DELIVER</text></g>
+    <path d="M760 382H1345" stroke="#6ee7cf" stroke-width="3" stroke-dasharray="9 9"/><text x="945" y="428" class="p">All roles are constrained by CLAUDE.md, settings, and hooks.</text>
+  </g>
+</svg>

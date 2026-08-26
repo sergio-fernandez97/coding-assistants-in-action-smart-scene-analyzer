@@ -149,6 +149,8 @@ claude plugin install roboflow
 | **MCP server** (`https://mcp.roboflow.com/mcp`) | Live, authenticated *tools*: `projects_*`, `images_*`, `versions_*`, `models_*`, `universe_*` |
 | **Skills** (`roboflow:data-management`, `roboflow:training-and-evaluation`, …) | Durable *knowledge*: exact model IDs, RoboQL syntax, credit costs, preprocessing semantics |
 
+![Claude Code discovers and calls Roboflow MCP tools over HTTP; the authenticated MCP server then calls the Roboflow computer-vision platform.](resources/images/roboflow-mcp-workflow.png)
+
 This split is worth internalizing, because it generalizes past Roboflow. The MCP server
 gives an agent the ability to *act*. The skills give it the knowledge to act
 *correctly*. An agent with tools and no domain knowledge calls `versions_generate` with

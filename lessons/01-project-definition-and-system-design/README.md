@@ -1,14 +1,15 @@
 # Lesson 01 — Project Definition & System Design
 
-> Notion Week 1. Estimated time: 2.5–3 hours.
+> Notion Week 1. Live session: **90 minutes** (83 minutes of planned work plus a
+> 7-minute contingency). Pre- and post-session homework are required and ordered below.
 
 ## Session goal
 
 Build the **harness** before building the system. By the end of this session you will
 have a repository whose structure, rules, and specialized roles are defined well
 enough that an AI assistant working inside it produces consistent, reviewable output —
-and you will have used that harness to generate the Smart Scene Analyzer's
-architecture, documentation, and development environment.
+and you will use that harness, primarily by voice, to generate and review the Smart
+Scene Analyzer's architecture.
 
 The distinction that matters all course: a prompt is a request, a harness is a
 constraint. A prompt shapes one response. A harness shapes every response, in every
@@ -17,19 +18,24 @@ harness.
 
 ## Prerequisites
 
-Run each check. Every one must pass before you continue.
+Run the repository checks before you continue. The macOS rows determine whether you use
+the tested voice path or the supported typed fallback.
 
 | Requirement | Check | If it fails |
 |---|---|---|
 | Git | `git --version` | [git-scm.com](https://git-scm.com/downloads) |
-| Claude Code | `claude --version` | [Install guide](https://docs.claude.com/en/docs/claude-code/overview) |
-| `uv` | `uv --version` | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
-| Python 3.11+ | `uv python install 3.11` | — |
+| Claude Code | `claude --version` | Already installed before this lesson |
+| `uv` | `uv --version` | Already installed before this lesson |
+| Python 3.11+ | `python3 --version` | Already installed before this lesson |
+| macOS voice path | `sw_vers` | This is the tested primary path. Bring headphones and a working microphone. |
+| Homebrew + FFmpeg | `brew --version && ffmpeg -version` | Complete pre-session step 3. VoiceMode needs FFmpeg for audio processing. |
 | Node.js 20+ | `node --version` | [nodejs.org](https://nodejs.org) — not used today, needed from Lesson 05 |
 | GitHub account | `gh auth status` (optional) | Create one; you push your project at the end |
 
-> **macOS note.** The system Python is 3.9 and is too old for this project. `uv` installs
-> and manages 3.11 for you — do not modify the system interpreter.
+> **Platform note.** VoiceMode is taught on macOS. If you use another platform, complete
+> the repository work and use the typed fallback in
+> [`resources/voice-command-card.md`](resources/voice-command-card.md); do not spend the
+> live session debugging an untested audio stack.
 
 ## Deliverables
 
@@ -47,6 +53,8 @@ When this session ends, your `smart-scene-analyzer` repository contains:
 - [ ] `docs/roadmap.md` — the engineering plan for Weeks 2–6
 - [ ] `README.md` and `CONTRIBUTING.md`
 - [ ] `app/app.json`, `app/metro.config.js`, `.gitignore`, `.github/workflows/ci.yml`
+- [ ] VoiceMode is installed in the student's user configuration and they can run
+  `/voicemode:converse`
 
 Verify with [`resources/checklists/deliverables.md`](resources/checklists/deliverables.md).
 
@@ -54,7 +62,21 @@ Verify with [`resources/checklists/deliverables.md`](resources/checklists/delive
 
 ## Step-by-step
 
-### 1. Create your project repository
+### Delivery map — do these in order
+
+| When | Steps | Why they are there |
+|---|---|---|
+| **Pre-session homework** | 1–3 | Copying dependencies and installing an audio stack are long-running or machine-specific. Arrive with them verified. |
+| **The 90 minutes** | 4–9 | You will learn the harness, inspect its constraints, make the requirements decision, and direct the Architecture Agent by voice. |
+| **Post-session homework** | 10–13 | Turn the approved architecture into documentation, configuration, a roadmap, and a remote repository. Complete them in this order. |
+
+> **Voice-first convention.** Speak your goal, decision, and review request; type only
+> commands, paths, code, and values that must be exact. Read every permission prompt
+> before approving it. Never say an API key, password, token, or private data into the
+> microphone: the audio stays local in this setup, but your transcribed prompt is still
+> sent to Claude Code.
+
+### 1. Create your project repository — pre-session homework (10 minutes)
 
 **Do:** Create your own repo from the course template. Your project is separate from
 this course repo — you read from the course, you write to yours.
@@ -79,7 +101,7 @@ ls -a
 
 ---
 
-### 2. Install dependencies and confirm the environment
+### 2. Install dependencies and confirm the environment — pre-session homework (20 minutes)
 
 **Do:**
 
@@ -90,9 +112,60 @@ uv run python -c "import numpy, cv2, PIL, pydantic; print('ok')"
 
 **Expected result:** `ok`. A `.venv/` directory now exists and is gitignored.
 
+### 3. Install and verify VoiceMode — pre-session homework (25–40 minutes)
+
+**Do:** Install FFmpeg before installing VoiceMode. Then add the official VoiceMode
+plugin, install its local services, and allow your terminal application to use the
+microphone when macOS asks.
+
+```bash
+brew install ffmpeg
+ffmpeg -version
+
+claude plugin marketplace add mbailey/voicemode
+claude plugin install voicemode@voicemode
+```
+
+Start Claude Code after the plugin install, then run these slash commands inside it:
+
+```text
+/voicemode:install
+/mcp
+/voicemode:converse
+```
+
+**Expected result:** `ffmpeg -version` prints a version; `/mcp` shows VoiceMode available;
+and `/voicemode:converse` records one short sentence, transcribes it, and speaks Claude's
+reply. If this does not work before class, use the typed fallback in
+[`resources/voice-command-card.md`](resources/voice-command-card.md) and bring the error
+message to the instructor.
+
+> **What is happening?** Voice activity detection (VAD) listens for speech and stops the
+> recording after silence. Local Whisper speech-to-text (the supplied setup guide uses the
+> `base` Whisper model) turns your audio into text. Claude Code sends that text to the
+> Claude model selected for your session. Optional local Kokoro text-to-speech turns the
+> response back into sound. VAD is a detector, not a language model; Whisper is the STT
+> model; Claude is the coding model; Kokoro is the TTS model.
+>
+> ![Static diagram of the local VAD and Whisper audio path, Claude Code text prompt, and local Kokoro response path.](resources/images/voice-pipeline.svg)
+>
+> The microphone audio is processed locally in this path. The transcript and the task you
+> ask Claude to perform are not local-only: treat them with the same care as any other
+> Claude Code prompt.
+>
+> The current plugin route provides the slash commands above. The supplied
+> [manual macOS guide](https://gist.github.com/jlmalone/02d09aeb4e09890a8a9e7c2333a18377)
+> remains useful for its manual `uvx` setup, `webrtcvad` plus `setuptools<71` VAD fix,
+> Whisper/Kokoro service checks, and tuning values. It omitted FFmpeg; install it first.
+> Its main sequence is: register the `stdio` MCP server, install local Whisper, optionally
+> install local Kokoro, start and check the services, tune VAD/silence thresholds, then
+> invoke `converse`. `/voicemode:install` automates the supported plugin path; use the
+> guide when you need to see or repair those individual layers.
+> Sources checked 2026-08-26.
+
 ---
 
-### 3. Read the harness before you run it
+### 4. Read the harness before you run it — live, 12 minutes
 
 **Do:** Open `CLAUDE.md` and read it end to end. Then open the three files in
 `.claude/agents/`.
@@ -110,6 +183,8 @@ in this session; the distinction between the last two is the one worth carrying:
 | **Roles** | `.claude/agents/` | By **scope**. Separate context, restricted tools, one responsibility |
 | **Procedures** | `.claude/skills/` | By being **invoked**. A repeatable method with its own acceptance criteria |
 | **Enforcement** | `.claude/hooks/` | By **blocking**. Runs on the tool call, whether or not anyone read anything |
+
+![Static diagram of the four harness layers: rules, roles, procedures, and enforcement.](resources/images/harness-layers.svg)
 
 The first three all depend on cooperation. An assistant that has read a rule can still
 decide, plausibly and in good faith, that this particular case is different. That is not
@@ -134,7 +209,7 @@ reading `src/` is noise that costs context on every single request.
 
 ---
 
-### 4. Bootstrap and refine `CLAUDE.md`
+### 5. Bootstrap and refine `CLAUDE.md` — live, 8 minutes
 
 **Do:** Start Claude Code and generate a baseline, then compare it to the template
 version.
@@ -155,7 +230,7 @@ sections, which `/init` cannot know about.
 **Expected result:** a `CLAUDE.md` that keeps the template's *Engineering roles*,
 *Conventions*, and *Constraints for assistants* sections, plus anything accurate that
 `/init` discovered. Two `TODO(Lesson 01)` markers remain at the bottom — you resolve
-them in step 7.
+them in step 8.
 
 > **Why not just accept `/init`'s output?** Because `/init` documents what exists. The
 > value of `CLAUDE.md` is mostly in what *must be true* — the constraints. An assistant
@@ -163,7 +238,23 @@ them in step 7.
 
 ---
 
-### 5. Review the permission policy
+### 6. Review the permission policy and configuration scopes — live, 18 minutes
+
+**Do:** Say: “Explain which Claude configuration belongs to me, which belongs to this
+project, and which should be committed. Keep the answer to one table.” Then compare the
+answer to this one.
+
+| Scope | File | Use it for | Recommendation in this course |
+|---|---|---|---|
+| **User** | `~/.claude/settings.json` | Your preferences across every project | Theme, editor behavior, personal defaults — never team policy. |
+| **Shared project** | `.claude/settings.json` | Versioned team settings | Commit the harness's permissions, hooks, and shared environment settings. |
+| **Project local** | `.claude/settings.local.json` | Your private override in this one project | Test a setting or allow only your VoiceMode `converse` tool. Keep it out of git. |
+
+`CLAUDE.md` is different: it is project instruction memory, not JSON settings.
+`CLAUDE.local.md` is a private, project-specific instruction file and must also be
+gitignored. Check `/status` to see which settings sources Claude Code loaded.
+
+**Expected result:** you can choose the narrowest scope that reaches the intended people.
 
 **Do:** Open `.claude/settings.json` and read the three lists.
 
@@ -190,6 +281,37 @@ Walk the reasoning:
 ```
 
 **Expected result:** the rules from `settings.json` are listed.
+
+#### Connect tools safely: MCP transport and scope
+
+**Do:** Say: “Explain the transport and scope of the VoiceMode server, then show me how
+to inspect it without changing the project configuration.” Run:
+
+```text
+/mcp
+```
+
+| Transport | Meaning | Use it when |
+|---|---|---|
+| `--transport stdio` | Claude Code starts a local process and exchanges MCP messages through standard input/output. | A tool needs local microphone, filesystem, or shell access. VoiceMode is this kind of server. |
+| `--transport http` | Claude Code calls a remote Streamable HTTP endpoint. | A cloud MCP service exposes an HTTPS `/mcp` endpoint; this is the recommended remote transport. |
+| `--transport sse` | Claude Code connects to a remote Server-Sent Events endpoint. | Only when a service exposes SSE; it is deprecated in favor of HTTP. |
+| `ws` | A persistent WebSocket connection for server-pushed events. | Configure it as JSON `"type": "ws"`; it is not accepted by `claude mcp add --transport`. |
+
+| MCP scope | Stored in | Recommendation |
+|---|---|---|
+| **Local** | A per-project entry in `~/.claude.json` | Personal experiment for one project. Do not confuse this with `.claude/settings.local.json`. |
+| **Project** | `.mcp.json`, committed | Shared, non-secret tools such as the course's Roboflow configuration. |
+| **User** | `~/.claude.json`, across your projects | VoiceMode: it is your microphone and a personal utility, not a repository dependency. |
+
+The VoiceMode plugin configures its own local `stdio` server. Do **not** add it to this
+project's `.mcp.json`. If repeated microphone permission prompts make voice use
+impractical, add only the exact `converse` tool shown by `/mcp` to your own
+`.claude/settings.local.json`. Plugin tools use a different name prefix from direct MCP
+tools, so inspect before copying a permission rule. Do not allow every VoiceMode tool.
+
+**Expected result:** `/mcp` identifies VoiceMode as available, and you can explain why its
+configuration is personal while the Roboflow server in `.mcp.json` is shared.
 
 > **The course never uses `--dangerously-skip-permissions`.** Reviewing what an
 > assistant is about to do is not friction to be removed — it is the part of the
@@ -305,7 +427,7 @@ The assistant cannot proceed by rewording, retrying, or writing the file another
 
 ---
 
-### 6. Understand the subagent definitions
+### 7. Understand the subagent definitions — live, 10 minutes
 
 **Do:** Open `.claude/agents/architecture.md` and look at the frontmatter.
 
@@ -324,6 +446,8 @@ model: opus
 | `description` | **How the main assistant decides to delegate.** Written for a dispatcher, not a human. This is the field students under-invest in. |
 | `tools` | The agent's capability boundary. Architecture has no `Bash` — it designs, it does not run things. |
 | `model` | Design work gets `opus`; mechanical work gets `sonnet` |
+
+![Static diagram of a student coordinating Claude Code, which delegates to Architecture, Documentation, and DevOps roles under harness constraints.](resources/images/role-boundaries.svg)
 
 A subagent also gets its **own context window**. That is the real reason to use one:
 the Architecture Agent can read forty files to produce one design document, and none of
@@ -360,7 +484,7 @@ knows your budget.
 
 ---
 
-### 7. Define requirements — including the numbers
+### 8. Define requirements — including the numbers — live, 15 minutes
 
 **Do:** Fill in
 [`resources/templates/requirements-worksheet.md`](resources/templates/requirements-worksheet.md).
@@ -420,10 +544,14 @@ Pick one, then record it:
 
 ---
 
-### 8. Run the Architecture Agent
+### 9. Run the Architecture Agent — live, 20 minutes
 
-**Do:** Use the prompt in
+**Do:** Open the prompt in
 [`resources/prompts/01-architecture-agent.md`](resources/prompts/01-architecture-agent.md).
+Then say: “Use the architecture role and the prompt I opened. Create the design artifacts
+only; do not implement function bodies. Before writing, repeat the inference-target
+decision and the acceptance criteria back to me.” Speak your review notes after it
+finishes; type exact filenames or corrections only when needed.
 
 **Expected result:** `docs/architecture.md` containing a component diagram, one named
 data contract per module boundary (with units and coordinate conventions), a latency
@@ -442,9 +570,17 @@ skill this session is actually teaching.
 - A latency budget that does not sum to your requirement
 - Silent resolution of a decision you marked open
 
+#### Live-session cut lines
+
+The planned live steps total **83 minutes**. Keep the remaining seven minutes for
+permission prompts, a VAD retry, or discussion. If the room runs behind, shorten these
+in order: the MCP transport comparison, then the badly formatted-file hook demonstration,
+then the agent-registration tour. **Never cut** the voice readiness check, the
+rule-versus-enforcement distinction, or the student's critical review of the architecture.
+
 ---
 
-### 9. Run the Documentation Agent
+### 10. Run the Documentation Agent — post-session homework, 30 minutes
 
 **Do:** Use [`resources/prompts/02-documentation-agent.md`](resources/prompts/02-documentation-agent.md).
 
@@ -463,7 +599,7 @@ still remember what the correct step was.
 
 ---
 
-### 10. Run the DevOps Agent
+### 11. Run the DevOps Agent — post-session homework, 25 minutes
 
 **Do:** Use [`resources/prompts/03-devops-agent.md`](resources/prompts/03-devops-agent.md).
 
@@ -506,7 +642,7 @@ the choice when it is made:
 
 ---
 
-### 11. Generate the engineering roadmap
+### 12. Generate the engineering roadmap — post-session homework, 10 minutes
 
 **Do:** Use [`resources/prompts/04-roadmap.md`](resources/prompts/04-roadmap.md).
 
@@ -515,7 +651,7 @@ its deliverable, its owning role, and its entry condition — not just a list of
 
 ---
 
-### 12. Commit and push
+### 13. Commit and push — post-session homework, 10 minutes
 
 **Do:**
 
@@ -534,8 +670,21 @@ gh repo create smart-scene-analyzer --private --source=. --push
 ## Verification
 
 Work through
-[`resources/checklists/deliverables.md`](resources/checklists/deliverables.md). The
-session is complete when every box is checked.
+[`resources/checklists/deliverables.md`](resources/checklists/deliverables.md). The live
+session is complete when steps 4–9 are complete; the lesson is complete when the ordered
+post-session steps and every checklist box are complete.
+
+Voice readiness pass:
+
+```text
+/mcp
+/voicemode:converse
+/status
+```
+
+**Expected result:** VoiceMode is available, one spoken exchange works, and `/status`
+shows the settings sources Claude Code actually loaded. If any voice check fails, use the
+typed fallback card; it is a supported path, not a reason to delay the room.
 
 Fast automated pass:
 
@@ -561,19 +710,19 @@ skill.
 
 ## Open items
 
-- ⚠️ **Inference target** — self-hosted cloud, hosted API, or on-device (step 7).
+- ⚠️ **Inference target** — self-hosted cloud, hosted API, or on-device (step 8).
   Notion Open Decision #2. Blocks a final architecture. Lesson 04 measures all three;
   Lesson 05 revisits the on-device branch once a real client exists.
-- ⚠️ **MLflow hosting** — a local server, self-hosted, or managed (step 10). Notion Open
+- ⚠️ **MLflow hosting** — a local server, self-hosted, or managed (step 11). Notion Open
   Decision #4. Determines Lesson 03's tracking setup. Note that nothing else in this
   project needs Docker any more, so a containerized tracker would reintroduce a
   prerequisite the rest of the course has dropped.
 - ⚠️ **N1's shape** — which device it is pinned to, and whether cold model load counts
-  toward it (step 7). Cold load is seconds long, happens once per launch, and the user
+  toward it (step 8). Cold load is seconds long, happens once per launch, and the user
   watches it. You choose the shape now; Lesson 05 supplies the number that fills it.
 - ⚠️ **Codex** — the course lists OpenAI Codex alongside Claude Code. This lesson is
   Claude Code only; the `AGENTS.md` and `codex plugin` equivalents are not yet written.
-  Note that **Codex does not run the hooks you met in step 5** — those two constraints
+  Note that **Codex does not run the hooks you met in step 6** — those two constraints
   become yours to keep there.
 
 All four are tracked in the course [`TODO.md`](../../TODO.md).
@@ -586,13 +735,28 @@ All four are tracked in the course [`TODO.md`](../../TODO.md).
 
 ## Further reading
 
-- [Claude Code — memory and `CLAUDE.md`](https://docs.claude.com/en/docs/claude-code/memory)
-- [Claude Code — subagents](https://docs.claude.com/en/docs/claude-code/sub-agents)
-- [Claude Code — settings and permissions](https://docs.claude.com/en/docs/claude-code/settings)
-- [Claude Code — slash commands](https://docs.claude.com/en/docs/claude-code/slash-commands)
-- [Claude Code — hooks](https://code.claude.com/docs/en/hooks) — the reference for step 5's
+- [VoiceMode manual macOS setup guide](https://gist.github.com/jlmalone/02d09aeb4e09890a8a9e7c2333a18377)
+  — manual VAD, Whisper, and Kokoro diagnosis
+- [Claude Code cheatsheet](https://support.claude.com/en/articles/14553413-claude-code-cheatsheet)
+- [Claude Code Cheat Sheet](https://cc.storyfox.cz/)
+- [Claude Code — MCP](https://code.claude.com/docs/en/mcp) — transport types, scopes, and
+  the `--` separator for local `stdio` servers
+- [Claude Code — memory and `CLAUDE.md`](https://code.claude.com/docs/en/memory)
+- [Claude Code — subagents](https://code.claude.com/docs/en/sub-agents)
+- [Claude Code — settings and permissions](https://code.claude.com/docs/en/settings)
+- [Claude Code — slash commands](https://code.claude.com/docs/en/slash-commands)
+- [Claude Code — hooks](https://code.claude.com/docs/en/hooks) — the reference for step 6's
   `hooks` block, including the exit codes and the `PreToolUse` decision fields
 - [Claude Code — skills](https://code.claude.com/docs/en/skills)
 - [Architecture Decision Records](https://adr.github.io/)
+
+Claude Code and VoiceMode references above were checked **2026-08-26**.
+
+### Instructor visual notes
+
+The three static diagrams above are the source visuals for this lesson. Reuse them in
+slides or handouts rather than drawing a second version. If you add a title slide image,
+use a microphone waveform flowing into a terminal transcript; do not put instructional
+text only inside that decorative image.
 
 **Next:** [Lesson 02 — Dataset Engineering](../02-dataset-engineering/)
