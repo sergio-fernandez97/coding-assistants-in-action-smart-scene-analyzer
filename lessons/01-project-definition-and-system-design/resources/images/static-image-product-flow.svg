@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="600" viewBox="0 0 1440 600" role="img" aria-labelledby="title desc">
+  <title id="title">Smart Scene Analyzer static-image product flow</title>
+  <desc id="desc">A student selects a photo or uses a bundled test image. On the phone, object detection and depth estimation run in parallel, then combine into an annotated image with labels, boxes, and relative nearer or farther indicators.</desc>
+  <defs>
+    <style>text{font-family:Arial,sans-serif}.h{font-size:33px;font-weight:700;fill:#f6f8fb}.p{font-size:18px;fill:#c4d2e3}.b{font-size:24px;font-weight:700;fill:#fff}.s{font-size:17px;fill:#d8e3f0}.l{font-size:14px;font-weight:700;fill:#6ee7cf}.t{font-size:15px;font-weight:700;fill:#0c1424}</style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#6ee7cf"/></marker>
+  </defs>
+  <rect width="1440" height="600" rx="28" fill="#0c1424"/>
+  <text x="72" y="80" class="h">One static image becomes a scene result</text>
+  <text x="72" y="114" class="p">The required path works in both simulators; no image leaves the handset during inference.</text>
+  <g transform="translate(72 174)">
+    <g>
+      <rect width="235" height="260" rx="22" fill="#19445b"/>
+      <rect x="28" y="32" width="179" height="120" rx="12" fill="#8ab8cf"/>
+      <path d="M40 136 L89 84 L122 117 L151 72 L195 136Z" fill="#3b697b"/>
+      <circle cx="163" cy="62" r="13" fill="#f5d76e"/>
+      <text x="28" y="193" class="b">Static image</text>
+      <text x="28" y="222" class="s">Pick a photo or use a</text>
+      <text x="28" y="246" class="s">bundled test image.</text>
+    </g>
+    <path d="M257 130H350" stroke="#6ee7cf" stroke-width="5" marker-end="url(#arrow)"/>
+    <g transform="translate(370)">
+      <rect width="275" height="260" rx="22" fill="#3b3560"/>
+      <text x="28" y="61" class="b">On the handset</text>
+      <text x="28" y="96" class="s">Prepare one RGB image.</text>
+      <rect x="28" y="130" width="219" height="42" rx="21" fill="#6ee7cf"/>
+      <text x="54" y="157" class="t">NO NETWORK INFERENCE</text>
+      <text x="28" y="220" class="l">REPEATABLE · PRIVATE</text>
+    </g>
+    <path d="M662 130H730" stroke="#6ee7cf" stroke-width="5" marker-end="url(#arrow)"/>
+    <g transform="translate(750)">
+      <rect width="245" height="105" rx="22" fill="#266f86"/>
+      <text x="24" y="47" class="b">YOLO11</text>
+      <text x="24" y="77" class="s">Objects + boxes</text>
+      <rect y="155" width="245" height="105" rx="22" fill="#567246"/>
+      <text x="24" y="202" class="b">Depth Anything V2</text>
+      <text x="24" y="232" class="s">Relative depth map</text>
+    </g>
+    <path d="M1012 53H1085V130H1125" stroke="#6ee7cf" stroke-width="5" fill="none" marker-end="url(#arrow)"/>
+    <path d="M1012 208H1085V130H1125" stroke="#6ee7cf" stroke-width="5" fill="none" marker-end="url(#arrow)"/>
+    <g transform="translate(1145)">
+      <rect width="223" height="260" rx="22" fill="#8a5d37"/>
+      <text x="25" y="51" class="b">Scene result</text>
+      <rect x="25" y="74" width="173" height="112" rx="12" fill="#d6b17d"/>
+      <rect x="46" y="95" width="60" height="61" rx="4" fill="none" stroke="#6ee7cf" stroke-width="4"/>
+      <rect x="121" y="112" width="45" height="48" rx="4" fill="none" stroke="#6ee7cf" stroke-width="4"/>
+      <text x="43" y="91" class="l">chair · nearer</text>
+      <text x="111" y="181" class="l">table · farther</text>
+      <text x="25" y="222" class="s">Labels, boxes, and</text>
+      <text x="25" y="246" class="s">relative depth only.</text>
+    </g>
+  </g>
+</svg>

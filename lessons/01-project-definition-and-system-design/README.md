@@ -16,6 +16,28 @@ constraint. A prompt shapes one response. A harness shapes every response, in ev
 future session, including the ones you are not present for. This session builds the
 harness.
 
+### What you are going to build
+
+Across this course, you will build the **Smart Scene Analyzer**: an iOS and Android
+mobile app that analyzes an indoor scene on the phone. A user can select a static image
+from their library (or use the bundled test image), and the app will detect objects,
+draw labeled bounding boxes, and indicate each object's relative depth — for example,
+which detected object is nearer or farther within that image. The app will run YOLO11
+object detection and Depth Anything V2 depth estimation on-device, fuse their outputs,
+and keep the image on the handset during inference.
+
+![Static diagram of the Smart Scene Analyzer: a picked or bundled still image is processed on the handset by object detection and depth estimation, then becomes a labeled scene result with relative depth.](resources/images/static-image-product-flow.svg)
+
+Static images are a first-class product input, not merely a fallback for the live
+camera. They work in both iOS and Android simulators, make results repeatable for model
+and device-parity checks, and let you test the complete product without camera
+permissions or hardware variability. Lesson 05 treats a picked or bundled still image
+as the required path; live camera capture on a physical device is an optional extension.
+
+The system does **not** estimate absolute distance in metres. Its depth output is
+relative within a single image, so the product may say “nearer” or “farther,” not
+“2.3 metres away.”
+
 ## Prerequisites
 
 Run the repository checks before you continue. The macOS rows determine whether you use
