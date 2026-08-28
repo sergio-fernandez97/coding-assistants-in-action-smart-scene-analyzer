@@ -7,7 +7,7 @@ If you haven't already, install the Claude Code CLI. On macOS/Linux you can run 
 npm install -g @anthropic-ai/claude-code
 ```
 
-## 2. Get an API key
+## 2. Get an API key [OPTIONAL]
 Go to [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys), sign in, and create a new key. Copy it right away — keys are shown only once. It will start with `sk-ant-`.
 
 ## 3. Set the ANTHROPIC_API_KEY environment variable
