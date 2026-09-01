@@ -18,7 +18,7 @@
   <rect x="270" y="55" width="190" height="55" rx="10" fill="#e6f0ff" stroke="#4169a8" stroke-width="2"/>
   <text x="290" y="79" class="label">install + sign up</text><text x="297" y="98" class="small">VoiceMode, MCP, key</text>
   <rect x="490" y="55" width="190" height="55" rx="10" fill="#e6f0ff" stroke="#4169a8" stroke-width="2"/>
-  <text x="510" y="79" class="label">choose + download</text><text x="524" y="98" class="small">SUN RGB-D or NYU</text>
+  <text x="510" y="79" class="label">download source</text><text x="524" y="98" class="small">SUN RGB-D</text>
   <rect x="710" y="55" width="170" height="55" rx="10" fill="#e6f0ff" stroke="#4169a8" stroke-width="2"/>
   <text x="735" y="79" class="label">read roles</text><text x="729" y="98" class="small">skills + prompts</text>
   <rect x="270" y="162" width="185" height="55" rx="10" fill="#edf8f0" stroke="#43865c" stroke-width="2"/>

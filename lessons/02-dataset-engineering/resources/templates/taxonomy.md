@@ -60,21 +60,11 @@ Alphabetical. Add rows in sorted position and renumber the whole column.
 
 ### Inclusion criteria
 
-A class earns a slot only if it clears all four:
+A class earns a slot only if it clears all three:
 
 - [ ] At least ~200 instances available in the source data (fewer than ~50 will not train)
-- [ ] Present in **both** source datasets, so V1 → V2 fine-tuning is comparable —
-      *applies only if you are doing Lesson 02 step 14 (NYU). Mark it satisfied or
-      explicitly retired; do not leave it unticked and unexplained*
 - [ ] Visually distinguishable from every other class in this list by a human annotator
 - [ ] Actually useful to the Smart Scene Analyzer's purpose
-
-The second criterion is the one that quietly breaks the course *when there are two
-datasets*. A class present only in the first makes the Lesson 03 comparison between the
-two models unreadable — you cannot tell whether a metric moved because of domain
-adaptation or because the class vanished. With a single dataset the criterion has
-nothing to bite on, which is a reason to record that you retired it rather than to
-quietly drop it: a later cohort adding NYU needs to know it was never enforced.
 
 ---
 
@@ -109,23 +99,6 @@ label is a decision; an unlisted one is an oversight.
 | Source label | Reason |
 |---|---|
 | `<...>` | `<too few instances / not relevant / ambiguous>` |
-
----
-
-## Source mapping — NYU Depth V2
-
-NYU Depth V2 uses a different label set than SUN RGB-D and at finer granularity, so
-this table will not mirror the one above. Fill it in from the same inspection process.
-
-| Source label | → Taxonomy class | Rationale |
-|---|---|---|
-| `<...>` | | |
-
-### Dropped source labels
-
-| Source label | Reason |
-|---|---|
-| `<...>` | |
 
 ---
 
@@ -174,12 +147,11 @@ error from a convention difference when you read the audit results.
 
 Run these before generating any dataset version:
 
-- [ ] Both source mappings target only classes in the list above
-- [ ] Every class in the list is reachable from **both** source mappings
+- [ ] The SUN RGB-D source mapping targets only classes in the list above
+- [ ] Every class in the list is reachable from the SUN RGB-D source mapping
 - [ ] No source label appears in two rows of the same table
 - [ ] Every distinct source label appears in either the mapping or the dropped table
 - [ ] The annotation conventions above are decided and written down
-- [ ] `classes.txt` from both converters is byte-identical
 - [ ] `verify_export.py` passes against the exported `data.yaml`
 
 ---

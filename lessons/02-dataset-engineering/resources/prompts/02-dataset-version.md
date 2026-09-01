@@ -1,6 +1,6 @@
 # Prompt — Generate a dataset version
 
-**When:** Lesson 02, step 13 (SUN RGB-D) and step 14 (NYU, optional).
+**When:** Lesson 02, post-session homework H4.
 
 **Which agent:** `dataset-engineer`.
 
@@ -25,14 +25,14 @@ both paths.
 ```
 Use the dataset-engineer agent.
 
-Generate dataset version <1|2> of the smart-scene-analyzer Roboflow project.
+Generate dataset version <N> of the smart-scene-analyzer Roboflow project.
 
 Consult the roboflow:data-management skill for the exact preprocessing and
 augmentation semantics before you call versions_generate. Do not work from memory —
 I would rather you read than guess.
 
 Source selection:
-- Filter by tag: <sun-rgbd | nyu-v2>
+- Filter by tag: sun-rgbd AND NOT tag:audit
 - Split: 70% train / 20% valid / 10% test
 
 Preprocessing (applies to all splits):

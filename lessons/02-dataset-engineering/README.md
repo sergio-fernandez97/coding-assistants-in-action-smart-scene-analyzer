@@ -8,9 +8,9 @@
 
 Use a live, metered computer-vision platform without confusing an agent action, a web-app
 action, and a result that counts as evidence. During the demonstration, you will inspect
-a prepared source dataset and a disjoint, human-labelled 100-image audit holdout. You
-will later choose **one** source—SUN RGB-D or NYU Depth V2—convert it yourself, and
-reproduce the workflow in your own project.
+a prepared SUN RGB-D source dataset and a disjoint, human-labelled 100-image audit
+holdout. You will later convert SUN RGB-D yourself and reproduce the workflow in your
+own project.
 
 The lesson has two boundaries:
 
@@ -39,7 +39,7 @@ full batch.
 | 6. Observe the estimate and 100-image audit | 10 min |
 | 7. Observe results and one isolated MCP write | 15 min |
 | 8. Observe the comparison with human labels | 10 min |
-| 9. Confirm your source track and reconcile | 5 min |
+| 9. Confirm the source dataset and reconcile | 5 min |
 | **Total** | **90 min** |
 
 **Cut lines, in order:** shorten step 4 first, then shorten the discussion in step 8.
@@ -63,12 +63,10 @@ not belong in the room.
       key or a `.env` file.
 - [ ] Read `.claude/agents/dataset-engineer.md` and `.claude/agents/data-pipeline.md`,
       then the Roboflow data-management, labeling, and plans-and-pricing skills.
-- [ ] Choose and download the raw source files for **one** track:
-  - **SUN RGB-D** — MATLAB metadata with source boxes.
-  - **NYU Depth V2** — HDF5 instance/class data from which you derive boxes.
-- [ ] Read the matching converter prompt—
-      [SUN RGB-D](resources/prompts/01-sunrgbd-converter.md) or
-      [NYU Depth V2](resources/prompts/05-nyu-converter.md)—plus the
+- [ ] Download and unpack **[SUN RGB-D v2](https://rgbd.cs.princeton.edu/)** (~6 GB),
+      including the image data and toolbox containing `SUNRGBDMeta.mat`. Its MATLAB
+      metadata includes the source boxes you will convert.
+- [ ] Read the [SUN RGB-D converter](resources/prompts/01-sunrgbd-converter.md), plus the
       [dataset-version](resources/prompts/02-dataset-version.md),
       [annotation-review](resources/prompts/03-annotation-review.md), and
       [Auto Label audit](resources/prompts/04-autolabel-audit.md) prompts. Do not
@@ -96,7 +94,7 @@ problem before starting post-session replication.
 - [ ] A pre-operation estimate and post-operation reconciliation in the credit ledger
 - [ ] One controlled `annotations_save` action only on the `mcp-demo` image
 - [ ] A per-class comparison of Auto Label predictions and local human labels
-- [ ] Your selected track recorded: SUN RGB-D or NYU Depth V2
+- [ ] SUN RGB-D recorded as the source dataset
 
 ### From post-session homework
 
@@ -108,8 +106,8 @@ problem before starting post-session replication.
       audit result, and known limitations
 - [ ] A reconciled ledger with no dataset files, secrets, or model artifacts staged
 
-The next lesson uses your verified export for local training. You do not need both
-datasets or a second version to complete this lesson.
+The next lesson uses your verified SUN RGB-D export for local training. You do not need
+a second version to complete this lesson.
 
 ## Step-by-step
 
@@ -258,14 +256,11 @@ Replace `<audit-export-directory>` with the exported Auto Label data directory a
 agreement. Open at least one disagreement before deciding whether it is a model failure or
 a different human box convention.
 
-### 9. Confirm your source track and reconcile — 5 minutes
+### 9. Confirm the source dataset and reconcile — 5 minutes
 
-**Do:** Confirm the track you downloaded before class.
-
-| Track | You will do in homework | Why it differs |
-|---|---|---|
-| **SUN RGB-D** | Convert MATLAB metadata to the shared taxonomy | Source annotations already include boxes. |
-| **NYU Depth V2** | Derive boxes from HDF5 instance/class maps | Conversion is harder and must handle array orientation. |
+**Do:** Confirm that you downloaded SUN RGB-D before class. You will convert its MATLAB
+metadata to the shared taxonomy in homework; the source annotations already include
+boxes.
 
 **Do:** Observe the reconciliation of the demonstration's actual usage.
 
@@ -275,7 +270,7 @@ docs/credit-budget.md, then update Remaining and Last reconciled.
 ```
 
 **Expected result:** the demonstration ledger contains estimated and actual audit spend,
-and your chosen source is recorded.
+and SUN RGB-D is recorded as the source.
 
 ## Part 2 — Post-session homework: replicate in your own project
 
@@ -283,10 +278,8 @@ Do these in order. Each later step relies on the control created by the earlier 
 
 ### H1. Convert the source you downloaded
 
-**Do:** Use the matching converter prompt:
-[01-sunrgbd-converter.md](resources/prompts/01-sunrgbd-converter.md) for SUN RGB-D or
-[05-nyu-converter.md](resources/prompts/05-nyu-converter.md) for NYU Depth V2. Inspect,
-convert, and verify labels against pixels before uploading.
+**Do:** Use the [SUN RGB-D converter prompt](resources/prompts/01-sunrgbd-converter.md).
+Inspect, convert, and verify labels against pixels before uploading.
 
 **Expected result:** you have a conversion report, images, labels, and a disjoint
 `data/audit-gt/` directory containing 100 images with local human annotations.
@@ -307,16 +300,17 @@ the project.
 ### H3. Upload, tag, and protect the control
 
 **Do:** Upload the converted training pool with its human labels. Tag every training image
-with your source tag—`sun-rgbd` or `nyu-v2`—then upload the audit **images only** and tag
-them `audit`. Keep the human labels in `data/audit-gt/`.
+`sun-rgbd`, then upload the audit **images only** and tag them `audit`. Keep the human
+labels in `data/audit-gt/`.
 
 **Expected result:** MCP count queries confirm the source tag and exactly 100 `audit`
 images. Generate/export a version filtered with `NOT tag:audit`.
 
 ### H4. Verify the export
 
-**Do:** Copy the Lesson 02 verification helper into your student project, then run it on
-the actual version directory.
+**Do:** Use the [dataset-version prompt](resources/prompts/02-dataset-version.md) to
+generate a SUN RGB-D version, then copy the Lesson 02 verification helper into your
+student project and run it on the actual version directory.
 
 ```bash
 cp <path-to-course-repo>/lessons/02-dataset-engineering/resources/scripts/verify_export.py scripts/
@@ -376,7 +370,7 @@ Replace `<N>` with your actual version number. The final command must print `cle
 
 Then confirm by reading your dataset card:
 
-- It names exactly one source track, source tag, and Roboflow version number.
+- It names SUN RGB-D, the `sun-rgbd` source tag, and the Roboflow version number.
 - It records conversion provenance and a pixel-level validation.
 - It says whether the 100-image audit was run and names its label prompts.
 - It states that audit images were excluded from the training version.

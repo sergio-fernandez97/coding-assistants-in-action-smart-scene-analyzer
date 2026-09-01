@@ -1,8 +1,8 @@
 # Lesson 02 — Deliverables checklist
 
-Items marked **[opt]** belong to the two optional steps (10 and 14). If you skipped
-them, that is a valid finish — but tick the "skipped deliberately" boxes rather than
-leaving a block blank, so the next person can tell a decision from an oversight.
+Items marked **[opt]** belong to the optional Auto Label audit. If you skip it, that is
+a valid finish — but tick the "skipped deliberately" boxes rather than leaving a block
+blank, so the next person can tell a decision from an oversight.
 
 ## Before you start
 
@@ -17,8 +17,6 @@ Five minutes here, and each one is a failure that cost the reference run real ti
 - [ ] You have read the current credit balance **yourself, in a browser**. No tool can
       fetch it
 - [ ] ~20 GB free disk, and the SUN RGB-D download is already running
-- [ ] You know which of steps 10 and 14 you are doing, before you start rather than when
-      you run out of time
 
 > **The rule that governs the whole session:** when a count from the platform disagrees
 > with what you expected, suspect the assumption before the platform. Zero images means
@@ -71,19 +69,9 @@ Set up in step 4, **before** anything touched the platform.
       pool, so the two are disjoint by construction
 - [ ] The holdout's images **and** labels are at `data/audit-gt/`, and neither was part
       of the step 9 upload
-- [ ] **[opt]** `scripts/convert_nyu.py` committed, with its own conversion report
-- [ ] **[opt]** NYU: the instance/class keying question was answered from the data, not assumed
-- [ ] **[opt]** NYU: the HDF5 axis order was verified by writing an image out and looking at it
-- [ ] **[opt]** NYU: minimum component area and the disconnected-component rule are stated
-- [ ] **[opt]** `classes.txt` from both converters is byte-identical
-- [ ] *Or:* step 14 was **skipped deliberately**, and your instructor knows which
-      Lesson 03 variant you are running
 
 *If you fell back:*
 
-- [ ] Path B: the mirror's class list, image count, and license were verified against the original
-- [ ] Path C: the substitution and its reason are recorded in the dataset card
-- [ ] Path C: you accepted, deliberately, that the domain-adaptation pairing is gone
 
 ## Auto Label audit — **[opt]**, step 10
 
@@ -136,8 +124,6 @@ One credit, 100 images, ~45–60 minutes. Skipping is fine:
 - [ ] Every class is reachable from the source mappings
 - [ ] Annotation conventions (door/window extent, cabinet scope, occlusion) written down
 - [ ] No class has fewer than ~50 instances (or the exception is deliberate and noted)
-- [ ] The "present in both datasets" inclusion criterion is ticked **or explicitly
-      retired** if you skipped step 14
 
 ## Roboflow project
 
@@ -155,12 +141,10 @@ One credit, 100 images, ~45–60 minutes. Skipping is fine:
 ## Dataset versions
 
 - [ ] A version generated from `tag:sun-rgbd AND NOT tag:audit`
-- [ ] **[opt]** A version generated from `tag:nyu-v2`
 - [ ] No version contains any `audit`-tagged image
 - [ ] Counts were read from **`versions_get`**, not from the `versions_generate`
       response — that one reports the project total, before filtering and augmentation
 - [ ] The class list is alphabetical and matches `docs/taxonomy.md` exactly
-- [ ] **[opt]** Both class lists identical in name AND order — check this explicitly
 - [ ] Auto-Orient applied
 - [ ] Resize 640×640 using *fit within*, not *stretch*
 - [ ] Modify Classes applied from `docs/taxonomy.md`
