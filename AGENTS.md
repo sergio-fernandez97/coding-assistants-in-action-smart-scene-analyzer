@@ -96,6 +96,10 @@ Rules that follow from it:
 ## Style
 
 - Address the student directly ("you"), imperative voice for actions.
+- Treat every lesson README as student-facing: do not link to or include instructor-only
+  preparation, delivery notes, or retrospective material. Put those notes in an unlinked
+  `RETROSPECTIVE.md`; describe live demonstrations through what the student observes,
+  verifies, and records.
 - Every command must be runnable verbatim. Use placeholders in `<angle-brackets>` and
   say what fills them.
 - Explain *why* a harness element exists before showing the config. `AGENTS.md`,
