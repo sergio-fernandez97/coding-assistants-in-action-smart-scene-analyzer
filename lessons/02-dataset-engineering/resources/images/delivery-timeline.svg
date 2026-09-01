@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="370" viewBox="0 0 960 370" role="img" aria-labelledby="title desc">
+  <title id="title">Lesson delivery timeline</title>
+  <desc id="desc">The timeline separates pre-session setup and download work, the 90-minute instructor-led MCP and Auto Label demonstration, and student post-session conversion and replication.</desc>
+  <style>
+    .heading { font: 700 22px system-ui, sans-serif; fill: #152238; }
+    .lane { font: 700 16px system-ui, sans-serif; fill: #152238; }
+    .label { font: 14px system-ui, sans-serif; fill: #152238; }
+    .small { font: 12px system-ui, sans-serif; fill: #34445f; }
+  </style>
+  <rect width="960" height="370" fill="#f8fbff"/>
+  <text x="35" y="38" class="heading">What happens before, during, and after the room</text>
+  <line x1="245" y1="83" x2="915" y2="83" stroke="#9eb3cf" stroke-width="2"/>
+  <line x1="245" y1="190" x2="915" y2="190" stroke="#9eb3cf" stroke-width="2"/>
+  <line x1="245" y1="297" x2="915" y2="297" stroke="#9eb3cf" stroke-width="2"/>
+  <text x="35" y="88" class="lane">Pre-session</text>
+  <text x="35" y="195" class="lane">90 min live</text>
+  <text x="35" y="302" class="lane">Homework</text>
+  <rect x="270" y="55" width="190" height="55" rx="10" fill="#e6f0ff" stroke="#4169a8" stroke-width="2"/>
+  <text x="290" y="79" class="label">install + sign up</text><text x="297" y="98" class="small">VoiceMode, MCP, key</text>
+  <rect x="490" y="55" width="190" height="55" rx="10" fill="#e6f0ff" stroke="#4169a8" stroke-width="2"/>
+  <text x="510" y="79" class="label">choose + download</text><text x="524" y="98" class="small">SUN RGB-D or NYU</text>
+  <rect x="710" y="55" width="170" height="55" rx="10" fill="#e6f0ff" stroke="#4169a8" stroke-width="2"/>
+  <text x="735" y="79" class="label">read roles</text><text x="729" y="98" class="small">skills + prompts</text>
+  <rect x="270" y="162" width="185" height="55" rx="10" fill="#edf8f0" stroke="#43865c" stroke-width="2"/>
+  <text x="289" y="186" class="label">create through MCP</text><text x="310" y="205" class="small">instructor demo</text>
+  <rect x="485" y="162" width="185" height="55" rx="10" fill="#fff5df" stroke="#c18121" stroke-width="2"/>
+  <text x="507" y="186" class="label">preview + audit</text><text x="512" y="205" class="small">Auto Label in web app</text>
+  <rect x="700" y="162" width="180" height="55" rx="10" fill="#f3ebff" stroke="#7650aa" stroke-width="2"/>
+  <text x="724" y="186" class="label">inspect evidence</text><text x="728" y="205" class="small">MCP + human labels</text>
+  <rect x="270" y="269" width="185" height="55" rx="10" fill="#fff0f0" stroke="#b54747" stroke-width="2"/>
+  <text x="299" y="293" class="label">convert source</text><text x="287" y="312" class="small">student-owned work</text>
+  <rect x="485" y="269" width="185" height="55" rx="10" fill="#fff0f0" stroke="#b54747" stroke-width="2"/>
+  <text x="501" y="293" class="label">replicate audit</text><text x="507" y="312" class="small">own project + holdout</text>
+  <rect x="700" y="269" width="180" height="55" rx="10" fill="#fff0f0" stroke="#b54747" stroke-width="2"/>
+  <text x="715" y="293" class="label">export + train</text><text x="721" y="312" class="small">handoff to Lesson 03</text>
+</svg>

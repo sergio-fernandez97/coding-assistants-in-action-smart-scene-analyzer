@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="430" viewBox="0 0 960 430" role="img" aria-labelledby="title desc">
+  <title id="title">Protected Auto Label audit flow</title>
+  <desc id="desc">A converted source splits into a training pool and a separate human-labelled audit holdout. Audit images are auto-labelled in Roboflow, then compared locally with human labels. Audit images are excluded from the training version.</desc>
+  <style>
+    .box { stroke-width: 2; rx: 13; }
+    .heading { font: 700 21px system-ui, sans-serif; fill: #152238; }
+    .label { font: 15px system-ui, sans-serif; fill: #152238; }
+    .small { font: 13px system-ui, sans-serif; fill: #34445f; }
+    .arrow { stroke: #4169a8; stroke-width: 3; fill: none; marker-end: url(#arrow); }
+    .stop { font: 700 13px system-ui, sans-serif; fill: #b54747; }
+  </style>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#4169a8"/></marker></defs>
+  <rect width="960" height="430" fill="#f8fbff"/>
+  <text x="35" y="38" class="heading">Keep the audit control independent</text>
+  <rect x="45" y="83" width="185" height="80" class="box" fill="#e6f0ff" stroke="#4169a8"/>
+  <text x="77" y="117" class="heading">Convert source</text>
+  <text x="64" y="144" class="small">human annotations retained</text>
+  <rect x="315" y="67" width="205" height="105" class="box" fill="#edf8f0" stroke="#43865c"/>
+  <text x="355" y="105" class="heading">Training pool</text>
+  <text x="337" y="133" class="small">upload with human labels</text>
+  <text x="348" y="154" class="small">source tag only</text>
+  <rect x="315" y="252" width="205" height="105" class="box" fill="#fff0f0" stroke="#b54747"/>
+  <text x="344" y="290" class="heading">Audit holdout</text>
+  <text x="334" y="318" class="small">100 images + local labels</text>
+  <text x="347" y="339" class="small">tag: audit</text>
+  <rect x="650" y="62" width="245" height="112" class="box" fill="#f3ebff" stroke="#7650aa"/>
+  <text x="684" y="101" class="heading">Training version</text>
+  <text x="679" y="130" class="small">filter: NOT tag:audit</text>
+  <text x="680" y="152" class="small">export → local training</text>
+  <rect x="650" y="245" width="245" height="118" class="box" fill="#fff5df" stroke="#c18121"/>
+  <text x="706" y="284" class="heading">Auto Label</text>
+  <text x="690" y="311" class="small">web app labels audit images</text>
+  <text x="694" y="334" class="small">export predictions</text>
+  <path d="M230 118 H305" class="arrow"/>
+  <path d="M230 135 C275 135 270 304 305 304" class="arrow"/>
+  <path d="M520 118 H640" class="arrow"/>
+  <path d="M520 305 H640" class="arrow"/>
+  <path d="M770 245 V194 C770 190 760 190 760 190" class="arrow"/>
+  <text x="544" y="215" class="stop">audit never enters this version</text>
+  <text x="688" y="206" class="small">compare predictions with local human labels</text>
+</svg>

@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="390" viewBox="0 0 960 390" role="img" aria-labelledby="title desc">
+  <title id="title">The live-session surfaces</title>
+  <desc id="desc">VoiceMode drives Claude Code. Claude Code uses Roboflow MCP for project and annotation operations. The Roboflow web app alone starts Auto Label.</desc>
+  <style>
+    .box { stroke-width: 2; rx: 14; }
+    .heading { font: 700 22px system-ui, sans-serif; fill: #152238; }
+    .label { font: 16px system-ui, sans-serif; fill: #152238; }
+    .small { font: 14px system-ui, sans-serif; fill: #34445f; }
+    .arrow { stroke: #4169a8; stroke-width: 3; fill: none; marker-end: url(#arrow); }
+    .blocked { stroke: #b54747; stroke-width: 3; fill: none; stroke-dasharray: 8 7; }
+  </style>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#4169a8"/></marker>
+  </defs>
+  <rect width="960" height="390" fill="#f8fbff"/>
+  <text x="40" y="42" class="heading">Which surface performs which action?</text>
+  <rect x="45" y="95" width="190" height="135" class="box" fill="#e6f0ff" stroke="#4169a8"/>
+  <text x="76" y="137" class="heading">VoiceMode</text>
+  <text x="69" y="171" class="label">spoken instructor</text>
+  <text x="79" y="195" class="label">requests</text>
+  <rect x="380" y="75" width="225" height="175" class="box" fill="#edf8f0" stroke="#43865c"/>
+  <text x="420" y="118" class="heading">Claude Code</text>
+  <text x="408" y="151" class="small">Dataset Engineer</text>
+  <text x="408" y="177" class="small">reviews parameters</text>
+  <text x="408" y="203" class="small">before a write</text>
+  <rect x="720" y="42" width="195" height="135" class="box" fill="#fff5df" stroke="#c18121"/>
+  <text x="746" y="85" class="heading">Roboflow MCP</text>
+  <text x="744" y="117" class="small">projects • RoboQL</text>
+  <text x="744" y="141" class="small">batches • annotations</text>
+  <rect x="720" y="225" width="195" height="122" class="box" fill="#fff0f0" stroke="#b54747"/>
+  <text x="748" y="267" class="heading">Web app</text>
+  <text x="746" y="297" class="label">Auto Label preview</text>
+  <text x="746" y="321" class="label">and full batch</text>
+  <path d="M235 160 H370" class="arrow"/>
+  <path d="M605 125 H710" class="arrow"/>
+  <path d="M605 197 C660 197 658 286 710 286" class="arrow"/>
+  <path d="M810 177 V218" class="blocked"/>
+  <text x="520" y="335" class="small" fill="#b54747">No MCP tool triggers Auto Label</text>
+</svg>
