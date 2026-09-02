@@ -6,26 +6,25 @@
 
 ## Session goal
 
-Use a live, metered computer-vision platform without confusing an agent action, a web-app
-action, and a result that counts as evidence. During the demonstration, you will inspect
-a prepared SUN RGB-D source dataset and a disjoint, human-labelled 100-image audit
-holdout. You will later convert SUN RGB-D yourself and reproduce the workflow in your
-own project.
+Use a live, metered computer-vision platform and know, at each step, who did the thing —
+you, the agent, or the web app — and whether the result can be trusted as proof. During the
+demonstration, you will inspect a prepared SUN RGB-D source dataset and a separate set of
+100 images that were labelled by hand and kept out of training. You will later convert
+SUN RGB-D yourself and reproduce the workflow in your own project.
 
 The lesson has two boundaries:
 
 | Boundary | Rule |
 |---|---|
-| Agent authority | Claude Code may create and inspect platform state through MCP only after you review its parameters. |
+| Agent authority | The agent shows you the parameters first. You approve, then it acts. |
 | Evidence | Auto Label predictions are compared with local human labels; audit images never enter the training version. |
 
 ![VoiceMode drives Claude Code; Claude Code reaches supported Roboflow MCP operations, while the Roboflow web app alone starts Auto Label.](resources/images/session-surfaces.svg)
 
 The existing [Roboflow MCP workflow](resources/images/roboflow-mcp-workflow.png) explains
 how Claude Code reaches the platform. The diagram above adds the boundary that matters
-today: there is no `auto_label` MCP tool. MCP can create projects, query images and
-batches, and save an annotation; the Roboflow web app runs the Auto Label preview and
-full batch.
+today: MCP can create projects, search images and batches, and save an annotation. It has
+no `auto_label` tool — the Roboflow web app runs both the preview and the full batch.
 
 ### Session budget — 90 minutes
 
@@ -43,8 +42,7 @@ full batch.
 | **Total** | **90 min** |
 
 **Cut lines, in order:** shorten step 4 first, then shorten the discussion in step 8.
-Never cut project creation, the MCP-versus-web-app distinction, or the human-label
-comparison.
+Never cut project creation, the 100-image audit check, or the human-label comparison.
 
 ![Pre-session setup and downloads lead to a 90-minute live demonstration, followed by your conversion, replication, export, and training.](resources/images/delivery-timeline.svg)
 
@@ -58,9 +56,29 @@ not belong in the room.
 - [ ] Install Claude Code and VoiceMode; verify one short spoken exchange.
 - [ ] Install/connect the Roboflow plugin or MCP server; confirm `/mcp` reports it
       connected.
-- [ ] Create a Roboflow account and a personal API key. Start Claude Code from a shell
-      where `ROBOFLOW_API_KEY` and `ROBOFLOW_WORKSPACE` are available. Never commit the
-      key or a `.env` file.
+- [ ] Create a Roboflow account at <https://app.roboflow.com>. Signing up also creates
+      your **workspace** — you do not need to make a second one. After signing in, look at
+      your browser's address bar:
+
+      ```text
+      app.roboflow.com/my-workspace-a1b2c
+                       └────────┬───────┘
+                       this is your workspace slug
+      ```
+
+      Copy that slug from the address bar. Do not type it from memory, and do not use the
+      display name shown on the page — the two are often different.
+- [ ] Create a personal API key at `app.roboflow.com/<workspace>/settings/api`, where
+      `<workspace>` is the slug you just copied. Everywhere this lesson writes
+      `<workspace>`, that is what it means.
+- [ ] Put both in the shell that starts Claude Code, so the Roboflow tools can see them:
+
+      ```bash
+      export ROBOFLOW_API_KEY=<your-key>
+      export ROBOFLOW_WORKSPACE=<workspace>
+      ```
+
+      Never commit the key or a `.env` file.
 - [ ] Read `.claude/agents/dataset-engineer.md` and `.claude/agents/data-pipeline.md`,
       then the Roboflow data-management, labeling, and plans-and-pricing skills.
 - [ ] Download and unpack **[SUN RGB-D v2](https://rgbd.cs.princeton.edu/)** (~6 GB),
@@ -82,6 +100,23 @@ not belong in the room.
 **Expected result:** Roboflow is connected and VoiceMode completes a short spoken
 exchange. If either check fails, observe the live fallback during class and repair the
 problem before starting post-session replication.
+
+**Do:** Prove your slug points at the workspace you are actually looking at. There is no
+MCP tool that lists workspaces, so the check is to ask the agent what it can see and
+compare that with your browser.
+
+```text
+Use projects_list and report the project names you can see. Do not create anything.
+```
+
+Then open `app.roboflow.com/<workspace>` in the browser and compare the two lists.
+
+**Expected result:** the same projects in both places. A brand-new account shows an empty
+list in both — that is a pass.
+
+If the lists differ, your key and your slug point at different workspaces. Fix it now. In
+the reference run this cost forty minutes and a false report that 1,504 uploaded images
+had vanished; the upload was fine, the slug was not.
 
 ## Deliverables
 
@@ -115,25 +150,31 @@ a second version to complete this lesson.
 
 ### 1. Observe the VoiceMode demonstration — 8 minutes
 
-**Do:** Watch the live demonstration begin in VoiceMode. Record the two boundaries from
-the session goal: “MCP can inspect and write annotations. It cannot start Auto Label.”
+**Do:** Watch the live demonstration begin in VoiceMode. Notice what the voice loop is
+for: the agent reads the parameters of a platform operation back to you, out loud, before
+anything is created. A wrong project type or a wrong workspace is easier to catch by ear
+than in a wall of text you have already scrolled past.
 
 ```text
 /voicemode:converse
 ```
 
-**Expected result:** you can explain why an agent that used `annotations_save` must not
-claim it ran Auto Label.
+**Expected result:** you have heard a platform operation described out loud and approved
+before it ran.
 
 ### 2. Observe project creation through MCP — 10 minutes
 
 **Do:** Observe the Dataset Engineer display the project parameters before anything is
-created. In the demonstration prompt, `<workspace>` is the demonstration workspace slug
-and `<cohort>` is the session's unique short identifier.
+created. Two things to fill in before you read the prompt:
+
+- `<workspace>` — your workspace slug, copied from the browser address bar in the
+  prerequisites. The instructor uses the demonstration workspace; you use yours.
+- The project name ends in today's date, so a repeat run does not collide with a project
+  that already exists.
 
 ```text
 Use the dataset-engineer agent. In workspace <workspace>, show the exact parameters for a
-new project named smart-scene-analyzer-demo-<cohort>, type Object Detection, annotation
+new project named smart-scene-analyzer-demo-2026-09-02, type Object Detection, annotation
 group object. Do not call projects_create until I approve the displayed parameters.
 ```
 
@@ -149,9 +190,9 @@ because project type cannot be changed after creation.
 
 ### 3. Inspect the prepared source and audit control — 12 minutes
 
-**Do:** Observe the inspection of the prepared project. Its training pool has human
-labels; its 100 audit images are unlabelled in Roboflow and tagged `audit`; the matching
-human-label files are local only.
+**Do:** Observe the inspection of the prepared project. The training images already have
+human labels. The 100 audit images are uploaded with **no** labels and tagged `audit` —
+their real labels stay on the instructor's disk.
 
 ```text
 Use images_search with RoboQL in project <fallback-project-id>. Report counts for tag:audit
@@ -188,7 +229,8 @@ Labeler will be reliable, fuzzy, or hard on indoor images, with one visual reaso
 run inference and do not modify the project.
 ```
 
-**Expected result:** you record a falsifiable prediction before seeing output.
+**Expected result:** you wrote down a guess you can be wrong about, before seeing the
+answer.
 
 ### 5. Observe the free four-image preview — 12 minutes
 
@@ -196,8 +238,9 @@ run inference and do not modify the project.
 on four images with the taxonomy classes and descriptions, then inspect the boxes before
 the names, descriptions, or per-class confidence change.
 
-**Expected result:** four results are visible. Name one false positive, false negative, or
-box-convention disagreement. This is a free **web-app** action, not an MCP call.
+**Expected result:** four results are visible. Name one false positive, one false negative,
+or one box drawn differently than a human would draw it. The preview is free — it costs no
+credits.
 
 ### 6. Observe the estimate and 100-image audit — 10 minutes
 
@@ -226,8 +269,8 @@ Use annotation_batches_get and images_search to report the audit batch annotatio
 three example image IDs. Do not access or modify any image tagged audit.
 ```
 
-**Expected result:** the agent reports live platform state and does not claim it triggered
-Auto Label.
+**Expected result:** the agent reports what is actually on the platform, and says so when a
+count surprises it.
 
 **Do:** Observe an MCP write only on the separate `mcp-demo` image.
 
@@ -253,8 +296,8 @@ Replace `<audit-export-directory>` with the exported Auto Label data directory a
 `<human-label-directory>` with the demonstration's local audit ground truth.
 
 **Expected result:** the report shows per-class precision, recall, and IoU-matched
-agreement. Open at least one disagreement before deciding whether it is a model failure or
-a different human box convention.
+agreement (how well the boxes overlap). Open at least one disagreement, then decide: did
+the model get it wrong, or did the human just draw the box differently?
 
 ### 9. Confirm the source dataset and reconcile — 5 minutes
 
@@ -262,7 +305,8 @@ a different human box convention.
 metadata to the shared taxonomy in homework; the source annotations already include
 boxes.
 
-**Do:** Observe the reconciliation of the demonstration's actual usage.
+**Do:** Observe the reconciliation of the demonstration's actual usage. `<workspace>` is
+the same slug you checked in the prerequisites.
 
 ```text
 Open app.roboflow.com/<workspace>/settings/usage. Compare actual spend with the estimate in
@@ -286,18 +330,19 @@ Inspect, convert, and verify labels against pixels before uploading.
 
 ### H2. Create and inspect your own project
 
-**Do:** Repeat the parameter-review/create sequence from step 2 in your own workspace,
-then verify the result through MCP.
+**Do:** Repeat the parameter-review/create sequence from step 2 in the workspace you
+verified in the prerequisites — that same one, not a new one. Your project and the
+demonstration project sit side by side in it. Then verify the result through MCP.
 
 ```text
 Use projects_get to report the ID and type of my smart-scene-analyzer project. Do not modify
 the project.
 ```
 
-**Expected result:** you know the actual project ID and have recorded it in
-`docs/credit-budget.md`.
+**Expected result:** you know the actual project ID, and `docs/credit-budget.md` records
+both the workspace slug and the project ID.
 
-### H3. Upload, tag, and protect the control
+### H3. Upload, tag, and protect the audit set
 
 **Do:** Upload the converted training pool with its human labels. Tag every training image
 `sun-rgbd`, then upload the audit **images only** and tag them `audit`. Keep the human
@@ -351,7 +396,8 @@ training on the verified export, not a new dataset conversion.
 
 - You reviewed the displayed project parameters before `projects_create`.
 - `tag:audit` returned 100 images and the annotation-batch count matched.
-- The preview and full Auto Label operation were identified as web-app actions.
+- Your `ROBOFLOW_WORKSPACE` slug and the browser address bar agree, and both are recorded
+  in `docs/credit-budget.md` alongside the project ID.
 - The ledger contains the estimate before spend and the actual charge after reconciliation.
 - `annotations_save` affected only `mcp-demo`, never `audit`.
 - You inspected an image-level disagreement in the comparison output.

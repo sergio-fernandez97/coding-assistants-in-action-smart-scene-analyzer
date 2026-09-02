@@ -67,8 +67,7 @@ worth more than any single dataset.
 
 ## Round 2 — the free loop
 
-**This runs in the browser, not through the agent.** There is no `auto_label` MCP tool;
-Auto Label is a web-app action. An agent that reports having run it has not.
+**This runs in the browser, not through the agent.** Auto Label is a web-app action.
 
 Navigate to `app.roboflow.com/<workspace>/smart-scene-analyzer/annotate`, open the
 `audit` batch, and choose **Auto Label**. Then:

@@ -48,8 +48,8 @@ instance, the skill supplies the method. The prompts were not deleted, because t
 instance-specific detail is the part that was never generic.
 
 The tell for which one you are writing: **if the second copy would differ only in nouns,
-it is a skill.** The SUN RGB-D and NYU converter prompts were 150 lines each and shared
-everything except the file format, which is what made the split obvious.
+it is a skill.** The SUN RGB-D converter prompt keeps only its source-format details;
+the annotation-conversion skill carries the repeatable procedure.
 
 ## README contract
 
