@@ -21,7 +21,6 @@ dependencies = [
 [project.optional-dependencies]
 dataset = [
     "roboflow>=1.1",   # Lesson 02 — SDK + `roboflow import` CLI
-    "h5py>=3.12",      # Lesson 02 — NYU Depth V2 ships as HDF5
     "scipy>=1.14",     # Lesson 02 — SUN RGB-D ships MATLAB .mat metadata
 ]
 ml = [
