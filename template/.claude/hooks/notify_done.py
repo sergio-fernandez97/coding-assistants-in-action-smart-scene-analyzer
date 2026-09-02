@@ -21,7 +21,9 @@ It never blocks. A notifier that can fail a turn is a notifier that will.
 
 from __future__ import annotations
 
+import contextlib
 import json
+import os
 import platform
 import shutil
 import subprocess
@@ -29,6 +31,7 @@ import sys
 
 TITLE = "Smart Scene Analyzer"
 MAX_BODY = 120
+SOUND_FILE = "/System/Library/Sounds/Glass.aiff"
 
 
 def summarize(payload: dict) -> str:
@@ -46,18 +49,51 @@ def summarize(payload: dict) -> str:
     return first_line or "Turn finished."
 
 
+def play_sound() -> None:
+    """Ring the alert sound directly, outside Notification Center.
+
+    `display notification ... sound name "Glass"` sounds like it covers this,
+    but the chime rides on the notification: when macOS suppresses the banner
+    it suppresses the sound too — silently, and still exit 0. That suppression
+    is the default on a fresh machine, because AppleScript notifications are
+    attributed to Script Editor, which has no notification permission until
+    somebody grants it.
+
+    `afplay` writes to the audio device and is not routed through Notification
+    Center, so it survives that. On a machine where the banner works you now
+    get the banner from osascript and the chime from here, which is why the
+    AppleScript below no longer asks for a sound of its own.
+
+    See docs/desktop_notifications.md in the course repo.
+    """
+    if not os.path.exists(SOUND_FILE):
+        return
+
+    # Detached, not waited on: a notifier must not add latency to a turn.
+    with contextlib.suppress(OSError):
+        subprocess.Popen(  # noqa: S603
+            ["afplay", SOUND_FILE],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+
+
 def notify(body: str) -> None:
     """Best-effort desktop notification. Every branch is allowed to do nothing."""
     system = platform.system()
 
     if system == "Darwin":
+        # The chime goes first and on its own path, because it is the half of
+        # this that still works when the banner is being dropped.
+        play_sound()
+
         # osascript is the only notifier guaranteed present on a stock macOS.
         # Quotes inside the body would end the AppleScript string early.
         safe = body.replace("\\", "").replace('"', "'")
         command = [
             "osascript",
             "-e",
-            f'display notification "{safe}" with title "{TITLE}" sound name "Glass"',
+            f'display notification "{safe}" with title "{TITLE}"',
         ]
     elif system == "Linux" and shutil.which("notify-send"):
         command = ["notify-send", TITLE, body]
@@ -67,10 +103,8 @@ def notify(body: str) -> None:
         sys.stderr.write(f"\a{TITLE}: {body}\n")
         return
 
-    try:
+    with contextlib.suppress(OSError, subprocess.TimeoutExpired):
         subprocess.run(command, capture_output=True, timeout=5, check=False)
-    except (OSError, subprocess.TimeoutExpired):
-        pass
 
 
 def main() -> None:
