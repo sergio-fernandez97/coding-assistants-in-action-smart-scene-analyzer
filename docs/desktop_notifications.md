@@ -131,7 +131,98 @@ ls /System/Library/Sounds
 
 `Ping.aiff`, `Submarine.aiff`, and `Hero.aiff` are the usual alternatives.
 
-## 6. Non-macOS, and the portable floor
+## 6. The change, before and after
+
+The scaffold shipped with the obvious version of this hook, and the obvious
+version is the broken one. If you are comparing against an older copy — or
+wondering why the code does not look like every `display notification` example
+online — this is what moved and why.
+
+### Before
+
+One command did everything. Banner and chime were the same request:
+
+```python
+command = [
+    "osascript",
+    "-e",
+    f'display notification "{safe}" with title "{TITLE}" sound name "Glass"',
+]
+
+try:
+    subprocess.run(command, capture_output=True, timeout=5, check=False)
+except (OSError, subprocess.TimeoutExpired):
+    pass
+```
+
+Readable, portable, and completely silent on a machine that has not granted
+Script Editor permission to notify — which is every machine, until someone
+does. `subprocess.run` returns cleanly. The hook exits `0`. Nothing is shown
+and nothing is heard.
+
+### After
+
+The chime is lifted out onto its own path, and the AppleScript keeps only the
+banner:
+
+```python
+SOUND_FILE = "/System/Library/Sounds/Glass.aiff"
+
+
+def play_sound() -> None:
+    if not os.path.exists(SOUND_FILE):
+        return
+
+    # Detached, not waited on: a notifier must not add latency to a turn.
+    with contextlib.suppress(OSError):
+        subprocess.Popen(
+            ["afplay", SOUND_FILE],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+```
+
+```python
+if system == "Darwin":
+    # The chime goes first and on its own path, because it is the half of
+    # this that still works when the banner is being dropped.
+    play_sound()
+
+    safe = body.replace("\\", "").replace('"', "'")
+    command = [
+        "osascript",
+        "-e",
+        f'display notification "{safe}" with title "{TITLE}"',   # no sound name
+    ]
+```
+
+### What it buys you
+
+| Machine state | Before | After |
+|---|---|---|
+| Script Editor allowed to notify | Banner + chime | Banner + chime |
+| Script Editor not allowed (the default) | **Nothing** | Chime |
+| A Focus mode is active | **Nothing** | Chime |
+| System notification sound switched off | Silent banner | Chime |
+
+Three changes, and only the first is the fix:
+
+1. **`afplay` instead of `sound name`.** The sound no longer travels inside the
+   notification, so it no longer dies with it.
+2. **`Popen` instead of `run`.** The old call was already waited on; adding a
+   second waited-on call would have put audio playback on the end of every
+   turn. Nothing needs the exit status of a chime.
+3. **`sound name` removed from the AppleScript.** Without this, a correctly
+   configured machine would chime twice.
+
+### The part that did not change
+
+The hook still never blocks, still exits `0` on every path, and still falls
+back to `notify-send` and then the terminal bell off macOS. `play_sound` checks
+that the sound file exists before calling `afplay`, and suppresses `OSError` if
+it is missing anyway. A notifier that can fail a turn is a notifier that will.
+
+## 7. Non-macOS, and the portable floor
 
 `notify_done.py` already branches on platform:
 
@@ -143,7 +234,7 @@ ls /System/Library/Sounds
   terminal bell (`\a`) and the message to stderr. Whether the bell is audible
   depends on your terminal; VS Code's integrated terminal mutes it by default.
 
-## 7. Optional: `terminal-notifier`
+## 8. Optional: `terminal-notifier`
 
 If Script Editor permissions are not an option — a locked-down managed Mac, for
 instance — `terminal-notifier` posts under its own bundle identifier and can be
@@ -159,7 +250,7 @@ Using it means editing `notify_done.py` to prefer `terminal-notifier` when
 otherwise. This is an extra dependency on every student's machine, so it is a
 deliberate choice rather than the default.
 
-## 8. What this teaches
+## 9. What this teaches
 
 `notify_done.py` is the harmless hook in the scaffold — it fires constantly,
 does something immediately visible, and cannot fail a turn. That is exactly why
