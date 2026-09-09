@@ -1,6 +1,6 @@
 # Prompt — SUN RGB-D → YOLO converter
 
-**When:** Lesson 02, step 7.
+**When:** Lesson 02, step 3 (required).
 
 **Which agent:** `data-pipeline`. This is local file work, not platform work.
 
@@ -10,7 +10,8 @@ what is specific to SUN RGB-D: where its metadata lives, how it loads, and the a
 carve-out. The skill is the procedure; this is one run of it.
 
 **Credits: zero.** Everything here runs on your machine. That is the entire reason this
-course converts rather than auto-labels — see the cost table in step 7.
+course converts rather than auto-labels. Auto-labelling 2–3k images would have
+cost 20–30 credits, the entire course budget.
 
 ⚠️ This is the hardest prompt in the lesson and it will not one-shot. Expect three or
 four rounds. That is the lesson — real annotation conversion is iterative because the
@@ -98,7 +99,7 @@ Run it with --dry-run --limit 50 and show me the report before doing a full run.
 
 ---
 
-## Round 2b — subsample and hold out the audit set
+## Round 2b — subsample (required)
 
 You do not need all ~10,335 images, and storage bills monthly.
 
@@ -107,14 +108,40 @@ Add a --sample N flag that selects N records spread across the capture sessions 
 than taking the first N — sample deterministically with a fixed seed so the selection is
 reproducible, and report which sessions are represented.
 
-Then produce two outputs:
+Then produce:
   data/sunrgbd-yolo/    1500 images with labels — this is what gets uploaded
-  data/audit-gt/        100 further images with labels, DISJOINT from the first set
-
-The audit set's labels stay on my machine. I upload those 100 images unlabeled in step 9
-and auto-label them in step 10, then compare the machine output against these labels.
-So: same converter, same conventions, no overlap. Confirm the two sets share no image IDs.
 ```
+
+**Stop here unless you are doing the optional Auto Label audit (E2).** The required path
+produces one set. Round 2c below exists only to support that audit, and carving a holdout
+you never use is the single most confusing thing you can do to this dataset — the reference
+run destroyed a control group precisely because three files disagreed about where those
+100 images were supposed to live.
+
+---
+
+## Round 2c — the audit holdout (optional — only for E2)
+
+Skip this unless you intend to run the [Auto Label audit](04-autolabel-audit.md).
+
+```
+In the same seeded pass, produce a second output:
+  data/audit-gt/        100 further images with labels, DISJOINT from data/sunrgbd-yolo/
+
+Confirm the two sets share no image IDs.
+```
+
+**Where these images live, at every point.** This is the one thing to get unambiguously
+right, because the reference run got it wrong and it cost a discarded dataset version:
+
+| Stage | The 100 holdout images | Their labels |
+|---|---|---|
+| After this round | on your disk, `data/audit-gt/` | on your disk |
+| During Lesson 02 step 5 | **not uploaded** — the required upload is `data/sunrgbd-yolo/` only | on your disk |
+| During E2 | uploaded **unlabeled**, tagged `audit` — this is the only step that puts them on the platform | still on your disk, never uploaded |
+| In every dataset version | excluded by `NOT tag:audit` | — |
+
+So `tag:audit` matching **0** before you start E2 is correct, not a failed tagging pass.
 
 **Why the audit set has to come from the same converter.** You are measuring the
 auto-labeler against *your* ground truth, under *your* class mapping. If the comparison

@@ -47,7 +47,7 @@ against an unknown subset.
 
 The labels in this dataset are human ground truth. This section records what the
 alternative would have been worth, measured on a held-out 100-image control set in
-Lesson 02 step 10 for one credit.
+Lesson 02 Part 2 — E2 (optional) for one credit.
 
 It belongs in the dataset card because it bounds a question every reader eventually asks:
 *could this have been labeled automatically?* An answer with numbers on this exact data

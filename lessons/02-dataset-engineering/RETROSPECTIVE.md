@@ -372,3 +372,65 @@ something falsifiable.
 
 That is the argument for the harness, and it is a stronger argument than the credit
 budget, which turned out to be in no danger at all.
+
+---
+
+## 2026-09-07 — restructured to homework-only
+
+A second pass, made without another live run. It is recorded here because it changes what
+the lesson *is*, not just what it says.
+
+### The contradiction that triggered it
+
+The 90-minute session demonstrated uploading a **labelled** dataset to Roboflow, while the
+SUN RGB-D `.mat` → YOLO conversion that produces those labels was post-session homework
+(`H1`). Read in order, the lesson showed students an artifact they had no way to possess
+yet. It only worked because the session ran against a prepared instructor project — which
+the README never actually said.
+
+That is a delivery contradiction, and it sat on top of the design contradiction F3 already
+recorded. Fixing the wording would have left the second one in place.
+
+### What changed
+
+| Before | After |
+|---|---|
+| 90-minute live demonstration + 6 homework steps | **No live session.** Six required steps, ≈3 h 15, done at home |
+| Audit holdout carved during conversion, always | Carved only if you are doing the optional audit (converter round 2c) |
+| Auto Label audit, annotation review, MCP write, dataset card: in the path | Part 2, Extra, explicitly not read by Lessons 03–05 |
+| "There are no open decisions required to complete the lesson" | Five ⚠️ OPEN items, each with a `TODO.md` line |
+
+The required path was derived from Lesson 03's actual prerequisites rather than from what
+Lesson 02 had accumulated. Lesson 03 needs three things: an export passing
+`verify_export.py`, a `docs/taxonomy.md` that matches it in name and order, and a
+reconciled ledger with ≥3 credits. Everything else in the old lesson was either evidence
+quality or forward investment in an unwritten Lesson 06.
+
+### Why this is more than a trim
+
+**F3's root cause is now absent from the required path rather than documented on it.** The
+previous fix made the three files agree about where the 100 audit images live. This one
+means a student on the required path never carves a holdout at all, so there is nothing to
+disagree about. Round 2c of the converter prompt now carries a stage-by-stage table of
+where those images are, for the students who opt in.
+
+The four-layer budget harness, the ambiguous-count rule, the alphabetical-class-order
+warning, and `verify_export.py` all survive intact in the required path. Those were the
+things the reference run said not to damage.
+
+### What is now unresolved that was not before
+
+- The step 3 timebox has nowhere to send a student, because **the fallback artifact does
+  not exist**. The material exists in the demo repo; publishing it is the open task.
+- The freed ~90-minute slot is a course-level scheduling decision, not this lesson's.
+- `autolabel_start` / `autolabel_job_get` were verified against the live server on
+  2026-09-02, so the old "Auto Label is web-app-only" boundary is false. It is flagged in
+  three places rather than rewritten, because the local skills clone still lists neither
+  tool and the course has not decided what the boundary becomes.
+
+### The previous version
+
+Kept, with its two contradictions repaired, at [`legacy/README.md`](legacy/README.md). It
+is the **instructor demonstration script** for the prepared project and is deliberately not
+linked from the student README — two competing step-by-steps at the same entry point is the
+confusion this change exists to remove.

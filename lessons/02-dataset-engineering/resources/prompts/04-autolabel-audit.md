@@ -1,6 +1,6 @@
 # Prompt — the Auto Label audit
 
-**When:** Lesson 02, step 10.
+**When:** Lesson 02, Part 2 — E2 (optional).
 
 **Which agent:** `dataset-engineer` for the prompt drafting and the platform work,
 `data-pipeline` for the comparison script.
@@ -27,14 +27,17 @@ classes are safe to accept from a model and which need review.
 
 ## Setup
 
-From step 9 you have:
+From round 2c of the [converter prompt](01-sunrgbd-converter.md) you have the 100 holdout
+images and their labels on disk at `data/audit-gt/`, disjoint from `data/sunrgbd-yolo/` by
+construction. If you skipped that round, go back and run it — the holdout has to come out
+of the same seeded pass, or a disagreement is ambiguous between the model and your pipeline.
 
-- 100 images uploaded to Roboflow **unlabeled**, tagged `audit`
-- their converter-produced YOLO labels on disk at `data/audit-gt/`
-- no overlap between these and the images that will form version 1
+**This step is the one that puts those images on the platform.** Upload the 100 images
+**unlabeled**, tagged `audit`, before you start round 2 below. Their labels stay on your
+disk and are never uploaded. `tag:audit` matching 0 until now was correct.
 
-If the audit images are in your dataset version, stop and fix that first. A control group
-that trained the model is not a control group.
+If any audit image is already in a dataset version, stop and fix that first. A control
+group that trained the model is not a control group.
 
 ---
 
@@ -135,7 +138,7 @@ half" is useful. "door performs poorly" is not.
 **Do:** Compare it against round 1's prediction. Where the agent was wrong about which
 classes would fail, ask why — that gap is the interesting part.
 
-**Do:** Paste the table into `docs/dataset-card-v1.md`, under the audit section, together
+**Do:** Paste the table into `docs/dataset-card-v<N>.md`, under the audit section, together
 with the final class names, descriptions, and confidence thresholds. Without the
 configuration, the numbers are not reproducible.
 
@@ -222,10 +225,17 @@ which is worth knowing before Lesson 06 proposes automating it.
 
 ## Reject and re-run if
 
-- **The agent claims to have run Auto Label.** It cannot; that is a UI action
+- **The agent claims to have run Auto Label without you seeing it happen.** ⚠️ **OPEN:**
+  this prompt describes Auto Label as a web-app-only action, and that framing is no longer
+  reliable — `autolabel_start` and `autolabel_job_get` were verified against the live MCP
+  server on 2026-09-02, though `computer-vision-skills/skills/data-management/labeling.md`
+  still lists neither. Until the course settles whether the boundary here is a *capability*
+  boundary or a *cost-and-approval* boundary, treat any claimed Auto Label run as
+  unverified until you have seen the batch change in the browser and the charge appear on
+  the usage dashboard. Tracked in the course `TODO.md`
 - Any run touches more than 100 images
 - The agent reports agreement rates without instance counts
 - The comparison runs before you have confirmed the audit images are excluded from
-  version 1
+  every dataset version
 - The optional workflow round writes annotations before showing you the raw predictions
   and both coordinate formats

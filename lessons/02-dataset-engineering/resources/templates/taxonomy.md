@@ -5,7 +5,7 @@
 > list, in exactly this order.
 
 ⚠️ **OPEN.** The class list below is a candidate, not a decision. Settle it against the
-distinct source labels your converters report (Lesson 02 step 12) before generating any
+distinct source labels your converters report (Lesson 02 step 3, round 1) before generating any
 dataset version. This is Notion Open Decision #1.
 
 ## Why order matters
@@ -20,7 +20,7 @@ present an identical list in identical order.
 **Roboflow sorts class names alphabetically when it exports a dataset version.** This is
 not configurable, and the export is what your training data actually says. Number this
 list alphabetically and the document agrees with the artifact by construction; number it
-any other way and `scripts/verify_export.py` will fail at Lesson 02 step 17, after a
+any other way and `scripts/verify_export.py` will fail at Lesson 02 step 6, after a
 version has been generated and a converter has run.
 
 **Keep the list sorted whenever you change it.** The rule this replaces was "append
@@ -70,7 +70,7 @@ A class earns a slot only if it clears all three:
 
 ## Source mapping — SUN RGB-D
 
-Fill in from the converter's inspection output (Lesson 02 step 7, round 1). Every
+Fill in from the converter's inspection output (Lesson 02 step 3, round 1). Every
 distinct source label must appear in exactly one row.
 
 > **This table is the artifact that survives.** A reviewer can read it, disagree with a
@@ -107,7 +107,7 @@ label is a decision; an unlisted one is an oversight.
 ## Audit prompts — the Auto Label configuration
 
 Your dataset is not auto-labeled. This section records the configuration used for the
-**100-image audit** in Lesson 02 step 10, where you spend one credit measuring how well
+**100-image audit** in Lesson 02 Part 2 — E2 (optional), where you spend one credit measuring how well
 an open-vocabulary detector would have agreed with the human annotations.
 
 Fill it in during the free 4-image test loop, and copy the finished table into

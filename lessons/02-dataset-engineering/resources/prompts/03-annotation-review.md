@@ -1,6 +1,6 @@
 # Prompt — Annotation quality review
 
-**When:** Lesson 02, step 11. Before generating any version.
+**When:** Lesson 02, Part 2 — E1 (optional). Before generating any version.
 
 **Which agent:** `dataset-engineer`.
 

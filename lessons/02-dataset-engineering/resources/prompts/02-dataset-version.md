@@ -1,24 +1,26 @@
 # Prompt — Generate a dataset version
 
-**When:** Lesson 02, post-session homework H4.
+**When:** Lesson 02, step 6 (required).
 
 **Which agent:** `dataset-engineer`.
 
 **Before you run this, two things must already be true:**
 
 1. **Every image carries its source tag.** `NOT tag:sun-rgbd` must match zero images.
-   The CLI import does not apply tags — step 9 tags as a separate pass — and a version
+   The CLI import does not apply tags — step 5 tags as a separate pass — and a version
    generated against a partially-tagged project is quietly missing whatever was missed.
 2. **The splits have been rebalanced.** `datasets_rebalance_splits` first, then generate.
    Generation rebalances only within what it selects; it does not repair a skewed
    project, and unannotated images sit outside every split.
 
-⚠️ **Filter the audit images out of every version.** Use
-`tag:sun-rgbd AND NOT tag:audit` as the source filter. If you did step 10, the 100
-`audit` images are the control group for its measurement, and a control group that
-trained the model is not a control group. If you skipped step 10 nothing carries the
-tag and the clause is a no-op — **leave it in anyway**, so the same prompt is correct on
-both paths.
+⚠️ **Keep `NOT tag:audit` in the filter even though it does nothing.** The source filter
+is `tag:sun-rgbd AND NOT tag:audit` on both paths.
+
+On the **required** path nothing carries the `audit` tag, so the clause is a deliberate
+no-op. Leave it in anyway: the prompt is then correct if you later run the optional Auto
+Label audit (E2), and you are not editing a version filter under time pressure. On the
+**E2** path the clause is load-bearing — those 100 images are the control group for the
+measurement, and a control group that trained the model is not a control group.
 
 ---
 
@@ -79,7 +81,7 @@ will error. Every version must produce **identical class lists in identical orde
 
 **Expect that order to be alphabetical.** Roboflow sorts class names on export and it is
 not configurable, so `docs/taxonomy.md` must be numbered alphabetically to match (Lesson
-02 step 12). If the version's class list is alphabetical and your taxonomy is not, the
+02 step 2). If the version's class list is alphabetical and your taxonomy is not, the
 taxonomy is the thing to fix.
 
 Check the per-class counts too. A class with fewer than ~50 instances will not train
