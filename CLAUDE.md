@@ -60,6 +60,18 @@ Prompts belong in `resources/prompts/` as their own files, referenced from the R
 by relative link — not pasted inline. Students copy files; they mis-copy fenced blocks
 buried in prose.
 
+**Every file under `resources/` is linked from that lesson's README.** A prompt,
+template, checklist, or script the README never mentions is invisible: the student does
+not open it, and the next author cannot tell whether it is live or dead. Link a resource
+from the step that uses it in the same edit that creates it; when you find an orphan,
+either link it where it belongs or delete it.
+
+**`## Prerequisites` is written out in the README itself.** Everything a student must do
+before the session goes there as an explicit numbered list, in the order it must be done,
+in the same **Do → Command → Expected result** shape as `## Step-by-step`. Link to a
+longer document for background, but keep the steps in the README — a prerequisite behind
+a link is one half the cohort arrives without.
+
 ## Session length
 
 **Every live session is 90 minutes. This is a hard constraint, not a target.** A lesson
@@ -92,6 +104,24 @@ Rules that follow from it:
 - **Order-dependent homework must say so.** "Write the contract, then export" only teaches
   anything in that order; if the README does not make the dependency explicit, half a
   cohort will invert it.
+
+## Say it once
+
+Length is not thoroughness. A lesson a student skims is a lesson that failed, and the
+usual cause is the same fact stated in four places.
+
+- **One home per fact.** A rule, a rate, a count, or a warning lives where the student
+  acts on it and is referenced by link everywhere else. If a step, a checklist, and a
+  prompt all explain the same thing, the step keeps it.
+- **Cut restatement.** Preambles announcing what the next section will say, summaries
+  repeating the last one, and rationale re-argued at every step after it has been made
+  once.
+- **Prefer the shorter form.** A table over parallel prose, a sentence over a paragraph,
+  and no sentence that exists only for emphasis.
+- **Trim the words, not the meaning.** The reason a step exists, the failure it prevents,
+  and the expected result all stay.
+- Shortening an existing lesson is progress, not a side quest. You do not need
+  permission to delete redundancy.
 
 ## Style
 
