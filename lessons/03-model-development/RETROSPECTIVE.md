@@ -249,6 +249,49 @@ cross-domain framing, which needs a genuinely different domain.
 
 ---
 
+## 12. Delivery fallback — the `beta` model, for when training is not ready
+
+**The problem this solves.** Every post-training step in this lesson — H1's error analysis,
+H2's camera check, H4's N5 rate, H6's model card, and Lesson 04's export — consumes a
+finished checkpoint. Training is homework precisely because it takes 17.5 hours, which
+means that on the day, the artifact those steps need may not exist: the run failed, it is
+still going, or it is on a machine that is not in the room. Demonstrating any of them then
+requires a checkpoint you brought with you.
+
+**The bundle.** A finished YOLO11n fine-tune with the run metadata, the test split it was
+measured on, and the worked evaluation and model card:
+
+```
+instructor-fallback/beta/
+```
+
+Start at its `README.md` — it lists the contents, the headline metrics, a
+verify-before-you-rely-on-it command, and a table of which steps beta can and cannot stand
+in for.
+
+**It does not replace step 3 or H1.** The lesson still trains a model. beta is the backup
+that makes a demonstration survive a training run that isn't ready, not a shortcut past the
+part of the lesson that teaches the most.
+
+**Three things to keep straight before using it live:**
+
+- **beta's class list is not `data/v1`'s.** 8 classes against 10, and — because `data/v1`
+  inserts `bin` at index 1 — no shared class index at all. Evaluated against `data/v1`'s
+  test split it produces a confidently wrong per-class table rather than an error. It ships
+  with its own test split for exactly this reason; use that one.
+- **It is a redesignation, not a retrain.** The weights are the demo project's `v1-baseline`
+  run. The docs keep the MLflow run name and id as recorded and rename only the artifact,
+  so "beta" and "V1" never collide in the room.
+- **It is gitignored** — weights, an int8 export, and 136 dataset images, all of which
+  `CLAUDE.md` forbids committing. It exists on the instructor's machine and is handed to a
+  co-instructor by copying the directory, not by pushing it.
+
+**Not linked from the student README**, and deliberately: `docs/evaluation-beta.md` and
+`docs/model-card-beta.md` are the answers to H1 and H6. Show them after students have
+produced their own, never before.
+
+---
+
 ## What worked, and should not be changed
 
 - **The Evaluation Agent having no `Edit` tool.** It held. No evaluation step ever

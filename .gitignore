@@ -10,6 +10,13 @@ computer-vision-skills/
 # directory itself is deliberately not part of this repo's history.
 smart-scene-analyzer/
 
+# Instructor-only fallback artifacts (the `beta` model bundle and anything beside it).
+# Model weights, an int8 export, and 136 dataset images — all three are things the hard
+# rules forbid committing, and the worked evaluation and model card inside it are the
+# answers to Lesson 03's homework. It lives on the instructor's machine and is handed over
+# out of band. Documented in lessons/03-model-development/RETROSPECTIVE.md.
+instructor-fallback/
+
 # Secrets
 .env
 .env.local

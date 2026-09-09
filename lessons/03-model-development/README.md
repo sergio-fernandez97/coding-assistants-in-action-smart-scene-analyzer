@@ -353,6 +353,27 @@ uv run python scripts/check_depth_ordering.py --cases cases.json
 ]
 ```
 
+#### A worked example, if you have no scene of your own yet
+
+[`resources/images/sign-check-street-scene.jpg`](resources/images/sign-check-street-scene.jpg)
+— **2000 × 1330**, five subjects at obviously different distances. Boxes are absolute
+pixels, nearest first:
+
+| # | `x1,y1,x2,y2` | What it is |
+|---|---|---|
+| 1 | `1600,1180,1990,1325` | White car, bottom-right corner |
+| 2 | `1400,1035,1620,1190` | Silver car behind it |
+| 3 | `1500,730,1840,1040` | Red double-decker bus |
+| 4 | `960,945,1090,1050` | Black SUV, mid-road |
+| 5 | `215,150,335,490` | Tower on the horizon |
+
+Two boxes prove the sign. Five also prove the map has not collapsed flat — an ordering
+that holds at the extremes and fails in the middle is a different bug, and this is the
+cheapest place to see it.
+
+> Coordinates are tied to this file at this size. Resize or crop it and they are wrong.
+> Box 5 includes sky, which reads as farthest anyway; drop it if the row looks odd.
+
 **Expected result:** every case ordered correctly, exit 0. A row reading `none` means that
 box reduced to `None` — a degenerate case from step 4, not a crash.
 
