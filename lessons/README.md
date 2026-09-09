@@ -6,8 +6,8 @@ hunting through the repo mid-lesson.
 | Lesson | Notion week | Focus | Status |
 |---|---|---|---|
 | [01 — Project Definition & System Design](01-project-definition-and-system-design/) | Week 1 | Repository, the four-layer harness, architecture, roadmap | Ready |
-| [02 — Dataset Engineering](02-dataset-engineering/) | Week 2 | Roboflow MCP, annotation conversion, dataset versions, the credit harness | Ready |
-| [03 — Model Development](03-model-development/) | Week 3 | YOLO11 fine-tuning, MLflow, domain adaptation, depth inference | Ready |
+| [02 — Dataset Engineering](02-dataset-engineering/) | Week 2 | Roboflow MCP, annotation conversion, dataset versions, the credit harness | Ready — **no live session** |
+| [03 — Model Development](03-model-development/) | Week 3 | YOLO11 fine-tuning, MLflow, error analysis, depth inference | Ready |
 | [04 — Export, Quantization & Numerical Parity](04-backend-engineering/) | Week 4 | Detection–depth fusion, model export, int8 quantization, parity against the reference | Rewriting |
 | [05 — On-Device Inference & Mobile Delivery](05-mobile-client-and-delivery/) | Week 5 | Expo dev build on both simulators, two on-device runtimes, the artifact contract, device-vs-reference parity | Rewriting |
 | 06 — CI / CD / CT | Week 6 | GitHub Actions, continuous training, promotion logic | Not written |
@@ -17,12 +17,28 @@ hunting through the repo mid-lesson.
 ```
 NN-slug/
 ├── README.md                 The step-by-step. The primary artifact.
+├── RETROSPECTIVE.md          Instructor-facing. Never linked from README.md
+├── legacy/                   Superseded versions. Instructor-facing; see below
 └── resources/
     ├── prompts/              Copy-paste prompts, one file per agent handoff
     ├── templates/            Files students copy into their own project
     ├── checklists/           Deliverables and verification
     └── scripts/              Verification helpers only — never solution code
 ```
+
+### `legacy/`
+
+A lesson that is restructured rather than edited keeps its previous `README.md` under
+`legacy/`, with a header stating what superseded it and when. Two rules:
+
+- **It is instructor-facing and is never linked from the student `README.md`.** Two
+  competing step-by-steps at one entry point is worse than no archive at all. Reach it from
+  `RETROSPECTIVE.md`, which is where the reason for the supersession is written.
+- **Repair contradictions before archiving, then stop.** A file kept as a demonstration
+  script still gets delivered from; a file kept as a museum piece teaches the mistake again.
+
+Lesson 02 is the first use. Note that `v1`/`v2` are not available as archival markers —
+they already mean dataset and model versions throughout this course.
 
 Prompts live in their own files rather than inline in the README because students copy
 files reliably and mis-copy fenced blocks buried in prose. Each prompt file also

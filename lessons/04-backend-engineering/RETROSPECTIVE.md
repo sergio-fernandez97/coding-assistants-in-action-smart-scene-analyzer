@@ -212,8 +212,11 @@ homework rather than inside a supervised session — which raises the stakes on 
 
 ## Open questions for the next pass
 
-- Does dropping model V2 weaken Lesson 03's evaluation story, which sets up a comparison
-  this lesson no longer performs? If so the fix belongs in Lesson 03's README, not here.
+- ~~Does dropping model V2 weaken Lesson 03's evaluation story?~~ **Answered
+  2026-09-09:** the course went single-dataset, and Lesson 03's H2 comparison was deleted
+  rather than kept as a step nobody could run. Lesson 03 no longer sets up a comparison, so
+  there is nothing here left dangling. What the deletion cost is recorded in
+  `lessons/03-model-development/RETROSPECTIVE.md` §11.
 - Should F3 be graded? An amendment with fabricated numbers is worse than no amendment,
   and it is the one item where that failure is invisible from the outside.
 - Pre-session homework of 1h 45m is more than the session itself. Check that against the

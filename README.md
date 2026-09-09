@@ -31,7 +31,7 @@ Engineer, Integration Engineer, Mobile Engineer — and drive an AI assistant in
 |---|---|---|---|
 | [01 — Project Definition & System Design](lessons/01-project-definition-and-system-design/) | Week 1 | Repo, the four-layer harness, architecture, roadmap | Ready |
 | [02 — Dataset Engineering](lessons/02-dataset-engineering/) | Week 2 | Roboflow MCP, annotation conversion, dataset versions, the credit harness | Ready |
-| [03 — Model Development](lessons/03-model-development/) | Week 3 | YOLO11 fine-tuning, MLflow, domain adaptation, depth inference | Ready |
+| [03 — Model Development](lessons/03-model-development/) | Week 3 | YOLO11 fine-tuning, MLflow, error analysis, depth inference | Ready |
 | [04 — Export, Quantization & Numerical Parity](lessons/04-backend-engineering/) | Week 4 | Detection–depth fusion, model export, int8 quantization, parity against the reference | Rewriting |
 | [05 — On-Device Inference & Mobile Delivery](lessons/05-mobile-client-and-delivery/) | Week 5 | Expo dev build on both simulators, two on-device runtimes, the artifact contract, device-vs-reference parity | Rewriting |
 | 06 — CI / CD / CT | Week 6 | GitHub Actions, continuous training, promotion logic | Not written |

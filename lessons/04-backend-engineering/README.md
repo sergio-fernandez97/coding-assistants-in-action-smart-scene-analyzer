@@ -26,7 +26,7 @@ in Lesson 05.
 
 ## Prerequisites
 
-- [ ] Lesson 03 complete: model V1 (and V2) trained, weights under `runs/`
+- [ ] Lesson 03 complete: model V1 trained, weights under `runs/`
 - [ ] `src/smart_scene_analyzer/depth.py` passing `check_depth_ordering.py`
 - [ ] `docs/credit-budget.md` reconciled
 - [ ] `uv sync --extra ml --extra depth` runs cleanly
