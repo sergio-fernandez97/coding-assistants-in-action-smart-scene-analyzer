@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="430" viewBox="0 0 960 430" role="img" aria-labelledby="title desc">
+  <title id="title">Which of these is backwards?</title>
+  <desc id="desc">The same room rendered two ways. On the left, the correct convention: relative inverse depth, larger values nearer, so the near chair is bright and the far wall is dark. On the right, the inverted convention, where the far wall is bright. Both look like plausible depth maps; only the ordering check distinguishes them.</desc>
+  <style>
+    .box { stroke-width: 2; rx: 13; }
+    .heading { font: 700 21px system-ui, sans-serif; fill: #152238; }
+    .sub { font: 700 16px system-ui, sans-serif; fill: #152238; }
+    .label { font: 15px system-ui, sans-serif; fill: #152238; }
+    .small { font: 13px system-ui, sans-serif; fill: #34445f; }
+    .tag { font: 700 13px system-ui, sans-serif; }
+    .good { fill: #2f7a4d; }
+    .bad { fill: #b54747; }
+    .onmap { font: 700 13px system-ui, sans-serif; fill: #ffffff; }
+    .onmapdark { font: 700 13px system-ui, sans-serif; fill: #152238; }
+  </style>
+  <defs>
+    <linearGradient id="correct" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#ffffff"/><stop offset="100%" stop-color="#1b2a44"/>
+    </linearGradient>
+    <linearGradient id="inverted" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/><stop offset="100%" stop-color="#1b2a44"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="430" fill="#f8fbff"/>
+
+  <text x="35" y="38" class="heading">An inverted sign convention looks entirely reasonable</text>
+  <text x="35" y="62" class="small">Same scene, same value range, same structure. One of them is backwards and nothing downstream will say so.</text>
+
+  <!-- correct -->
+  <rect x="35" y="86" width="420" height="230" rx="13" fill="url(#correct)" stroke="#2f7a4d" stroke-width="2"/>
+  <text x="55" y="112" class="onmap">far wall — low value, dark</text>
+  <rect x="60" y="238" width="150" height="58" rx="6" fill="#ffffff" opacity="0.85"/>
+  <text x="72" y="264" class="onmapdark">near chair</text>
+  <text x="72" y="284" class="onmapdark">high value, bright</text>
+  <text x="35" y="342" class="tag good">CORRECT — larger is nearer, brighter is nearer</text>
+  <text x="35" y="366" class="small">`estimate_relative_inverse_depth` returns this. Nearer surfaces are brighter,</text>
+  <text x="35" y="386" class="small">and `check_depth_ordering.py` puts the near box first.</text>
+
+  <!-- inverted -->
+  <rect x="505" y="86" width="420" height="230" rx="13" fill="url(#inverted)" stroke="#b54747" stroke-width="2"/>
+  <text x="525" y="112" class="onmapdark">far wall — high value, bright</text>
+  <rect x="530" y="238" width="150" height="58" rx="6" fill="#1b2a44" opacity="0.75"/>
+  <text x="542" y="264" class="onmap">near chair</text>
+  <text x="542" y="284" class="onmap">low value, dark</text>
+  <text x="505" y="342" class="tag bad">BACKWARDS — and every value is still in range</text>
+  <text x="505" y="366" class="small">The map has structure, the visualization looks like a depth map,</text>
+  <text x="505" y="386" class="small">and the fusion layer will happily rank the room inside out.</text>
+</svg>

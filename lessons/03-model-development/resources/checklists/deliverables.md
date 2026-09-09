@@ -5,11 +5,8 @@ If you are checking this during class, only Part 1 applies.
 
 ## Before you start
 
-- [ ] `docs/credit-budget.md` reconciled at the end of Lesson 02
-- [ ] At least 3 credits remaining (or you have decided to skip the hosted run in H6)
-- [ ] A dataset version exported and passing `verify_export.py`
-- [ ] `uv sync --extra ml --extra depth` runs cleanly
-- [ ] A webcam, or a photo you can use instead, for steps 6 and 7
+- [ ] All seven [Prerequisites](../../README.md#prerequisites) done — including the two
+      weight downloads, which are the ones that hurt if left to the session
 
 ---
 
@@ -114,26 +111,14 @@ If you are checking this during class, only Part 1 applies.
 > If every weak class came back as MODEL, reject the analysis. That is the answer that
 > requires no evidence, and in this project it is almost never the right one.
 
-## H2 — V2 and the honest comparison
-
-- [ ] A second dataset version exported and passing `verify_export.py`
-- [ ] Class lists confirmed identical in **name and order** — checked, not assumed
-- [ ] V2 fine-tuned **from V1's weights**, not from COCO
-- [ ] Lineage traceable in MLflow
-- [ ] **All three** comparisons reported: on v1 test, on v2 test, side by side
-- [ ] Per-class deltas, not only aggregates
-- [ ] Test-split sizes stated so deltas can be judged
-- [ ] Verdict addresses **both** the gain and the forgetting
-- [ ] Taxonomy ruled out as an explanation for the largest per-class changes
-
-## H3 — Camera check against your own weights
+## H2 — Camera check against your own weights
 
 - [ ] `check_live_capture.py` re-run with `--weights runs/.../best.pt`
 - [ ] The two annotated frames compared side by side
 - [ ] Classes COCO could not find now appear
 - [ ] **Any regression on classes COCO could find is recorded**, not skipped
 
-## H4 — The depth test suite
+## H3 — The depth test suite
 
 - [ ] `tests/test_depth.py` exists
 - [ ] Fixtures generated in code — **no binary fixtures committed**
@@ -146,7 +131,7 @@ If you are checking this during class, only Part 1 applies.
       `HF_HOME=$(mktemp -d) HF_HUB_OFFLINE=1 uv run pytest`
 - [ ] The default suite genuinely deselects `integration` — check `addopts`, do not assume
 
-## H5 — N5 over the test split
+## H4 — N5 over the test split
 
 - [ ] You checked **what your source dataset ships on disk** before concluding anything
 - [ ] The margin was declared **before** the rate was computed, not tuned to it
@@ -156,7 +141,7 @@ If you are checking this during class, only Part 1 applies.
 - [ ] Classes under 30 instances flagged, and not built into a story
 - [ ] Any class that fails badly was **opened and looked at** before being blamed
 
-## H6 — Platform paths
+## H5 — Platform paths
 
 - [ ] Instant model trained
 - [ ] Credit balance **verified unchanged** on the usage page afterwards
@@ -173,9 +158,9 @@ Hosted run — skip entirely if you had fewer than 3 credits. That is a legitima
 - [ ] The weight-download limitation noted in the ADR
 - [ ] You know the difference between Cancel Training and Early Stopping
 
-## H7 — Model cards
+## H6 — Model cards
 
-- [ ] `docs/model-card-v1.md` and `docs/model-card-v2.md` complete
+- [ ] `docs/model-card-v1.md` complete
 - [ ] Every metric names its split, dataset version, and confidence threshold
 - [ ] Dataset referenced **by version number**, never "the latest"
 - [ ] The Depth section carries the step 7 calibration result **and** the H5 rate

@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="460" viewBox="0 0 960 460" role="img" aria-labelledby="title desc">
+  <title id="title">Three places to train, one that can ship</title>
+  <desc id="desc">Local fine-tuning is free, unlimited, and produces weights on disk that Lesson 04 can export. Roboflow Instant is free but few-shot and not competitive. Hosted training costs about two credits, fires the permission gate written in Lesson 02, and on the free Public plan its weights cannot be downloaded, so it cannot produce a shippable artifact.</desc>
+  <style>
+    .box { stroke-width: 2; rx: 13; }
+    .heading { font: 700 21px system-ui, sans-serif; fill: #152238; }
+    .sub { font: 700 16px system-ui, sans-serif; fill: #152238; }
+    .label { font: 15px system-ui, sans-serif; fill: #152238; }
+    .small { font: 13px system-ui, sans-serif; fill: #34445f; }
+    .mono { font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #34445f; }
+    .free { font: 700 14px system-ui, sans-serif; fill: #2f7a4d; }
+    .paid { font: 700 14px system-ui, sans-serif; fill: #b54747; }
+    .arrow { stroke: #4169a8; stroke-width: 3; fill: none; marker-end: url(#arrow); }
+    .blocked { stroke: #b54747; stroke-width: 3; fill: none; stroke-dasharray: 9 7; }
+  </style>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#4169a8"/></marker></defs>
+  <rect width="960" height="460" fill="#f8fbff"/>
+
+  <text x="35" y="38" class="heading">Where computation happens, and who decides</text>
+  <text x="35" y="62" class="small">Training is the first operation in this course that can consume the whole remaining budget in one call.</text>
+
+  <!-- local -->
+  <rect x="35" y="92" width="280" height="186" class="box" fill="#eaf6ef" stroke="#2f7a4d"/>
+  <text x="58" y="124" class="sub">Local fine-tune</text>
+  <text x="58" y="148" class="free">FREE · unlimited iteration</text>
+  <text x="58" y="176" class="mono">yolo11n.pt → runs/…/best.pt</text>
+  <text x="58" y="202" class="small">Your machine. Nothing is billed,</text>
+  <text x="58" y="222" class="small">so nothing needs approving.</text>
+  <text x="58" y="252" class="small">Runs while you sleep — homework.</text>
+
+  <!-- instant -->
+  <rect x="341" y="92" width="270" height="186" class="box" fill="#eaf6ef" stroke="#2f7a4d"/>
+  <text x="364" y="124" class="sub">Roboflow Instant</text>
+  <text x="364" y="148" class="free">FREE · few-shot</text>
+  <text x="364" y="176" class="small">Detection only. Trains in minutes.</text>
+  <text x="364" y="202" class="small">Not competitive with your</text>
+  <text x="364" y="222" class="small">fine-tune, and not meant to be.</text>
+  <text x="364" y="252" class="small">Check the balance after anyway.</text>
+
+  <!-- hosted -->
+  <rect x="637" y="92" width="288" height="186" class="box" fill="#fdeeee" stroke="#b54747"/>
+  <text x="660" y="124" class="sub">Hosted training</text>
+  <text x="660" y="148" class="paid">~2 CREDITS · 1 cr / 30 min</text>
+  <text x="660" y="176" class="mono">trainings_create → ask gate</text>
+  <text x="660" y="202" class="small">The permission rule you wrote in</text>
+  <text x="660" y="222" class="small">Lesson 02 fires here. Read it.</text>
+  <text x="660" y="252" class="small">Estimate in the ledger first.</text>
+
+  <!-- to export -->
+  <path d="M175,278 L175,330" class="arrow"/>
+  <path d="M900,278 L900,330" class="blocked"/>
+  <text x="648" y="312" class="paid">free plan: no weight download</text>
+
+  <rect x="35" y="338" width="890" height="100" class="box" fill="#e6f0ff" stroke="#4169a8"/>
+  <text x="58" y="370" class="sub">Lesson 04 exports a checkpoint to a file that runs on the handset</text>
+  <text x="58" y="394" class="label">You cannot export a checkpoint you cannot download.</text>
+  <text x="58" y="418" class="label">The local model is not the cheaper option — it is the only one that ships.</text>
+</svg>

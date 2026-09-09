@@ -2,9 +2,6 @@
 
 > Notion Week 3. **Session: 90 minutes.** Homework: 2–3 hours, most of it unattended
 > while training runs.
->
-> Read the [retrospective](RETROSPECTIVE.md) before teaching this. It records what broke
-> the first time and what changed because of it.
 
 ## Session goal
 
@@ -24,18 +21,15 @@ path, and once — deliberately, behind a permission prompt you wrote yourself i
 
 By the end of the **session** you have a depth module whose signatures cannot be misread,
 both models running together on your own camera, and a demonstration of why depth in this
-project can be ranked and never measured. By the end of the **homework** you have model
-V1, model V2, and an honest account of whether V2 is actually better.
+project can be ranked and never measured. By the end of the **homework** you have a trained
+model, per-class metrics you have read rather than skimmed, and a card that says what the
+model is not for.
 
 ### ⚠️ Session budget — 90 minutes, and it is a constraint on the lesson, not on you
 
 **Waiting is not teaching.** Anything whose dominant cost is elapsed time — a training
-run, a hyperparameter sweep, a long evaluation — is homework. The session keeps the parts
-that need a room: decisions with real trade-offs, the harness blocking something and you
-deciding what to do about it, and looking at model output with your own eyes.
-
-This is a standing constraint on this lesson, not a one-off. Anything added here later
-must fit inside it or go to homework.
+run, a hyperparameter sweep, a long evaluation — is homework. The session keeps what needs
+a room: decisions with real trade-offs, and the harness blocking you.
 
 | | Budget |
 |---|---|
@@ -55,24 +49,82 @@ must fit inside it or go to homework.
 
 ## Prerequisites
 
-- [ ] Lesson 02 complete: a dataset version exported and passing `verify_export.py`
-- [ ] `docs/credit-budget.md` reconciled, with **at least 3 credits remaining**
-- [ ] `.claude/settings.json` has `ask` on `mcp__roboflow__trainings_create`
-- [ ] `uv sync --extra ml --extra depth` runs cleanly
-- [ ] **A webcam** for steps 6 and 7. No webcam is survivable — both scripts accept
-      `--image` — but you lose the part students remember
-- [ ] A GPU is *helpful* but not required. Training is homework, so it runs while you sleep
+Seven steps, **in this order**, and steps 4 and 5 are the ones that must not wait for the
+room: both download model weights, and a first download inside a 90-minute session is
+twenty minutes nobody gets back. Budget 30 minutes plus the downloads.
 
-Check the budget before you start:
+**1. Finish Lesson 02.** You need a dataset version exported and passing
+`verify_export.py`, and a reconciled ledger.
 
 ```bash
+uv run python scripts/verify_export.py data/v<N> --taxonomy docs/taxonomy.md
 grep -A2 'Remaining' docs/credit-budget.md
 ```
 
+**Expected result:** the verifier exits 0, and **Remaining is at least 3.0**. Below that,
+decide now whether you are skipping the hosted run in H5 — it is the only billed step in
+this lesson.
+
+**2. Confirm the training gate is armed.** This lesson makes the first call that can spend
+your whole remaining budget at once.
+
+```bash
+grep -n 'trainings_create' .claude/settings.json
+```
+
+**Expected result:** `trainings_create` appears under `ask`, in both the
+`mcp__roboflow__` and `mcp__plugin_roboflow_roboflow__` spellings.
+
+**3. Install the training and depth dependencies.**
+
+```bash
+uv sync --extra ml --extra depth
+```
+
+**Expected result:** exit code 0. This pulls `torch`, `ultralytics`, `mlflow`,
+`transformers`, and `timm` — the largest dependency tree in the course and the most
+platform-sensitive. If it fails, you have a retry rather than a blocked session.
+
+**4. Download the detection weights.** Ultralytics fetches `yolo11n.pt` the first time a
+model is constructed; do that now rather than at minute 20 of the session.
+
+```bash
+uv run python -c "from ultralytics import YOLO; YOLO('yolo11n.pt'); print('yolo11n cached')"
+```
+
+**Expected result:** `yolo11n cached`, and `yolo11n.pt` on disk. Confirm it is gitignored —
+`*.pt` is in the scaffold's `.gitignore`, and weights are not source.
+
+**5. Download the depth weights.** Step 4 of the session runs Depth Anything V2 Small
+through `transformers`, which fetches from the Hugging Face Hub on first use.
+
+```bash
+uv run python -c "
+from transformers import pipeline
+pipe = pipeline('depth-estimation', model='depth-anything/Depth-Anything-V2-Small-hf')
+print('depth weights cached')"
+```
+
+**Expected result:** `depth weights cached`. The checkpoint is ~25M parameters — small, but
+it is still a network round trip you do not want live. Model id verified against
+<https://huggingface.co/depth-anything/Depth-Anything-V2-Small-hf>, checked **2026-09-09**.
+
+**6. Have a camera ready, or a photo instead.** Steps 6 and 7 put both models on a frame
+you captured yourself.
+
+**Expected result:** a working webcam, **or** a photo of a room with at least two objects
+at clearly different distances. No webcam is survivable — `check_live_capture.py` and
+`check_reference_depth.py` both accept `--image` — but you lose the part students remember.
+
+**7. Read `.claude/agents/ml-engineer.md` and `.claude/agents/evaluation.md`.** Step 1
+introduces both roles. Knowing before you arrive that Evaluation has no `Edit` tool is the
+difference between the constraint landing and it being a detail.
+
+A GPU is *helpful* but not required — training is homework, so it runs while you sleep.
+
 > **This lesson refers to your dataset version by number, never as "the latest".** The
-> examples below use `data/v2/`. If your versions are numbered differently, substitute —
-> and if you built only one version, the homework's V1-vs-V2 comparison needs a second one
-> first.
+> examples below use `data/v1/`, which is what Lesson 02 produces. If yours is numbered
+> differently, substitute — and fix the reference rather than remembering the difference.
 
 ## Deliverables
 
@@ -90,11 +142,10 @@ grep -A2 'Remaining' docs/credit-budget.md
 
 - [ ] `scripts/train.py` — parameterized by dataset version, logging to MLflow
 - [ ] **Model V1**, with per-class metrics on the test split
-- [ ] **Model V2** fine-tuned from V1, and all three comparisons
 - [ ] `docs/evaluation-v1.md` — the error analysis
 - [ ] `tests/test_depth.py` — the offline suite for the depth module
 - [ ] N5 measured over the test split
-- [ ] `docs/model-card-v1.md` and `docs/model-card-v2.md`
+- [ ] `docs/model-card-v1.md`
 - [ ] The ledger updated and reconciled
 
 Verify with [`resources/checklists/deliverables.md`](resources/checklists/deliverables.md).
@@ -106,6 +157,8 @@ Verify with [`resources/checklists/deliverables.md`](resources/checklists/delive
 ## Part 1 — In session
 
 ### 1. Meet the two new roles
+
+![The ML Engineer agent holds the Edit tool and owns training code; the Evaluation agent has no Edit tool and can only read runs and write reports. The arrow from Evaluation back to training code does not exist.](resources/images/roles-edit-boundary.svg)
 
 **Do:** Read both definitions. They shipped with the Lesson 01 scaffold and have been
 unused until now.
@@ -145,6 +198,8 @@ measures, so its only way to produce a better number is for the number to be bet
 ---
 
 ### 2. Choose the architecture — and override the skill
+
+![Three training paths: local fine-tuning is free and produces weights Lesson 04 can export; Roboflow Instant is free but few-shot; hosted training costs about two credits, fires the Lesson 02 permission gate, and on the free plan its weights cannot be downloaded at all.](resources/images/where-compute-happens.svg)
 
 **Do:** Ask the ML Engineer what Roboflow recommends, and notice that it disagrees with
 this course.
@@ -206,7 +261,7 @@ to have the ML Engineer write `scripts/train.py`, then **start a run now so it t
 you do the rest of the session**:
 
 ```bash
-uv run python scripts/train.py --data data/v2/data.yaml --model yolo11n.pt --epochs 50 --name v1-baseline
+uv run python scripts/train.py --data data/v1/data.yaml --model yolo11n.pt --epochs 50 --name v1-baseline
 ```
 
 **Expected result:** a run appears in the MLflow UI and starts logging. You will read its
@@ -221,7 +276,7 @@ results in the homework, not now.
 
 ### 4. Depth Anything V2 — inference only
 
-**Do:** Use [`resources/prompts/05-depth-inference.md`](resources/prompts/05-depth-inference.md)
+**Do:** Use [`resources/prompts/04-depth-inference.md`](resources/prompts/04-depth-inference.md)
 to have the ML Engineer write `src/smart_scene_analyzer/depth.py`.
 
 Runs locally through `transformers`. **Zero credits, and no training** — this is a
@@ -229,6 +284,8 @@ pretrained model you run, not one you fine-tune.
 
 **The deliverable here is the units, not the code.** The inference call is about fifteen
 lines. The module that cannot be misread downstream is the exercise.
+
+![A source image at H by W is resized to the model raster, whose edges must be multiples of fourteen for a ViT-S/14 backbone; the model's output is resized back to the source resolution before the function returns, and the raw model raster stays reachable because Lesson 04 compares the exported artifact against it.](resources/images/depth-raster-spaces.svg)
 
 > Depth Anything V2 outputs **relative inverse depth**. Larger values are nearer. The scale
 > is arbitrary and it is **not a distance in any unit**. With no scale to calibrate
@@ -250,8 +307,7 @@ would let every plausible-looking violation through with a denial bolted on.
 
 **Do not edit the hook, and do not route around it.** Satisfy it. `Not a distance, in any
 unit.` says the same thing and passes. This is the lesson's own rule — *if a hook blocks
-you, satisfy it or stop* — with a worked example attached, and it was found the hard way
-(see [RETROSPECTIVE.md §4](RETROSPECTIVE.md)).
+you, satisfy it or stop* — with a worked example attached.
 
 > Notice which layer of the harness caught this. `CLAUDE.md` has stated the rule for three
 > lessons. The rule was correct, prominent, and loaded into every session — and it is
@@ -269,6 +325,8 @@ than loaded per call.
 An inverted sign convention produces output that looks entirely reasonable. Every value is
 in range, the map has structure, the visualization looks like a depth map. It is simply
 backwards, and nothing downstream will tell you.
+
+![The same room shown twice. On the left the correct convention, where the near chair is bright and the far wall dark. On the right the inverted convention, where the far wall is bright. Both are plausible depth maps; only the ordering check tells them apart.](resources/images/depth-sign-convention.svg)
 
 **Do:** Copy the checker in, then run it on scenes where you can see which object is nearer.
 
@@ -291,7 +349,7 @@ uv run python scripts/check_depth_ordering.py --cases cases.json
 
 ```json
 [
-  {"image": "data/v2/test/images/<file>.jpg", "boxes_near_to_far": [[20,270,550,438], [195,84,586,251]]}
+  {"image": "data/v1/test/images/<file>.jpg", "boxes_near_to_far": [[20,270,550,438], [195,84,586,251]]}
 ]
 ```
 
@@ -306,7 +364,7 @@ wrong rather than merely inverted.
 
 ### 6. Both models, on your own camera
 
-**Do:** Use [`resources/prompts/06-live-validation.md`](resources/prompts/06-live-validation.md).
+**Do:** Use [`resources/prompts/05-live-validation.md`](resources/prompts/05-live-validation.md).
 
 ```bash
 cp <path-to-course-repo>/lessons/03-model-development/resources/scripts/check_live_capture.py scripts/
@@ -345,7 +403,7 @@ half-labelled makes it better than a mAP table does.
 
 ### 7. Reference Depth Calibration
 
-**Do:** Use [`resources/prompts/07-reference-depth.md`](resources/prompts/07-reference-depth.md).
+**Do:** Use [`resources/prompts/06-reference-depth.md`](resources/prompts/06-reference-depth.md).
 
 **What this is:** calibration in the metrology sense — checking an instrument against a
 reference you trust. You place objects at positions you measured, photograph them, and find
@@ -366,6 +424,8 @@ uv run python scripts/check_reference_depth.py --cases reference_scenes.json --t
 Build **two genuinely different scenes**, three to five objects each, spread out, with the
 camera properly moved between them. Measure positions however you like — **the script uses
 only the order and the ratios, and never converts them, so no unit enters the project.**
+
+![Two indoor scenes. Depth ordering is 100 percent correct in both, with rank correlation near minus one. A conversion fitted on scene A gives 5.2 percent error there and 57.2 percent on scene B — an eleven-fold blow-up from one camera move.](resources/images/depth-calibration-transfer.svg)
 
 **Expected result**, and a real one, from two indoor scenes:
 
@@ -449,36 +509,7 @@ lets you tell in seconds instead of an afternoon.
 
 **Deliverable:** `docs/evaluation-v1.md`.
 
-### H2. Train V2, and compare honestly
-
-Export a second dataset version, then fine-tune **from V1's weights** rather than from
-COCO. Use [`resources/prompts/03-domain-adaptation.md`](resources/prompts/03-domain-adaptation.md).
-
-```bash
-uv run python scripts/train.py \
-  --data data/v2/data.yaml \
-  --model runs/v1-baseline/weights/best.pt \
-  --epochs 50 --name v2-adapted
-```
-
-This is the course's central experiment. Two runs are comparable only if measured on the
-same split of the same dataset version at the same threshold, and that constraint bites
-here. There are three defensible comparisons:
-
-| Compare | On | Answers |
-|---|---|---|
-| V1 vs V2 | **v1 test** | Did adapting to the new domain break the old one? |
-| V1 vs V2 | **v2 test** | Did adaptation work? |
-| V1 vs V2 | both, side by side | The actual trade-off |
-
-**Report all three.** If V2 gains 8 points on v2 test and loses 12 on v1 test, "V2 is
-better" is false, and it is the kind of false that ships.
-
-> **These metrics mean something because Lesson 02 kept human labels.** Had the test split
-> been auto-labeled, every number here would measure agreement with Grounding DINO rather
-> than accuracy.
-
-### H3. Re-run the camera check against your own weights
+### H2. Re-run the camera check against your own weights
 
 ```bash
 uv run python scripts/check_live_capture.py --camera 0 --weights runs/v1-baseline/weights/best.pt
@@ -488,7 +519,7 @@ Put it beside the annotated image from step 6. The classes COCO could not see sh
 appear — and the classes it could see may be *worse*, because 1,500 indoor images is a
 narrower world than COCO. Both directions belong in the model card's failure modes.
 
-### H4. Write the depth module's test suite
+### H3. Write the depth module's test suite
 
 `.claude/skills/offline-suite` is the procedure. The suite must run with **no GPU, no
 network, and no weights on disk** — `depth.py` makes that possible by putting model loading
@@ -500,13 +531,12 @@ behind a replaceable seam.
 HF_HOME=$(mktemp -d) HF_HUB_OFFLINE=1 uv run pytest
 ```
 
-> A marker nobody has exercised is a marker that does not work. This lesson shipped an
-> `integration` marker that nothing deselected for months — see
-> [RETROSPECTIVE.md §6](RETROSPECTIVE.md).
+> A marker nobody has exercised is a marker that does not work. Run the deselection
+> yourself before you trust it.
 
 **Deliverable:** `tests/test_depth.py`.
 
-### H5. Measure N5 over the test split
+### H4. Measure N5 over the test split
 
 Step 7 checked ordering on scenes you built. N5 in `docs/requirements.md` asks for a
 **rate** over annotated object pairs on the held-out split, and that needs a reference for
@@ -515,20 +545,20 @@ every pair.
 **Check what your source dataset actually ships before concluding you cannot.** SUN RGB-D
 is an RGB-D dataset — every capture carries a sensor raster next to the RGB frame. Roboflow
 does not store depth maps, which is why no depth term can enter training; it does not follow
-that no reference exists on disk. Getting that backwards is
-[RETROSPECTIVE.md §7](RETROSPECTIVE.md).
+that no reference exists on disk. Those are two different claims, and conflating them is how
+a measurable requirement gets declared impossible.
 
 **Deliverable:** a rate, its conditions, and its margin — declared *before* you compute the
 rate, not tuned to it. Use the reference for **ordering only**; no value from it may enter
 the project as a magnitude.
 
-### H6. Free and paid platform paths
+### H5. Free and paid platform paths
 
 **Roboflow Instant is free.** Few-shot, detection only, trains in minutes, not competitive
 with your fine-tune and not supposed to be.
 
 ```
-Start a Roboflow Instant training run on dataset version 2. Confirm first that Instant is
+Start a Roboflow Instant training run on dataset version 1. Confirm first that Instant is
 free and that this will not consume credits, citing roboflow:training-and-evaluation.
 ```
 
@@ -541,7 +571,7 @@ habit worth forming.
 **Do not run it if you have fewer than 3 credits left.** You lose one comparison row and no
 deliverable.
 
-Use [`resources/prompts/04-hosted-training.md`](resources/prompts/04-hosted-training.md).
+Use [`resources/prompts/03-hosted-training.md`](resources/prompts/03-hosted-training.md).
 The agent must state, before calling anything: the `model_id` (`yolov11s`, matching your
 local architecture), the epoch count capped so wall time stays under an hour, the arithmetic
 (1 credit per 30 minutes → ≤ 2 credits), and your remaining balance.
@@ -562,19 +592,19 @@ claim.
 
 </details>
 
-### H7. Write the model cards
+### H6. Write the model cards
 
 ```bash
 cp <path-to-course-repo>/lessons/03-model-development/resources/templates/model-card.md docs/model-card-v1.md
 ```
 
-Fill in for V1, repeat for V2. The Documentation Agent can draft from MLflow run data;
-**you** write the known-failure-modes section.
+The Documentation Agent can draft from MLflow run data; **you** write the
+known-failure-modes section.
 
-Each card records architecture and size, base checkpoint, dataset version *by number*,
-hyperparameters, per-class metrics with the split and threshold they were measured at, the
-comparison against the other version, and what the model is not for. The Depth section
-carries your step 7 result and your H5 rate.
+The card records architecture and size, base checkpoint, dataset version *by number*,
+hyperparameters, per-class metrics with the split and threshold they were measured at, and
+what the model is not for. The Depth section
+carries your step 7 result and your H4 rate.
 
 ---
 
@@ -616,8 +646,7 @@ HF_HOME=$(mktemp -d) HF_HUB_OFFLINE=1 uv run pytest
 
 Then confirm by reading:
 
-- Every metric in both model cards names its **split, dataset version, and threshold**
-- The V1-vs-V2 comparison reports **both** test splits, not the flattering one
+- Every metric in the model card names its **split, dataset version, and threshold**
 - `depth.py` signatures say "relative inverse depth", and no identifier names a unit
 - The architecture ADR states what Roboflow's skill recommends and why you departed
 - The ledger reconciles, and the hosted run (if any) has an estimate *and* an actual
@@ -631,28 +660,29 @@ distinguish them.
 
 ## Open items
 
-- ⚠️ **The depth-scope ADR does not exist.** The model-card template asserted it did for
-  months. The decision is recorded in `docs/requirements.md`; the ADR is still unwritten.
+- ⚠️ **The depth-scope ADR.** Lesson 02's deliverables ask for it and the model-card
+  template assumes it exists. If you did not write it there, write it before H6 — the card
+  cites a decision that otherwise lives only in `docs/requirements.md`.
 - ⚠️ **N5 has a measured value but no target.** `docs/requirements.md` says how it is
   measured and now what it measured. It still does not say what would be good enough.
-- ⚠️ **`template/pyproject.toml` still ships the un-deselected `integration` marker.**
-  Fixed in the run-through project, not in the scaffold new students copy.
+- ⚠️ **The `integration` pytest marker is declared but nothing deselects it.** If your
+  `pyproject.toml` came from the scaffold, H3's offline run will try to execute integration
+  tests. Deselect them yourself and say so in the ADR-free note in your test file.
 - ⚠️ **MLflow hosting beyond one machine** (step 3) — local SQLite is decided for now, but
   Lesson 06's CI needs to read runs it did not create. Revisit there.
-- ⚠️ **Weight downloads require the Core plan** (H6) — sourced from
+- ⚠️ **Weight downloads require the Core plan** (H5) — sourced from
   `roboflow:plans-and-pricing`, not confirmed on the platform. This is a hard dependency: if
   free-tier weight download is genuinely impossible, hosted training cannot produce a
   shippable artifact at all.
-- ⚠️ **The export toolchain is not installed by this lesson.** Lesson 04 owns export, and
-  its dependencies are not in `pyproject.toml` yet. Confirm both install cleanly on a clean
-  machine before a cohort.
+- ⚠️ **The export toolchain is not installed by this lesson.** Lesson 04 owns export and
+  its dependencies are not in `pyproject.toml` yet, so do not assume Lesson 03's
+  `uv sync` has prepared you for it.
 - ⚠️ **Whether `yolo11n` is sufficient for the taxonomy** — depends on the final class list
   and instance counts. If small classes underperform, the first lever is data, not model
   size.
 - ⚠️ **Free-plan credit allowance unconfirmed** — carried from Lesson 02.
 
-All tracked in the course [`TODO.md`](../../TODO.md). What went wrong the first time this
-lesson ran is in [`RETROSPECTIVE.md`](RETROSPECTIVE.md).
+All tracked in the course [`TODO.md`](../../TODO.md).
 
 ---
 
@@ -671,14 +701,19 @@ Local skill sources, in `computer-vision-skills/skills/`:
 
 Project skills:
 
-- `.claude/skills/offline-suite` — the procedure behind H4, including *verify the offline
+- `.claude/skills/offline-suite` — the procedure behind H3, including *verify the offline
   claim by breaking it*
 - `.claude/skills/error-triage` — the DATA / TAXONOMY / MODEL / EXPORT classification
 
-External:
+External, checked **2026-09-09**:
 
 - [Ultralytics YOLO11](https://docs.ultralytics.com/models/yolo11/)
-- [Depth Anything V2](https://depth-anything-v2.github.io/)
+- [Depth Anything V2 — project page](https://depth-anything-v2.github.io/) — **real depth
+  maps, at the source.** The diagrams in this lesson are schematics that isolate one idea
+  each; go here to see what the model's output actually looks like on real scenes before
+  you judge your own
+- [`depth-anything/Depth-Anything-V2-Small-hf`](https://huggingface.co/depth-anything/Depth-Anything-V2-Small-hf)
+  — the exact checkpoint this lesson and Lesson 04 both use, 24.8M parameters
 - [MLflow tracking](https://mlflow.org/docs/latest/tracking.html)
 
 **Previous:** [Lesson 02](../02-dataset-engineering/) ·

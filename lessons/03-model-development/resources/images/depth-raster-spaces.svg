@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="400" viewBox="0 0 960 400" role="img" aria-labelledby="title desc">
+  <title id="title">Two raster spaces, both named</title>
+  <desc id="desc">A source image at its own resolution is resized to the model raster, whose edges must be multiples of fourteen because Depth Anything V2 Small is a ViT-S slash 14. The model emits a map at that raster size, which is then resized back to the source resolution before the function returns. The raw model raster stays reachable because Lesson 04 compares the exported artifact against it.</desc>
+  <style>
+    .box { stroke-width: 2; rx: 13; }
+    .heading { font: 700 21px system-ui, sans-serif; fill: #152238; }
+    .sub { font: 700 16px system-ui, sans-serif; fill: #152238; }
+    .label { font: 15px system-ui, sans-serif; fill: #152238; }
+    .small { font: 13px system-ui, sans-serif; fill: #34445f; }
+    .mono { font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #34445f; }
+    .arrow { stroke: #4169a8; stroke-width: 3; fill: none; marker-end: url(#arrow); }
+    .flag { font: 700 13px system-ui, sans-serif; fill: #b54747; }
+  </style>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#4169a8"/></marker></defs>
+  <rect width="960" height="400" fill="#f8fbff"/>
+
+  <text x="35" y="38" class="heading">The model's raster is not your image's raster</text>
+  <text x="35" y="62" class="small">Name both spaces. A value indexed into the wrong one is still a number, in range, and wrong.</text>
+
+  <!-- source in -->
+  <rect x="35" y="96" width="200" height="96" class="box" fill="#e6f0ff" stroke="#4169a8"/>
+  <text x="58" y="128" class="sub">source image</text>
+  <text x="58" y="152" class="mono">H × W</text>
+  <text x="58" y="176" class="small">whatever the camera gave you</text>
+
+  <line x1="243" y1="144" x2="303" y2="144" class="arrow"/>
+  <text x="238" y="128" class="small">resize</text>
+
+  <!-- model raster -->
+  <rect x="311" y="80" width="230" height="128" class="box" fill="#fff4e0" stroke="#c98a2b"/>
+  <text x="334" y="112" class="sub">model raster</text>
+  <text x="334" y="136" class="mono">edges ≡ 0 (mod 14)</text>
+  <text x="334" y="160" class="small">ViT-S/14 — patch size 14,</text>
+  <text x="334" y="180" class="small">so the input edges must divide by it</text>
+  <text x="334" y="200" class="small">Depth Anything V2 Small</text>
+
+  <line x1="549" y1="144" x2="609" y2="144" class="arrow"/>
+  <text x="546" y="128" class="small">resize back</text>
+
+  <!-- returned -->
+  <rect x="617" y="96" width="308" height="112" class="box" fill="#eaf6ef" stroke="#2f7a4d"/>
+  <text x="640" y="128" class="sub">returned map</text>
+  <text x="640" y="152" class="mono">H × W float32 — source space</text>
+  <text x="640" y="172" class="small">one shape for fusion to assert,</text>
+  <text x="640" y="190" class="small">one space to reduce in</text>
+
+  <!-- raw raster branch -->
+  <path d="M426,208 L426,268 L700,268" class="arrow"/>
+  <rect x="708" y="240" width="217" height="76" class="box" fill="#ffffff" stroke="#b54747"/>
+  <text x="728" y="270" class="flag">keep this reachable</text>
+  <text x="728" y="294" class="small">Lesson 04 compares the export</text>
+  <text x="728" y="312" class="small">against the RAW raster</text>
+
+  <text x="35" y="290" class="small">Keep the resize as its own named step. If it hides inside the public function, the raw</text>
+  <text x="35" y="310" class="small">raster is unreachable and Lesson 04's parity test has nothing to compare against.</text>
+  <text x="35" y="346" class="sub">Three spaces exist in this project overall:</text>
+  <text x="35" y="370" class="small">source image pixels · letterboxed model input · screen points. Converting between them belongs in one named function.</text>
+</svg>

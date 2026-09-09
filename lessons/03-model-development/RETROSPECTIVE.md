@@ -47,6 +47,12 @@ moved to homework (§7 below), that assumption is now false *during the session*
 every step that requires a trained model or a second dataset version is marked as
 depending on homework rather than assumed present.
 
+**Resolved outright, 2026-09-09.** The course now produces **one** dataset version. Every
+path in the lesson reads `data/v1/`, which is what Lesson 02 actually builds, and the
+second-version assumption is gone rather than accommodated. This entry stays as the record
+of how long a wrong path survived because each reader assumed the other version was the
+one that existed.
+
 ---
 
 ## 3. The lesson's own helper crashes on the case it exists to report
@@ -75,7 +81,7 @@ Both the lesson copy and the note in step 5 now say what a `None` row means.
 
 ## 4. A prompt asked for something the harness forbids
 
-**What happened.** `05-depth-inference.md` required the docstring to state:
+**What happened.** `04-depth-inference.md` required the docstring to state:
 
 > larger = nearer, scale is arbitrary, **NOT metres**
 
@@ -207,6 +213,39 @@ is not "cut steps until it fits" — it is that **waiting is not teaching**. Tra
 which are mostly waiting, are homework. The session keeps the parts that need a room:
 decisions with trade-offs, the harness blocking something, and looking at output with your
 own eyes.
+
+**For whoever edits this lesson next:** the 90 minutes is a constraint on the lesson, not
+on the student. Anything added here later must fit inside it or go to homework. That
+sentence used to sit in the README, where it addressed an audience the README does not
+have; it belongs here.
+
+---
+
+## 11. H2 was deleted with the second dataset, and took a lesson with it
+
+**What happened, 2026-09-09.** The course dropped NYU Depth V2 and settled on a single
+SUN RGB-D version. H2 — "Train V2, and compare honestly", described in the README as the
+course's central experiment — had no dataset left to run on and was deleted rather than
+rewritten.
+
+**What went with it.** Nothing else in the course now teaches:
+
+- that two runs are comparable **only** on the same split, of the same dataset version, at
+  the same threshold;
+- that "the new model is better" can be true on the aggregate and false per class, and
+  that this is the kind of false that ships;
+- catastrophic forgetting, and reporting the unflattering split alongside the flattering
+  one.
+
+The comparability rule survives in a reduced form in
+`resources/templates/model-card.md`'s Comparison section, which now frames it around any
+two runs rather than two dataset versions. The *forgetting* material is simply gone.
+
+**If you put it back**, the cheapest vehicle is a second training run on the same v1
+dataset with one deliberate change — `yolo11n` against `yolo11s`, or a different
+augmentation budget — compared on the v1 test split. That recovers comparability and
+per-class regression reading without a second dataset. It does not recover the
+cross-domain framing, which needs a genuinely different domain.
 
 ---
 

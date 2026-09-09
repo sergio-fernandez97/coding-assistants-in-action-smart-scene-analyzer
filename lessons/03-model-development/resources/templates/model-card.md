@@ -1,6 +1,6 @@
 # Model card — `<model name>`
 
-> Copy to your project as `docs/model-card-v1.md` / `docs/model-card-v2.md`.
+> Copy to your project as `docs/model-card-v<N>.md`, named for the dataset version it reports.
 > One card per trained model. A model referenced anywhere in this project without a card
 > is a model nobody can reason about in three months.
 
@@ -108,27 +108,33 @@ image is the only claim they support.
 > depth (SUN RGB-D does), you can measure N5 — ordering only, never scale. Do not write
 > "no evaluation is possible" into a card without checking what is on disk.
 >
-> ⚠️ **There is no depth-scope ADR**, though earlier drafts of this template claimed
-> there was. Cite `docs/requirements.md`, or write the ADR.
+> **Cite the depth-scope ADR** — Lesson 02's deliverables ask for it. If you did not
+> write it, cite `docs/requirements.md` and write the ADR before you file this card; a
+> card that cites a decision nobody recorded is the drift this template exists to stop.
 
 ## Comparison
 
-Only for v2 and later. **Report both test splits.** A single number here is almost always
-the flattering one.
+Fill this in only when a second run exists to compare against — a different checkpoint, a
+different hyperparameter budget, a later dataset version.
 
-**Conditions:** confidence `<0.25>`, IoU `<0.5>`, both models evaluated identically.
+**Two runs are comparable only on the same split, of the same dataset version, at the same
+threshold.** State all three or the delta means nothing.
 
-| | v1 test (`<N>` images) | v2 test (`<N>` images) |
-|---|---|---|
-| Model V1 mAP@50 | | |
-| Model V2 mAP@50 | | |
-| **Delta** | | |
+**Conditions:** confidence `<0.25>`, IoU `<0.5>`, both runs evaluated identically.
 
-**Verdict** (five sentences maximum, and it must address forgetting):
+| | `<split>` of `data/v<N>` (`<N>` images) |
+|---|---|
+| `<run A>` mAP@50 | |
+| `<run B>` mAP@50 | |
+| **Delta** | |
 
-`<Did adaptation help on the new domain? Did it cost anything on the old one? Is the
-trade worth it, under what deployment assumption? Is the difference large enough to be
-meaningful at these split sizes?>`
+**Per-class deltas, not only the aggregate.** A run that gains two points overall while
+losing eight on `door` is not better; it is differently wrong, and the aggregate hides it.
+
+**Verdict** (five sentences maximum):
+
+`<Which run is better, on what evidence? What did it cost, and where? Is the difference
+large enough to be meaningful at this split size?>`
 
 ## Known failure modes
 

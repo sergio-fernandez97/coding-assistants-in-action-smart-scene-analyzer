@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="380" viewBox="0 0 960 380" role="img" aria-labelledby="title desc">
+  <title id="title">The arrow that does not exist</title>
+  <desc id="desc">The ML Engineer agent holds the Edit tool and owns training code and hyperparameters. The Evaluation agent has no Edit tool: it reads runs and writes reports, and cannot change the code that produced the numbers. The missing arrow from Evaluation back to training code is the boundary that makes the measurement mean something.</desc>
+  <style>
+    .box { stroke-width: 2; rx: 13; }
+    .heading { font: 700 21px system-ui, sans-serif; fill: #152238; }
+    .sub { font: 700 16px system-ui, sans-serif; fill: #152238; }
+    .label { font: 15px system-ui, sans-serif; fill: #152238; }
+    .small { font: 13px system-ui, sans-serif; fill: #34445f; }
+    .mono { font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #34445f; }
+    .arrow { stroke: #4169a8; stroke-width: 3; fill: none; marker-end: url(#arrow); }
+    .blocked { stroke: #b54747; stroke-width: 3; fill: none; stroke-dasharray: 9 7; marker-end: url(#arrowred); }
+    .stop { font: 700 14px system-ui, sans-serif; fill: #b54747; }
+  </style>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#4169a8"/></marker>
+    <marker id="arrowred" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#b54747"/></marker>
+  </defs>
+  <rect width="960" height="380" fill="#f8fbff"/>
+
+  <text x="35" y="38" class="heading">Evaluation has no Edit tool, and that is the design</text>
+  <text x="35" y="62" class="small">An agent that can adjust the model when it dislikes the number is not measuring anything.</text>
+
+  <!-- ML engineer -->
+  <rect x="35" y="96" width="240" height="130" class="box" fill="#e6f0ff" stroke="#4169a8"/>
+  <text x="58" y="128" class="sub">ML Engineer</text>
+  <text x="58" y="154" class="mono">Read · Edit · Bash</text>
+  <text x="58" y="180" class="small">training code, hyperparameters,</text>
+  <text x="58" y="200" class="small">MLflow runs, run diagnosis</text>
+
+  <line x1="283" y1="140" x2="373" y2="140" class="arrow"/>
+  <text x="288" y="128" class="small">produces</text>
+
+  <!-- artifacts -->
+  <rect x="381" y="96" width="200" height="130" class="box" fill="#fff4e0" stroke="#c98a2b"/>
+  <text x="404" y="128" class="sub">runs + weights</text>
+  <text x="404" y="154" class="mono">runs/ · mlflow.db</text>
+  <text x="404" y="180" class="small">the record of what</text>
+  <text x="404" y="200" class="small">was actually trained</text>
+
+  <line x1="589" y1="140" x2="679" y2="140" class="arrow"/>
+  <text x="600" y="128" class="small">reads</text>
+
+  <!-- evaluation -->
+  <rect x="687" y="96" width="238" height="130" class="box" fill="#eaf6ef" stroke="#2f7a4d"/>
+  <text x="710" y="128" class="sub">Evaluation</text>
+  <text x="710" y="154" class="mono">Read · Bash — no Edit</text>
+  <text x="710" y="180" class="small">metrics, confusion matrices,</text>
+  <text x="710" y="200" class="small">error analysis, model cards</text>
+
+  <!-- the blocked arrow -->
+  <path d="M806,234 L806,286 L160,286 L160,234" class="blocked"/>
+  <rect x="352" y="264" width="258" height="44" rx="10" fill="#fdeeee" stroke="#b54747" stroke-width="2"/>
+  <text x="372" y="292" class="stop">this arrow does not exist</text>
+
+  <text x="35" y="336" class="small">Evaluation cannot reach back into training code. When it reports that `door` recall is 0.31, the only available responses are to</text>
+  <text x="35" y="356" class="small">change the data or change the training — both of which are somebody else's job, taken deliberately, and written down.</text>
+</svg>

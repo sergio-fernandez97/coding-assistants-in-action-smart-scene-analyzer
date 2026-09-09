@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="500" viewBox="0 0 960 500" role="img" aria-labelledby="title desc">
+  <title id="title">Perfect ordering, useless scale</title>
+  <desc id="desc">Two indoor scenes. Depth ordering is 100 percent correct in both, with rank correlation near minus one. A conversion fitted on scene A gives 5.2 percent error on scene A and 57.2 percent error on scene B, an eleven-fold blow-up. The model ranks reliably and cannot measure.</desc>
+  <style>
+    .box { stroke-width: 2; rx: 13; }
+    .heading { font: 700 21px system-ui, sans-serif; fill: #152238; }
+    .sub { font: 700 15px system-ui, sans-serif; fill: #152238; }
+    .label { font: 15px system-ui, sans-serif; fill: #152238; }
+    .small { font: 13px system-ui, sans-serif; fill: #34445f; }
+    .good { font: 700 15px system-ui, sans-serif; fill: #2f7a4d; }
+    .bad { font: 700 15px system-ui, sans-serif; fill: #b54747; }
+    .mono { font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #34445f; }
+    .arrow { stroke: #4169a8; stroke-width: 3; fill: none; marker-end: url(#arrow); }
+  </style>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#4169a8"/></marker></defs>
+  <rect width="960" height="500" fill="#f8fbff"/>
+
+  <text x="35" y="38" class="heading">The same measurement passes and fails at once</text>
+  <text x="35" y="62" class="small">Step 7, measured on two indoor scenes with the camera properly moved between them.</text>
+
+  <!-- Left: ordering -->
+  <rect x="35" y="86" width="420" height="196" class="box" fill="#eaf6ef" stroke="#2f7a4d"/>
+  <text x="60" y="118" class="sub">What the project asks for — ordering</text>
+
+  <text x="60" y="150" class="label">scene A</text>
+  <text x="205" y="150" class="good">11 / 11 = 100%</text>
+  <text x="340" y="150" class="mono">r = −0.943</text>
+
+  <text x="60" y="180" class="label">scene B</text>
+  <text x="205" y="180" class="good">13 / 13 = 100%</text>
+  <text x="340" y="180" class="mono">r = −1.000</text>
+
+  <line x1="60" y1="200" x2="430" y2="200" stroke="#bcd6c6" stroke-width="2"/>
+  <text x="60" y="228" class="small">Every pair ranked near-to-far correctly, in both scenes.</text>
+  <text x="60" y="250" class="small">This is what `relativeDepth` claims, and it holds.</text>
+  <text x="60" y="272" class="good">N5 is measurable. Ship it.</text>
+
+  <!-- Right: scale -->
+  <rect x="505" y="86" width="420" height="196" class="box" fill="#fdeeee" stroke="#b54747"/>
+  <text x="530" y="118" class="sub">What the project forbids — a distance</text>
+
+  <text x="530" y="150" class="mono">fit on A:  value = 13671.370 · (1/pos) − 2.719</text>
+
+  <text x="530" y="184" class="label">scene A</text>
+  <text x="660" y="184" class="good">error 5.2%</text>
+  <text x="775" y="184" class="small">← fitted here</text>
+
+  <text x="530" y="214" class="label">scene B</text>
+  <text x="660" y="214" class="bad">error 57.2%</text>
+  <text x="775" y="214" class="small">← same fit</text>
+
+  <line x1="530" y1="234" x2="900" y2="234" stroke="#eccaca" stroke-width="2"/>
+  <text x="530" y="262" class="bad">An eleven-fold blow-up on one camera move.</text>
+
+  <!-- Conclusion -->
+  <rect x="35" y="312" width="890" height="152" class="box" fill="#e6f0ff" stroke="#4169a8"/>
+  <text x="60" y="344" class="sub">Both halves are the point</text>
+  <text x="60" y="374" class="label">The model is excellent at what this project asks of it,</text>
+  <text x="60" y="398" class="label">and useless at what this project has forbidden since Lesson 01.</text>
+  <text x="60" y="428" class="small">`units_guard.py`, the `relativeDepth` naming rule, and the "may order and</text>
+  <text x="60" y="448" class="small">shade, may not print a distance" rule all trace back to this one measurement.</text>
+</svg>
