@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="340" viewBox="0 0 960 340" role="img" aria-labelledby="title desc">
+  <title id="title">Contract before export</title>
+  <desc id="desc">Step 2 writes the model card's Exported artifact table with every value marked INTENDED and commits it. Step 3 exports the detector to an int8 tflite file and the depth model to a pte file. Step 4 reads the real shapes, types, output order and label order from both files and compares them with the table; where they disagree, the file is right and the card is corrected. Lesson 05 writes its decoder from that table. If steps 2 and 3 are swapped, the card merely copies the file, the comparison finds nothing, and every wrong assumption ships.</desc>
+  <style>
+    .box { stroke-width: 2; rx: 13; }
+    .heading { font: 700 21px system-ui, sans-serif; fill: #152238; }
+    .sub { font: 700 16px system-ui, sans-serif; fill: #152238; }
+    .tag { font: 700 12px system-ui, sans-serif; fill: #4169a8; letter-spacing: 0.5px; }
+    .label { font: 15px system-ui, sans-serif; fill: #152238; }
+    .small { font: 13px system-ui, sans-serif; fill: #34445f; }
+    .mono { font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #34445f; }
+    .arrow { stroke: #4169a8; stroke-width: 3; fill: none; marker-end: url(#arrow); }
+    .flag { font: 700 13px system-ui, sans-serif; fill: #b54747; }
+  </style>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#4169a8"/></marker></defs>
+  <rect width="960" height="340" fill="#f8fbff"/>
+
+  <text x="35" y="38" class="heading">Write what you intend, then let the file contradict you</text>
+  <text x="35" y="62" class="small">Steps 2 → 3 → 4 only teach anything in this order. The mismatches step 4 finds are the result.</text>
+
+  <!-- Step 2 -->
+  <rect x="30" y="95" width="190" height="135" class="box" fill="#ffffff" stroke="#8fa3c2"/>
+  <text x="45" y="118" class="tag">STEP 2 · BEFORE</text>
+  <text x="45" y="143" class="sub">Write the contract</text>
+  <text x="45" y="167" class="small">Exported artifact table</text>
+  <text x="45" y="187" class="mono">every value INTENDED</text>
+  <text x="45" y="211" class="small">committed before export</text>
+
+  <!-- Step 3 -->
+  <rect x="270" y="95" width="190" height="135" class="box" fill="#ffffff" stroke="#8fa3c2"/>
+  <text x="285" y="118" class="tag">STEP 3 · BEFORE</text>
+  <text x="285" y="143" class="sub">Export both</text>
+  <text x="285" y="167" class="mono">scripts/export.py</text>
+  <text x="285" y="187" class="small">detector → .tflite (int8)</text>
+  <text x="285" y="207" class="small">depth → .pte (XNNPACK)</text>
+
+  <!-- Step 4 -->
+  <rect x="510" y="95" width="190" height="135" class="box" fill="#eef4ff" stroke="#4169a8"/>
+  <text x="525" y="118" class="tag">STEP 4 · IN SESSION</text>
+  <text x="525" y="143" class="sub">Diff card vs. file</text>
+  <text x="525" y="167" class="small">real shapes and dtypes,</text>
+  <text x="525" y="187" class="small">output order, label order,</text>
+  <text x="525" y="207" class="small">read from both files</text>
+
+  <!-- Lesson 05 -->
+  <rect x="750" y="95" width="190" height="135" class="box" fill="#ffffff" stroke="#8fa3c2"/>
+  <text x="765" y="118" class="tag">LESSON 05</text>
+  <text x="765" y="143" class="sub">Decoder</text>
+  <text x="765" y="167" class="small">written from the table,</text>
+  <text x="765" y="187" class="small">not from the file —</text>
+  <text x="765" y="207" class="small">so the table must be true</text>
+
+  <path d="M220,162 L266,162" class="arrow"/>
+  <path d="M460,162 L506,162" class="arrow"/>
+  <path d="M700,162 L746,162" class="arrow"/>
+
+  <text x="605" y="260" class="label" text-anchor="middle">Where they disagree, the file is right and the card is wrong.</text>
+
+  <text x="35" y="302" class="flag">Swap steps 2 and 3 and the card just copies the file: the diff comes back empty,</text>
+  <text x="35" y="322" class="flag">and every assumption you never wrote down ships to the phone unchecked.</text>
+</svg>

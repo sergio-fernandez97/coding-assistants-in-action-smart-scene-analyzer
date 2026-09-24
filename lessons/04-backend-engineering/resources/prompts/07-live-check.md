@@ -1,6 +1,6 @@
 # Prompt — point the fusion layer at your own room
 
-**When:** Lesson 04, step 3b. **In session.** Budget 15 minutes.
+**When:** Lesson 04, step 6. **In session.** Budget 12 minutes.
 
 **Which agent:** `integration`.
 

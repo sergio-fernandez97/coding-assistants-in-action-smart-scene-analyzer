@@ -1,6 +1,6 @@
 # Prompt — compare the on-device execution targets
 
-**When:** Lesson 04, step 7.
+**When:** Lesson 04, step 10.
 
 **Which agent:** `ml-engineer`.
 
@@ -21,7 +21,7 @@ not exist on the device it was demoing on.
 Use the ml-engineer agent.
 
 For each execution target, state: which platforms support it, whether the exported
-artifacts as built in step 4 can use it, and what happens when it is unavailable.
+artifacts as built in step 3 can use it, and what happens when it is unavailable.
 
   - XNNPACK / CPU
   - Android NNAPI

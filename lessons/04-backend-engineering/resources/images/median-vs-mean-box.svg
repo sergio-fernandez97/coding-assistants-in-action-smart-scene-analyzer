@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="400" viewBox="0 0 960 400" role="img" aria-labelledby="title desc">
+  <title id="title">Median, not mean</title>
+  <desc id="desc">A schematic scene: a bright near chair against a dark far wall, with a loose detection box whose corners contain wall. The depth values inside the box form two clusters, a smaller one for the wall and a larger one for the chair. The mean falls in the empty gap between the clusters, a value no pixel in the box has. The median lands inside the chair cluster. Two separate clusters in one box is what a mixed_region flag reports. Values are schematic, relative, with no unit.</desc>
+  <style>
+    .heading { font: 700 21px system-ui, sans-serif; fill: #152238; }
+    .sub { font: 700 16px system-ui, sans-serif; fill: #152238; }
+    .label { font: 15px system-ui, sans-serif; fill: #152238; }
+    .small { font: 13px system-ui, sans-serif; fill: #34445f; }
+    .mono { font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #34445f; }
+    .flag { font: 700 13px system-ui, sans-serif; fill: #b54747; }
+    .good { font: 700 13px system-ui, sans-serif; fill: #4169a8; }
+    .wall { fill: #2c3a4f; }
+    .chair { fill: #8fa9cf; }
+  </style>
+  <rect width="960" height="400" fill="#f8fbff"/>
+
+  <text x="35" y="38" class="heading">The mean lands where nothing is</text>
+  <text x="35" y="62" class="small">Box corners hold background. The mean of two clusters falls between them; the median stays on the object.</text>
+
+  <!-- schematic scene -->
+  <rect x="40" y="90" width="360" height="245" rx="8" class="wall"/>
+  <rect x="160" y="130" width="24" height="95" fill="#e8eef7"/>
+  <rect x="160" y="210" width="130" height="28" fill="#e8eef7"/>
+  <rect x="165" y="238" width="12" height="72" fill="#e8eef7"/>
+  <rect x="273" y="238" width="12" height="72" fill="#e8eef7"/>
+  <rect x="135" y="112" width="175" height="210" fill="none" stroke="#e0a030" stroke-width="3"/>
+  <text x="135" y="106" class="small" style="fill:#e8eef7">detection box</text>
+  <text x="40" y="357" class="small">bright = chair (near) · dark = wall (far) · amber = box</text>
+
+  <!-- histogram -->
+  <text x="490" y="100" class="sub">Depth values inside the box</text>
+  <line x1="490" y1="300" x2="920" y2="300" stroke="#8fa3c2" stroke-width="2"/>
+
+  <rect x="510" y="240" width="22" height="60" class="wall"/>
+  <rect x="536" y="206" width="22" height="94" class="wall"/>
+  <rect x="562" y="215" width="22" height="85" class="wall"/>
+  <rect x="588" y="249" width="22" height="51" class="wall"/>
+
+  <rect x="760" y="224" width="22" height="76" class="chair"/>
+  <rect x="786" y="172" width="22" height="128" class="chair"/>
+  <rect x="812" y="147" width="22" height="153" class="chair"/>
+  <rect x="838" y="181" width="22" height="119" class="chair"/>
+  <rect x="864" y="240" width="22" height="60" class="chair"/>
+
+  <line x1="729" y1="134" x2="729" y2="300" stroke="#b54747" stroke-width="2.5" stroke-dasharray="6 5"/>
+  <text x="723" y="126" class="flag" text-anchor="end">mean — no pixel here</text>
+  <line x1="797" y1="134" x2="797" y2="300" stroke="#4169a8" stroke-width="2.5"/>
+  <text x="803" y="126" class="good">median — on the chair</text>
+
+  <text x="560" y="320" class="small" text-anchor="middle">wall (box corners)</text>
+  <text x="823" y="320" class="small" text-anchor="middle">chair</text>
+  <text x="490" y="344" class="small">relative inverse depth, no unit  →  nearer</text>
+
+  <text x="35" y="385" class="label">Two separate clusters in one box is what a <tspan class="mono">mixed_region</tspan> flag reports — step 6.</text>
+</svg>

@@ -1,6 +1,6 @@
 # Prompt — prove the export is still the model
 
-**When:** Lesson 04, step 6.
+**When:** Lesson 04, step 8.
 
 **Which agent:** `qa`, with `ml-engineer` interpreting the result.
 
@@ -8,7 +8,7 @@
 
 ---
 
-Step 4 produced files that load and run. This step asks the different question: **do they
+Step 3 produced files that load and run. This step asks the different question: **do they
 still behave like the models you trained?**
 
 The two claims are separated by quantization, a resize implementation, and a normalization

@@ -1,506 +1,403 @@
 # Lesson 04 — Export, Quantization & Numerical Parity
 
-> Notion Week 4. Estimated time: 5–6 hours end to end.
->
-> **The live session is 90 minutes**, so this lesson is split across pre-session homework,
-> the session itself, and follow-up work. The split — what happens in the room, what you
-> do before, what you do after, and why — is in
-> [`RETROSPECTIVE.md`](RETROSPECTIVE.md), alongside the two course assets it depends on.
+> Notion Week 4. **Session: 90 minutes.** Homework: about 1h 45m before, 1h 30m after.
 
 ## Session goal
 
-Turn two models into two files that run on a phone — and prove they still behave like the
-models you trained.
+Turn your two models into two files a phone can run — and prove they still behave like the
+originals.
 
-Two roles arrive: `integration` owns the fusion between detection and depth, `qa` owns the
-proof that any of it works. `ml-engineer`, which you met in Lesson 03, gains a second job:
-export. The split matters because the hardest bug in this lesson lives in exactly one of
-those seams. Two models, two coordinate spaces, two resolutions, and one silent mismatch
-that produces numbers that look completely reasonable.
+"It exported" and "it still works" are different claims. This lesson measures the gap.
 
-The other thread is what export actually costs you. An exported model is not the model you
-trained — it is a quantized approximation of it, produced by a toolchain with its own
-opinions about tensor layouts. "It loads and runs" is not the same claim as "it still
-works", and the distance between those two claims is measured here rather than discovered
-in Lesson 05.
+**Roboflow credits: zero.** Everything runs on your machine.
+
+| When | Steps | Time |
+|---|---|---|
+| Before the session | 1–3 | ~1h 45m |
+| **In the session** | 4–8 | **85 min** |
+| After the session | 9–13 | ~1h 30m |
 
 ## Prerequisites
 
-- [ ] Lesson 03 complete: model V1 trained, weights under `runs/`
-- [ ] `src/smart_scene_analyzer/depth.py` passing `check_depth_ordering.py`
-- [ ] `docs/credit-budget.md` reconciled
-- [ ] `uv sync --extra ml --extra depth` runs cleanly
-- [ ] The locally trained `best.pt` is on disk — **a hosted-only model cannot be exported**
+Do these in order, before the session.
 
-> **Roboflow credits needed: zero.** Export runs entirely on your machine. Nothing in this
-> lesson touches a metered endpoint.
+1. **Do:** Check your detector weights from Lesson 03.
+   **Command:** `ls runs/detect/runs/v1-baseline/weights/best.pt`
+   **Expected result:** the file is listed. Weights trained on Roboflow's hosted service
+   cannot be downloaded on the free plan, so they cannot be exported.
+   ⚠️ **OPEN — no weights of your own:** see [Open items](#open-items).
+
+2. **Do:** Confirm the depth module still orders near and far correctly.
+   **Command:** `uv run python scripts/check_depth_ordering.py --cases <cases>.json`
+   (`<cases>` is the file you made in Lesson 03 step 5.)
+   **Expected result:** exit code 0 and every case `PASS`.
+
+3. **Do:** Install the extra dependencies.
+   **Command:** `uv sync --extra ml --extra depth`
+   **Expected result:** finishes with no errors.
+
+4. **Do:** Steps 1–3 below, **in that order**. Step 2 must be committed before step 3 runs.
+   **Expected result:** the model card's **Exported artifact** table is committed, and two
+   model files exist in `app/assets/models/`.
 
 ## Deliverables
 
-- [ ] `.claude/agents/ml-engineer.md`, `qa.md`, and `integration.md` in use
-- [ ] `src/smart_scene_analyzer/fusion.py` — per-object depth, units stated, pure
-- [ ] `scripts/export.py` — reproducible export of both models
+- [ ] `src/smart_scene_analyzer/fusion.py` — pure, units and coordinate spaces stated
+- [ ] `tests/fixtures/fusion_cases.json` — plain JSON, reused by Lesson 05's TypeScript tests
+- [ ] `scripts/export.py` — exports both models, reproducibly
 - [ ] `app/assets/models/` — the detection `.tflite` and the depth `.pte`
-- [ ] `tests/fixtures/fusion_cases.json` — language-neutral fixtures Lesson 05 will reuse
-- [ ] `scripts/check_fusion_live.py` — written, not copied: the fusion layer run on your
-      own room, with a near-to-far table and the quality flags
-- [ ] A test suite passing with **no GPU, no network, no weights on disk**
-- [ ] `tests/test_export_parity.py` — exported artifacts vs the PyTorch reference
-- [ ] The model card's **Exported artifact** table filled in
-- [ ] `docs/execution-target-comparison.md` — on-device backends, measured
-- [ ] An ADR for the inference target, closing the Lesson 01 open decision
-- [ ] `docs/artifact-budget.md` started, with both file sizes
+- [ ] `scripts/check_fusion_live.py` — written by you, imports the fusion layer
+- [ ] A test suite that passes with **no GPU, no network, no weights on disk**
+- [ ] `tests/test_export_parity.py` — exported files vs. the PyTorch originals
+- [ ] Model card: **Exported artifact** table and **Known failure modes** filled in
+- [ ] `docs/artifact-budget.md` — both file sizes
+- [ ] `docs/execution-target-comparison.md` — on-device backends, with a device floor
+- [ ] Your inference-target ADR amended with measured numbers
 
-Verify with [`resources/checklists/deliverables.md`](resources/checklists/deliverables.md).
+Check them with [`resources/checklists/deliverables.md`](resources/checklists/deliverables.md).
 
 ---
 
 ## Step-by-step
 
-### 1. Meet the roles
+## Part 1 — Before the session
 
-**Do:** Read all three definitions.
+### 1. Meet the three roles · 15 min
+
+**Do:** Read the three agent definitions.
 
 ```bash
 $EDITOR .claude/agents/ml-engineer.md .claude/agents/qa.md .claude/agents/integration.md
 ```
 
-They have overlapping tool lists. The boundary between them is not capability — it is
-**responsibility**, and it is drawn where the failure modes differ:
-
-| Role | Owns | Characteristic failure |
+| Role | Owns | Typical failure |
 |---|---|---|
-| `ml-engineer` | Training **and export** | An artifact that runs and no longer matches the model |
-| `integration` | Fusing boxes with depth | A coordinate-space mismatch that produces plausible numbers |
-| `qa` | Proving it works | A test that passes on the bug it was written to catch |
+| `ml-engineer` | Training **and export** | A file that runs but no longer matches the model |
+| `integration` | Combining boxes with depth | Reading depth from the wrong region — the number still looks fine |
+| `qa` | Proving it works | A test that passes on the bug it should catch |
 
-**Expected result:** you can say which agent owns "the int8 export lost the `lamp` class"
-(`ml-engineer` — quantization) and which owns "the depth value is sampled from the wrong
-region" (`integration`).
+`qa` tests code it did not write — the same reason Lesson 03 split `evaluation` from
+`ml-engineer`.
 
-> Lesson 03 split `ml-engineer` from `evaluation` because one agent should not both build
-> and grade. The same principle applies here, one layer down: `qa` writes the tests, and
-> `qa` did not write the code under test.
+**Expected result:** you can answer in one sentence each:
+- "The int8 export lost the `lamp` class" → `ml-engineer`
+- "Depth is read from the wrong region" → `integration`
 
-> **`ml-engineer` gaining export is deliberate rather than convenient.** Whoever trained
-> the model knows what it is supposed to do, and export is where that knowledge is needed.
-> Note the boundary this creates with `mobile` in Lesson 05: the app consumes artifacts and
-> never re-exports them, so that when the device disagrees with the reference, *which side
-> is wrong* stays a question somebody has to answer rather than a thing somebody quietly
-> fixes.
+### 2. Write the artifact contract — before exporting · 45 min
 
----
+**Do:** Use [`resources/prompts/01-artifact-contract.md`](resources/prompts/01-artifact-contract.md)
+with `ml-engineer`. Fill the model card's **Exported artifact** table with what you
+*intend* to produce. Mark every value `INTENDED`.
 
-### 2. Define the artifact contract first
+![Step 2 writes the Exported artifact table with every value marked INTENDED and commits it; step 3 exports a .tflite and a .pte; step 4 diffs the table against the real files, and where they disagree the file is right. Lesson 05 writes its decoder from the table. Swap steps 2 and 3 and the card just copies the file, so the diff finds nothing.](resources/images/contract-before-export.svg)
 
-**Do:** Before exporting anything, use
-[`resources/prompts/01-artifact-contract.md`](resources/prompts/01-artifact-contract.md)
-to decide and write down what the exported models will promise.
+A model file does not say what it expects. The app has to assume it, and a wrong guess
+gives you boxes that look right and are not.
 
-For three lessons the models were things you called — a function, a process. Their inputs
-and outputs were checked by Python at every boundary. That stops next week.
-
-**An artifact makes promises nothing verifies.** A `.tflite` file does not announce that
-its input is NCHW, that its coordinates are normalized, or that class 7 is `lamp`. The app
-assumes all of it. A mismatch produces boxes: confident, well-formed, and wrong.
-
-So the contract is written down before the export exists, in the model card:
-
-| Field | Why the app cannot infer it |
+| Field | What goes wrong if the app guesses |
 |---|---|
-| Input shape, dtype, layout | `[1,3,H,W]` float32 and `[1,H,W,3]` uint8 are both plausible and produce garbage when swapped |
-| Normalization mean/std | ImageNet-normalized input to a `[0,1]` model yields a smooth, wrong depth map |
-| Output tensor count and order | The app decodes positionally |
-| Label order | An off-by-one here reads as a model problem for a long time |
+| Input shape, type, layout | `[1,3,H,W]` float32 vs `[1,H,W,3]` uint8 — swapped, you get garbage |
+| Normalization | Wrong mean/std gives a smooth, wrong depth map |
+| Output order | The app reads outputs by position |
+| Label order | Off by one, and it looks like a model problem for weeks |
 
-**Two rows are given to you rather than decided by you.** The input squares are fixed:
-`MODEL_INPUT` is **640×640** for detection, `DEPTH_INPUT` is **518×518** for depth, both
-letterboxed. Depth Anything V2 Small is a ViT-**S/14**, so its input edge must be a
-multiple of 14 — and `640 / 14 = 45.71`. The detection square is not a legal input to the
-depth model, which is why the project carries a fourth coordinate space rather than three.
-`docs/architecture.md` §2 holds the arithmetic, the alternative that was rejected, and the
-reason the second square is cheap: the two are the same letterbox at two edge lengths, so
-converting between them is a uniform scale **with no offset term**.
+**Given, not decided by you:** detection input is **640×640**, depth input is **518×518**,
+both letterboxed. Depth Anything V2 needs a multiple of 14, and 640 is not one. The
+details are in `docs/architecture.md` §2.
 
-**This is the same lesson the response schema used to teach**, moved to where the contract
-now lives. The old schema at least had a type system defending it at runtime. This has
-nothing — which makes writing it down more important, not less.
+**Also decide here:** which images int8 calibration uses. Write it down.
+⚠️ **OPEN** — see [Open items](#open-items).
 
-**Expected result:** the **Exported artifact** table in your model card is filled in with
-what you intend to produce. Step 4 will check the real export against it, and any
-disagreement is a finding.
-
----
-
-### 3. Build the fusion layer
-
-**Do:** Use [`resources/prompts/02-fusion-layer.md`](resources/prompts/02-fusion-layer.md)
-with the `integration` agent to write `src/smart_scene_analyzer/fusion.py`.
-
-**This is where the real bugs live.** YOLO11 runs at 640×640. Depth Anything V2 runs at
-518×518. The source image is a third, and the screen is a fourth. A box indexed into the
-wrong one returns a number — the wrong number, in range, for the wrong region.
-
-**Fusion converts between none of them.** The depth boundary resizes out of `DEPTH_INPUT`
-before fusion sees anything. A 518×518 map arriving in fusion means something upstream
-skipped its resize, and the right answer is to raise naming both shapes.
-
-**Write it knowing it will be ported.** In Lesson 05 this exact algorithm is reimplemented
-in TypeScript to run on the phone, and the two copies are kept honest by shared fixtures.
-That makes purity and explicit degenerate cases load-bearing rather than tidy: anything
-this function does implicitly is something the port will do differently.
-
-Non-negotiables, all of which the prompt enforces:
-
-- **Reconcile resolutions explicitly.** Never index a depth map with box coordinates
-  without having proven they share a space. If the depth map is returned at input
-  resolution (as Lesson 03 required), say so and assert it.
-- **Median, not mean**, for reducing a box region — an occluder in front of the object
-  skews the mean, and box corners routinely contain background.
-- **Every degenerate case has a defined result**: zero-area box, box partly outside the
-  image, box entirely outside, empty region after clipping. `NaN` reaching a caller is not
-  a defined result.
-- **Keep it pure.** Arrays and boxes in, structure out. No model loading, no file reads,
-  no network. That is what lets `qa` test it exhaustively without a GPU — and what makes
-  it portable to TypeScript at all.
-- **Fixtures are plain JSON.** Write `tests/fixtures/fusion_cases.json` so that a
-  TypeScript suite can load the same cases. A fixture in a pickle or a `.npy` tests half
-  the system.
-
-**Expected result:** `fusion.py` with a function taking detections and a depth map and
-returning fused results, tested on a real image where you can see that the foreground
-object reads as nearer.
-
----
-
-### 3b. Point it at your own room
-
-**Do:** Use [`resources/prompts/07-live-check.md`](resources/prompts/07-live-check.md)
-with the `integration` agent to **write** `scripts/check_fusion_live.py`, then run it on
-your webcam.
+**Label order has one source of truth**: `docs/taxonomy.md`. If your weights came from
+somewhere else, compare their class list to it now:
 
 ```bash
-uv run python scripts/check_fusion_live.py --camera 0
+uv run python -c "from ultralytics import YOLO; print(YOLO('<weights>').names)"
 ```
 
-**You write this one; it is not copied in.** It is about fifty lines of wiring, and the
-wiring is the point — it is the first code in the project that puts detection, depth, and
-fusion on the same pixels, and it has to get the coordinate space right to produce
-anything at all. It must **import** `fuse_detections_with_depth` rather than reduce boxes
-itself: a verification script that reimplements what it verifies proves only that two
-things you wrote in the same hour agree.
+(`<weights>` is the path from Prerequisite 1.)
 
-`cv2.imshow` is not available — the project depends on `opencv-python-headless`, which has
-no GUI backend on purpose. The script writes an annotated PNG and a grayscale depth map.
+**Expected result:** the table is filled in, marked `INTENDED`, and committed. The class
+list printed above matches `docs/taxonomy.md` in the same order — or you have written down
+that it doesn't.
 
-**Every image in your test split came from the same sensor family, in the same kind of
-room, annotated by the same process.** Your desk is none of those. `docs/evaluation-v1.md`
-measures the model; this measures nothing — it shows you a frame and lets you disagree
-with it. A model that scores well on the split and falls apart on your own room has told
-you something no metric in this lesson would have.
-
-Three things to look at, in order:
-
-1. **The boxes.** Right objects? Anything obvious missed? `cabinet`, `door`, and `lamp`
-   are the rare classes and are where you should expect to be disappointed.
-2. **The near-to-far ORDER**, not the values. The values are relative inverse depth: no
-   unit, no scale, this frame only. The rank is the part that means something.
-3. **The quality flags.** `mixed_region` means the box straddles a real depth
-   discontinuity, and the fusion layer is disclosing that its single value summarises two
-   different things. A frame full of them usually means loose boxes, not broken depth.
-
-**Optional, and provided rather than written** — a continuous version that streams to
-`http://127.0.0.1:8000`:
-
-```bash
-cp <path-to-course-repo>/lessons/04-backend-engineering/resources/scripts/watch_fusion_live.py scripts/
-uv run python scripts/watch_fusion_live.py --camera 0
-```
-
-It is provided because building it teaches nothing this lesson is about — it is an MJPEG
-server, a worker thread, and a frame buffer, none of which is detection, depth, fusion, or
-export. It runs depth every fifth frame by default and **prints how stale the map is on
-screen**: this project's characteristic failure, made visible. `--depth-every 1` makes it
-honest and slow.
-
-**Expected result:** `scripts/check_fusion_live.py` exists and runs, and you can say —
-from your own room rather than from a metric — where this model is weak. That sentence
-belongs in the model card's **Known failure modes**, which `docs/evaluation-v1.md` cannot
-write for you.
-
-> These are viewers, not tests. They prove nothing and nothing depends on them — step 5
-> is where the claims get asserted. Skip this step if you are short of time; skip step 5
-> and the suite is not a suite.
-
----
-
-### 4. Export both models
+### 3. Export both models · 45 min
 
 **Do:** Use [`resources/prompts/03-export-pipeline.md`](resources/prompts/03-export-pipeline.md)
-with the `ml-engineer` agent to write `scripts/export.py`.
-
-Two models, two toolchains, two output formats:
+with `ml-engineer` to write `scripts/export.py`. It runs these two commands:
 
 ```bash
-# Detection — Ultralytics to int8 TFLite. int8 needs calibration data.
-uv run yolo export model=runs/<run>/weights/best.pt format=tflite int8=True data=<data.yaml>
+# Detection → int8 LiteRT (.tflite). int8 needs calibration images.
+uv run yolo export model=<weights> format=litert quantize=8 data=<data.yaml>
 
-# Depth — HuggingFace checkpoint to an ExecuTorch .pte
+# Depth → ExecuTorch (.pte)
 uv run optimum-cli export executorch \
   --model depth-anything/Depth-Anything-V2-Small-hf \
   --task depth-estimation --recipe xnnpack \
   --output_dir app/assets/models/
 ```
 
-**Do:** Immediately check the real artifacts against the contract you wrote in step 2.
+`<weights>` is your `best.pt`. `<data.yaml>` points to your calibration images from step 2.
 
-**Expected result:** both files in `app/assets/models/`, their sizes recorded in
-`docs/artifact-budget.md`, and the model card's **Exported artifact** table updated with
-what the export *actually* produced — not what you intended.
+> Ultralytics renamed TFLite to **LiteRT** in 8.4.83. The old `format=tflite int8=True`
+> still works but prints a deprecation warning. Checked 2026-09-24 against the
+> [Ultralytics export docs](https://docs.ultralytics.com/modes/export/) and version 8.4.118.
 
-> **Where the two disagree, the artifact wins and the card is wrong.** Exported tensor
-> layouts differ between toolchain versions, and the two details most often wrong are
-> whether coordinates are normalized or in input-pixel space, and the output tensor
-> ordering. Lesson 05 writes a decoder against this table; a wrong row there becomes a
-> confidently misplaced box there.
+**Do:** Record both file sizes in `docs/artifact-budget.md`.
 
-> ⚠️ **Neither command is verified against this project's models.** The formats and flags
-> are current as of 2026-08-12, but that YOLO11 exports cleanly to int8 TFLite here, and
-> that Depth Anything V2's ViT survives the ExecuTorch recipe at acceptable speed, has not
-> been confirmed on a clean machine. If one fails, that failure is the finding — record
-> what broke rather than substituting a different model quietly.
+**Expected result:** a `.tflite` and a `.pte` in `app/assets/models/`, sizes recorded.
+If an export fails, write down what broke — that is a finding, not a failure.
+⚠️ **OPEN — no ready-made fallback files yet:** see [Open items](#open-items).
 
 ---
 
-### 5. Test it properly
+## Part 2 — In the session
 
-**Do:** Use [`resources/prompts/04-test-suite.md`](resources/prompts/04-test-suite.md)
-with the `qa` agent, and invoke the `offline-suite` skill.
+### 4. Contract vs. reality · 10 min
 
-**The default suite runs with no GPU, no network, and no weights on disk, in seconds.**
-That constraint is not about speed; it is about whether the suite runs at all in CI, and
-whether anyone runs it locally often enough to notice a break.
+**Do:** Open your step 2 contract next to what step 3 actually produced. Ask
+`ml-engineer` to read the real input/output shapes, types, and label order from both
+files and compare them with your table.
 
-Priorities, in order:
+**Expected result:** a list of every mismatch. Update the table to match the file. **Where
+they disagree, the file is right and the card is wrong.** Lesson 05 writes its decoder from
+this table.
 
-- **The fusion layer, exhaustively.** It is pure, so there is no excuse not to. Every
-  degenerate case from step 3, plus the signature test: *does this function actually use
-  its depth argument?* A fusion that ignores the depth map and returns a constant passes a
-  surprising number of naive tests.
-- **The artifact contract**, asserted rather than assumed: label order matches the
-  taxonomy, and no field name anywhere implies metres.
-- **Fixtures generated in code or stored as JSON**, never committed as binaries.
+### 5. Build the fusion layer · 30 min
 
-**Expected result:** `uv run pytest` green in seconds. Verify the offline claim rather than
-trusting it:
+**Do:** Use [`resources/prompts/02-fusion-layer.md`](resources/prompts/02-fusion-layer.md)
+with `integration` to write `src/smart_scene_analyzer/fusion.py`.
+
+There are four coordinate spaces: the source image, the 640 detection square, the 518
+depth square, and the screen. A box read in the wrong one returns a wrong number that
+still looks normal. Lesson 03's [raster diagram](../03-model-development/resources/images/depth-raster-spaces.svg)
+showed two of them; here are all four.
+
+![The source image is letterboxed to 640×640 for YOLO11 and to 518×518 for Depth Anything V2. Boxes are rescaled and the depth map is resized back into one space before fusion: source pixels in Python, the 640 model input on the handset. Fusion takes the median per box and converts nothing; a 518×518 map reaching it raises. The Lesson 05 overlay draws the result in screen points.](resources/images/fusion-coordinate-spaces.svg)
+
+Rules the prompt enforces:
+
+- **Fusion works in source-image pixels only.** Depth is resized back before fusion. A
+  518×518 map arriving here is a bug — raise an error naming both shapes.
+- **Use the median, not the mean,** over the box. Box corners often contain background.
+- **Every edge case has a defined result:** zero-size box, box partly or fully outside the
+  image, empty region. `NaN` is not a result.
+- **Keep it pure:** no model loading, no files, no network. That makes it testable, and it
+  gets ported to TypeScript in Lesson 05.
+- **Fixtures are plain JSON** in `tests/fixtures/fusion_cases.json`, so TypeScript can load
+  the same cases.
+
+![A loose box around a bright near chair has dark far wall in its corners. The depth values inside the box form two clusters; the mean falls in the empty gap between them, a value no pixel has, while the median lands on the chair. Two clusters in one box is what a mixed_region flag reports.](resources/images/median-vs-mean-box.svg)
+
+**Expected result:** `fusion.py` returns one depth value per box. On a real photo, the
+object in front reads as nearer.
+
+### 6. Point it at your own room · 12 min
+
+**Do:** Use [`resources/prompts/07-live-check.md`](resources/prompts/07-live-check.md) with
+`integration` to **write** `scripts/check_fusion_live.py` (about 50 lines). It must
+**import** `fuse_detections_with_depth` — a checker that re-implements the thing it checks
+proves nothing. Then run it:
+
+```bash
+uv run python scripts/check_fusion_live.py --camera 0
+```
+
+Using a phone camera (Continuity Camera shows up as another index)? It needs more frames to
+focus — the same `--warmup 90` fix as Lesson 03 step 6.
+
+This is Lesson 03 step 6 again, now through your fusion layer. **Re-run a frame that went
+wrong in `docs/live-validation.md`** — for example, a big box whose depth came mostly from
+the wall behind it. Check three things:
+
+1. **Boxes:** right objects? Anything missed?
+2. **Near-to-far order** — not the values. The values have no unit.
+3. **Quality flags:** `mixed_region` means the box covers two depths. Lots of them usually
+   means loose boxes, not broken depth.
+
+**Expected result:** an annotated PNG, a depth PNG, and a near-to-far table. You can name
+one weakness you saw with your own eyes.
+
+**Optional:** a live version, provided ready to run:
+
+```bash
+cp <path-to-course-repo>/lessons/04-backend-engineering/resources/scripts/watch_fusion_live.py scripts/
+uv run python scripts/watch_fusion_live.py --camera 0
+```
+
+**Expected result:** a live view at `http://127.0.0.1:8000`, showing how old the depth
+map is. `--depth-every 1` makes it exact and slow.
+
+### 7. Test the fusion layer · 13 min
+
+**Do:** Use [`resources/prompts/04-test-suite.md`](resources/prompts/04-test-suite.md) with
+`qa`, and invoke the `offline-suite` skill.
+
+Priority: fusion first, every edge case from step 5. Plus one test that catches a fake:
+**does the function actually use the depth map?** A fusion that ignores depth and returns
+a constant passes many naive tests.
+
+**Expected result:** `uv run pytest` green in seconds, with no GPU, network, or weights.
+
+### 8. Prove the export is still the model · 15 min
+
+**Do:** Use [`resources/prompts/05-export-parity.md`](resources/prompts/05-export-parity.md)
+to write `tests/test_export_parity.py`. Feed the same images to the exported file and to
+the original PyTorch model.
+
+| Model | Must agree | Won't match exactly |
+|---|---|---|
+| Detection | Classes, and boxes within an IoU tolerance | Confidences — int8 shifts them |
+| Depth | Near-to-far **order** | The values — there is no scale |
+
+**Report the change per class, not one average.** int8 can wreck one class while the
+average barely moves. If depth order comes out [inverted](../03-model-development/resources/images/depth-sign-convention.svg), say so — don't quietly flip it.
+
+**Expected result:** the test passes with a stated tolerance. The per-class change is in
+the model card.
+
+---
+
+## Part 3 — After the session
+
+### 9. Finish the test suite · 30 min
+
+**Do:** Add tests for the artifact contract: label order matches `docs/taxonomy.md`, and no
+field name implies metres. Then prove the suite really is offline:
 
 ```bash
 mv runs runs.hidden && uv run pytest; mv runs.hidden runs
 ```
 
----
+**Expected result:** `pytest` green with `runs/` hidden.
 
-### 6. Prove the export is still the model
+### 10. Compare the on-device backends · 30 min
 
-**Do:** Use [`resources/prompts/05-export-parity.md`](resources/prompts/05-export-parity.md)
-to write `tests/test_export_parity.py`.
-
-This is the step that separates "the export produced a file" from "the export produced a
-model". They are not the same claim, and only one of them is worth shipping.
-
-Run the same fixtures through the exported artifact and through the **original PyTorch
-weights**, and compare:
-
-| Model | What must agree | What will not |
-|---|---|---|
-| Detection | Classes, and boxes within an IoU tolerance | Confidences exactly — int8 shifts them |
-| Depth | The **ordering** of near versus far | The values. There is no scale to compare |
-
-**Report the per-class delta, not the aggregate.** int8 quantization can destroy one class
-while leaving mAP almost unmoved, and an aggregate number is exactly the wrong instrument
-for finding that.
-
-> **Depth parity is an ordering check.** The output has no unit and no scale, so comparing
-> magnitudes across two runtimes is meaningless. If the near-to-far ranking survives, the
-> export works. If it inverted, say so — do not silently negate it.
-
-**Expected result:** `tests/test_export_parity.py` passing with a stated tolerance, and the
-per-class quantization delta recorded in the model card.
-
----
-
-### 7. Compare the on-device execution targets
-
-**Do:** Use [`resources/prompts/06-execution-target-comparison.md`](resources/prompts/06-execution-target-comparison.md), then
+**Do:** Use [`resources/prompts/06-execution-target-comparison.md`](resources/prompts/06-execution-target-comparison.md),
+starting from the template:
 
 ```bash
 cp <path-to-course-repo>/lessons/04-backend-engineering/resources/templates/execution-target-comparison.md docs/execution-target-comparison.md
 ```
 
-An exported model can run several ways on a phone, and they are not interchangeable:
-
-| Target | Available on | Trade |
+| Backend | Runs on | Trade-off |
 |---|---|---|
-| XNNPACK / CPU | Everywhere | Slowest, and the only one guaranteed to exist |
-| Android NNAPI | Android, vendor-dependent | Fast when the vendor implemented it well; silently falls back when not |
-| CoreML / ANE | iOS | Fastest on Apple silicon. **Not available in the Simulator** |
-| GPU delegate | Both, model-dependent | Good for some ops, worse for others |
+| XNNPACK / CPU | Everywhere | Slowest, but always there |
+| Android NNAPI | Android, depends on vendor | Fast when supported; quietly falls back when not |
+| CoreML / ANE | iOS | Fastest on Apple chips. **Not in the Simulator** |
+| GPU delegate | Both, depends on model | Good for some operations, worse for others |
 
-**Do:** Keep the cloud rows from the previous architecture in the table, as contrast. The
-comparison "0 credits per 1,000 images on-device versus 1 credit per 1,000 hosted" is worth
-seeing next to "and the on-device one needs a 40 MB download and excludes phones older than
-2021". Neither column is free; they are expensive in different currencies.
+Keep the old cloud option as a comparison row: 0 credits on-device vs. 1 credit per 1,000
+images hosted — but on-device means a bigger download and a minimum phone age.
 
-**Expected result:** `docs/execution-target-comparison.md` with a recommended default
-backend per platform, and the device floor that choice implies.
+**Expected result:** the file names a default backend per platform and the oldest phone
+that choice supports.
 
----
+### 11. Amend your inference-target ADR · 20 min
 
-### 8. Close the Lesson 01 open decision
+The decision is already made: on-device (see `CLAUDE.md` → *Decisions on record*). Now add
+the numbers you measured.
 
-Lesson 01 recorded ⚠️ OPEN: **cloud service vs. on-device ONNX / Core ML / TFLite.** You
-now have the evidence to close it — and to close it in the direction Lesson 01 listed as
-the hardest.
+**Do:** Open the ADR `CLAUDE.md` points to and add:
 
-**Do:**
+- The parity tolerance and per-class quantization change (step 8)
+- Both file sizes, and what they mean for install size and device floor
+- The default backend per platform (step 10)
+- What got **harder**: an export toolchain, two native runtimes, a second copy of the
+  fusion layer, app-store releases
+- **Revisit when:** Lesson 05 measures the real phone. Say what result would reopen it.
 
-```
-/adr inference target: on-device, TFLite detection and ExecuTorch depth
-```
+Don't write general arguments for on-device — write your numbers. They came from your
+laptop, not a phone.
 
-The ADR must state what you learned rather than what you assumed:
+**Expected result:** the ADR's Context has your measured numbers, and its Consequences say
+what got harder.
 
-- Export works, at a measured cost: the parity tolerance from step 6, and the per-class
-  quantization delta
-- Both artifact sizes, and what they imply for install size and the device floor
-- The execution-target trade from step 7, and the default backend you chose per platform
-- On the free plan you cannot download hosted-trained weights — **so a hosted-trained
-  model cannot be exported at all**, and local training was never merely the cheaper option
-- What would change the decision
+### 12. Write the known failure modes · 20 min
 
-**Be honest that this decision costs more than it saves.** It removes a hosting bill and a
-network dependency, and in exchange it adds an export toolchain, two native runtimes, a
-second implementation of the fusion layer, and an app-store release cycle for what used to
-be a deploy. An ADR that lists only the benefits is an advertisement.
+**Do:** In `docs/model-card-v1.md`, fill **Known failure modes** from the frames you ran
+in step 6: class, what went wrong, which frame, and whether it is DATA, TAXONOMY, MODEL, or
+EXPORT.
 
-**Write the *Revisit when* clause carefully.** Lesson 05 measures on-device latency and
-memory on real hardware, so at least one of your trigger conditions is about to fire on
-schedule. An ADR whose revisit condition occurs and is never revisited has stopped being a
-decision and become a piece of history.
+**Expected result:** the section is filled, with one saved annotated frame as evidence.
 
-Note also what your step 6 and 7 numbers are and are not. They were measured on your
-machine, against exported artifacts, not on a phone. Lesson 05 measures the device, and
-the gap between those two is the whole reason step 9 of that lesson exists.
+### 13. Reconcile and commit · 10 min
 
-**Expected result:** an ADR whose Context section contains numbers you measured, and whose
-Consequences section names what got harder.
+**Do:** Open `app.roboflow.com/<workspace>/settings/usage`, compare with
+`docs/credit-budget.md`, and update **Remaining** and **Last reconciled**.
 
-> The `/adr` command tells the agent: *"If you do not know why this decision was forced,
-> ask me rather than writing a plausible-sounding rationale. A fabricated Context is worse
-> than a blank one, because it will be believed."* This is the ADR where that instruction
-> pays off — you have real measurements, and the temptation is to write the general
-> argument for on-device instead of your specific one.
+**Expected result:** Lesson 04 spent **0** credits.
 
----
-
-### 9. Reconcile and commit
-
-**Do:**
-
-1. Open `app.roboflow.com/<workspace>/settings/usage`
-2. Compare against `docs/credit-budget.md`
-3. Update **Remaining** and **Last reconciled**
-
-**Expected result:** Lesson 04 spend is **0** — export runs entirely on your machine.
-Running total across Lessons 02–04 unchanged from Lesson 03. Lesson 05 also spends
-nothing; Lesson 06 is allocated 4.
+**Do:** Run the checks and commit.
 
 ```bash
 uv run ruff check . && uv run mypy src && uv run pytest
 git add -A
-git status   # confirm: no *.pt, no *.tflite, no *.pte, no data/, no .env
+git status   # no *.pt, *.tflite, *.pte, data/, .env, or personal photos
 git commit -m "Lesson 04: fusion layer, model export, quantization parity"
-git push
 ```
+
+**Expected result:** all checks green, and a commit with no model files, data, or secrets.
 
 ---
 
 ## Verification
 
-Work through
-[`resources/checklists/deliverables.md`](resources/checklists/deliverables.md).
+Work through [`resources/checklists/deliverables.md`](resources/checklists/deliverables.md), then:
 
 ```bash
-# Offline, no GPU, no weights on disk, seconds
-uv run pytest
-
-# Prove the offline claim rather than trusting it
+uv run pytest                                   # offline, seconds
 mv runs runs.hidden && uv run pytest; mv runs.hidden runs
-
-# Quality gates
 uv run ruff check . && uv run mypy src
-
-# The artifacts exist and their sizes are recorded
-ls -l app/assets/models/
-
-# Nothing leaked
+ls -l app/assets/models/                        # both files, sizes in artifact-budget.md
 git status --porcelain | grep -E '\.(pt|tflite|pte|onnx)$|^\?\? data/|\.env$' && echo "LEAK" || echo "clean"
+grep -rnsE 'depth_m\b|_meters?\b|_metres?\b' src/ app/src/   # must print nothing
 ```
 
-The check that matters most, and which no command performs:
+**Expected result:** tests green, `clean`, and the last command prints nothing — the
+project cannot measure distance, so no name may suggest it.
 
-```bash
-grep -riE 'depth_m|meter|metre|distance' src/ | grep -v 'NOT metres'
-```
+Then read your own work:
 
-**This must return nothing.** Any identifier implying absolute distance is a bug, because
-the project cannot produce one. Lesson 02 decided it, Lesson 03 built it, and this is where
-it would be baked into an artifact that ships to a phone.
+- Every contract row comes from the **real** export
+- Boxes are `xyxy` in absolute pixels of a **named** space
+- `fusion.py` loads no model, reads no file, calls no network
+- The parity test states a tolerance and reports per class
+- The execution-target comparison names a device floor
+- The ADR cites measurements and names what got harder
 
-Then read:
-
-- Every model-card contract row is filled in from the **real** export, not the intended one
-- Boxes are documented as `xyxy` in absolute pixels of a **named** space
-- The fusion layer has no model loading, file reads, or network calls
-- `tests/fixtures/fusion_cases.json` is plain JSON that TypeScript could load
-- The parity test states a tolerance and reports per-class deltas
-- `docs/execution-target-comparison.md` names a device floor
-- The inference-target ADR cites measurements and names what got harder
-
-The qualitative check: **run the exported model on a photo of a real room, and compare it
-against the PyTorch original.** Your test images come from one dataset with one sensor. The
-first genuinely out-of-distribution image usually tells you more than the whole test suite
-— and if quantization hurt a class, this is where it shows up first.
+Last check: run the exported model on a photo of your own room and compare it with the
+PyTorch original. If int8 hurt a class, this is where you'll see it first.
 
 ---
 
 ## Open items
 
-- ⚠️ **The export commands are unverified against this project's models** (step 4). Formats
-  and flags are current as of 2026-08-12, but that YOLO11 exports cleanly to int8 TFLite
-  here, and that Depth Anything V2's ViT survives the ExecuTorch recipe at usable speed,
-  has not been confirmed on a clean machine. This is the single largest risk in the lesson.
-- ⚠️ **The export toolchain is not yet in `pyproject.toml`.** `ultralytics` TFLite export
-  and `optimum-executorch` pull large, platform-sensitive dependency trees. Confirm both
-  install cleanly on macOS and Linux before a cohort.
-- ⚠️ **The int8 calibration set is unspecified.** Using the val split is the obvious default
-  and also the one that makes the parity number optimistic. Decide deliberately and say so.
-- ⚠️ **MLflow in CI** — Lesson 06 needs CI to read runs it did not create. Carried from
-  Lesson 03.
-- ⚠️ **Free-plan credit allowance unconfirmed** — carried from Lesson 02.
-
-> **Resolved since this lesson was written:** *mobile app scope*. It is a real app — an Expo
-> development build for iOS and Android, running both models on-device, built in Lesson 05
-> against the artifact contract you defined in step 2. Which is why that step asks you to
-> write the contract down before the export exists: nothing at runtime will check it.
+- ⚠️ **No fallback export files yet** (steps 3, 4). If an export fails at home, the student
+  arrives with nothing for step 4. A ready-made `export.py` and both pre-exported files
+  need publishing as a course download before a cohort.
+- ⚠️ **No fusion skeleton yet** (step 5). 30 minutes assumes students fill in function
+  bodies from a provided file (`resources/templates/fusion.py` with signatures and edge
+  cases listed). Without it, designing the interface eats the session.
+- ⚠️ **No weights of your own** (Prerequisite 1). If a student skipped training, the only
+  option today is another project's weights — whose class list may not match
+  `docs/taxonomy.md`. Step 2's check catches that, but the course has no approved
+  fallback weights.
+- ⚠️ **Int8 calibration set undecided** (step 2). Calibrating on the validation split is
+  the obvious default, and it makes the parity number look better than it is.
+- ⚠️ **Export commands not yet run on this project's models** on a clean machine. The
+  syntax is checked against current docs (2026-09-24); the result is not.
+- ⚠️ **Ultralytics now exports ExecuTorch directly** (`format=executorch`, listed in
+  8.4.118). Exporting detection to `.pte` too would drop one of the two native runtimes in
+  the app. Not yet evaluated.
 
 ## Further reading
 
-- [Ultralytics — model export](https://docs.ultralytics.com/modes/export/) — TFLite and int8, checked 2026-08-12
-- [Optimum ExecuTorch — export guide](https://huggingface.co/docs/optimum-executorch/en/guides/export) — the `depth-estimation` task, checked 2026-08-12
-- [ExecuTorch — export and lowering](https://docs.pytorch.org/executorch/stable/using-executorch-export.html) — what `.pte` actually is
-- [react-native-fast-tflite](https://github.com/mrousavy/react-native-fast-tflite) — the runtime Lesson 05 loads the detection artifact into
-- [React Native ExecuTorch](https://docs.swmansion.com/react-native-executorch/) — the runtime for depth
+- [Ultralytics — model export](https://docs.ultralytics.com/modes/export/) — LiteRT and `quantize=8`, checked 2026-09-24
+- [Optimum ExecuTorch — export guide](https://huggingface.co/docs/optimum-executorch/en/guides/export) — `depth-estimation` task, `xnnpack` recipe, checked 2026-09-24
+- [ExecuTorch — export and lowering](https://docs.pytorch.org/executorch/stable/using-executorch-export.html) — what a `.pte` is
+- [react-native-fast-tflite](https://github.com/mrousavy/react-native-fast-tflite) — runs the detection file in Lesson 05
+- [React Native ExecuTorch](https://docs.swmansion.com/react-native-executorch/) — runs the depth file
 
 ---
 

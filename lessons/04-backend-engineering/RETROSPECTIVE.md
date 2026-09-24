@@ -7,6 +7,13 @@
 > stays instructor-facing in voice — a student reading it learns what is homework and
 > why, which is not a secret worth keeping.
 
+> **2026-09-24 — README restructured to follow this plan.** Steps are renumbered by
+> phase: before (1 roles, 2 contract, 3 export), in session (4 reveal, 5 fusion, 6 own room,
+> 7 tests, 8 parity), after (9–13). The README no longer links this file. F3's path
+> `0003-on-device-inference-target.md` does not exist in a student project (there, 0003 is
+> dataset acquisition); step 11 now says "the ADR `CLAUDE.md` points to". Assets A and B
+> still do not exist — both are ⚠️ OPEN in the README and in `TODO.md`.
+
 ## The constraint
 
 **The live session is 90 minutes. That is fixed.** The README's 5–6 hours is honest for

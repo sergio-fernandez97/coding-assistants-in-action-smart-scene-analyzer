@@ -92,7 +92,7 @@
 
 ## Decisions
 
-- [ ] `/adr inference target: ...` — closes the Lesson 01 open decision
+- [ ] The inference-target ADR named in `CLAUDE.md` is **amended**, not rewritten
 - [ ] The ADR's Context contains **numbers you measured**, not a general argument
 - [ ] It records that hosted-trained weights are not downloadable on the free plan, and
       therefore **cannot be exported at all**

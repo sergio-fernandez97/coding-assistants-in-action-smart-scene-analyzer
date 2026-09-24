@@ -1,6 +1,6 @@
 # Prompt — export both models reproducibly
 
-**When:** Lesson 04, step 4.
+**When:** Lesson 04, step 3. **Before the session.**
 
 **Which agent:** `ml-engineer`.
 
@@ -48,9 +48,11 @@ different shell invocations six weeks later.
 ## Round 2 — detection
 
 ```
-Export the detection model to int8 TFLite:
+Export the detection model to int8 LiteRT (.tflite):
 
-  yolo export model=runs/<run>/weights/best.pt format=tflite int8=True data=<data.yaml>
+  yolo export model=runs/<run>/weights/best.pt format=litert quantize=8 data=<data.yaml>
+
+  (format=tflite int8=True is deprecated since Ultralytics 8.4.83 and forwards to this.)
 
 Then report:
   - The output tensor shape, read from the exported file
@@ -58,7 +60,7 @@ Then report:
   - The file size, both int8 and fp32, and the ratio
 
 State which calibration data int8 used. If it was the val split, say so explicitly and
-note that this makes the parity number in step 6 optimistic — you are measuring
+note that this makes the parity number in step 8 optimistic — you are measuring
 quantization error on the data that chose the quantization parameters.
 ```
 
@@ -131,7 +133,7 @@ fact about your toolchain that you now know and would otherwise have discovered 
 - One script, re-runnable, with `--force` protection
 - Tensor shapes read back from the exported files, not from the export config
 - Coordinate format determined from data, with the method stated
-- The calibration set named, and its effect on step 6 acknowledged
+- The calibration set named, and its effect on step 8 acknowledged
 - The depth sign convention verified on the export
 - Every contract row reconciled, with differences resolved in the artifact's favour
 - Both sizes in `docs/artifact-budget.md`

@@ -1,6 +1,6 @@
 # Prompt — the scene understanding layer
 
-**When:** Lesson 04, step 3.
+**When:** Lesson 04, step 5.
 
 **Which agent:** `integration`.
 

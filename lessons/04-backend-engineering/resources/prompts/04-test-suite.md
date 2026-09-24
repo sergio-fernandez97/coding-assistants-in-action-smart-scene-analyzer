@@ -1,6 +1,6 @@
 # Prompt — the test suite
 
-**When:** Lesson 04, step 5.
+**When:** Lesson 04, step 7 (in session), finished in step 9.
 
 **Which agent:** `qa`. Not `integration` or `ml-engineer` — the agent that wrote the code
 does not grade it.
