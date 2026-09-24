@@ -41,11 +41,16 @@ Set up **two genuinely different scenes**, three to five objects each:
   distance and angle. Two frames shot from almost the same spot will agree by coincidence
   and teach you the opposite of the lesson.
 - Note each object's position as you go. You will not remember afterwards.
+- Counting floor tiles is the easiest scale. The traps and a worked example are in the
+  [lesson README, step 7](../../README.md#7-reference-depth-calibration).
 
 ```bash
 uv run python scripts/check_live_capture.py --camera 0 --out-dir captures/scene_a
 uv run python scripts/check_live_capture.py --camera 0 --out-dir captures/scene_b
 ```
+
+A phone camera (Continuity Camera shows up as another index) needs `--warmup 90` to focus.
+Each run saves `live_capture_raw.png` — that, not the annotated PNG, is the image for Round 2.
 
 ---
 
@@ -57,8 +62,8 @@ Use the ml-engineer agent.
 I captured two reference scenes. For each, I have the image and a list of objects with the
 position I measured, larger meaning farther, on an arbitrary consistent scale:
 
-  Scene A (<path>):  <object> at <position>, <object> at <position>, ...
-  Scene B (<path>):  <object> at <position>, <object> at <position>, ...
+  Scene A (captures/scene_a/live_capture_raw.png):  <object> at <position>, ...
+  Scene B (captures/scene_b/live_capture_raw.png):  <object> at <position>, ...
 
 Write reference_scenes.json in the format scripts/check_reference_depth.py documents in
 its module docstring. Get the boxes by running the detector on each image, or read them off

@@ -446,6 +446,38 @@ Build **two genuinely different scenes**, three to five objects each, spread out
 camera properly moved between them. Measure positions however you like — **the script uses
 only the order and the ratios, and never converts them, so no unit enters the project.**
 
+**Measure by counting floor tiles.** No tape needed, and it keeps you honest: you record
+"5 tiles", not a size, so there is nothing to convert. Paces work the same way. What went
+wrong in practice, and how to avoid it:
+
+| Trap | Fix |
+|---|---|
+| Three objects within half a tile of each other | Aim for at least half a tile between neighbours; ties are not graded |
+| Scene rearranged between capture and measuring | Measure right after capturing, without touching anything |
+| Long objects (a bed along the view axis) | Record the position of the object's **middle**, not its near end |
+| Phone camera frame is blurry | Pass `--warmup 90`; a phone needs longer to focus than a webcam |
+| The detector misses or misnames an object | Irrelevant here — the cases file takes hand-drawn boxes, and only position is graded |
+
+A worked example — two rooms, positions in floor tiles, measured from the camera:
+
+| Scene A — desk room | tiles | Scene B — bedroom | tiles |
+|---|---|---|---|
+| bed (middle) | 2.5 | mug on dresser | 3.5 |
+| laptop on the floor | 3 | bottle on dresser | 3.5 |
+| mug on desk | 4 | office chair | 5.5 |
+| cup, back of desk | 4.5 | pillow on bed | 7 |
+| monitor | 5 | | |
+
+What it produced: scene A 6/8, rank correlation −0.600, with both misses on the bed (the
+long-object trap above); scene B 5/5, −1.000. Fitted on A, the errors were 33.1% and 43.1% —
+*similar*, but only because the bed made the fit on A poor to begin with. Fitted on B: 1.4%
+there, 41.5% on A. **If the fitted scene's own error is already large, the transfer
+comparison tells you nothing — fit on the cleaner scene** (list it first in the cases file).
+
+Capture from the camera's raw frame, which `check_live_capture.py` saves as
+`live_capture_raw.png`. **Never point the cases file at `live_capture_annotated.png`** —
+its boxes are burned into exactly the pixels the reduction reads.
+
 ![Two indoor scenes. Depth ordering is 100 percent correct in both, with rank correlation near minus one. A conversion fitted on scene A gives 5.2 percent error there and 57.2 percent on scene B — an eleven-fold blow-up from one camera move.](resources/images/depth-calibration-transfer.svg)
 
 **Expected result**, and a real one, from two indoor scenes:

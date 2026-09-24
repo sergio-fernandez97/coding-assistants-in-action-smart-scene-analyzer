@@ -16,7 +16,8 @@ on your desk has told you something no metric in this lesson would have.
   2. Runs YOLO detection — COCO-pretrained by default, YOUR weights with `--weights`
   3. Runs Depth Anything V2 through `smart_scene_analyzer.depth`
   4. Reduces each detection to one relative depth value with `region_relative_depth`
-  5. Writes an annotated PNG and a grayscale depth PNG, and prints a near-to-far table
+  5. Writes the raw frame, an annotated PNG, and a grayscale depth PNG, and prints a
+     near-to-far table. Step 7 measures the RAW frame — never feed the annotated one back
 
 ## It writes files. It never opens a window.
 
@@ -49,6 +50,7 @@ Usage:
     python check_live_capture.py --image photo.jpg
     python check_live_capture.py --camera 0 --weights runs/v1-baseline/weights/best.pt
     python check_live_capture.py --camera 0 --out-dir captures/ --conf 0.35
+    python check_live_capture.py --camera 1 --warmup 90   # a phone camera (e.g. Continuity Camera)
 """
 
 from __future__ import annotations
@@ -183,6 +185,8 @@ def render_depth(depth_map, path: Path) -> None:
 
 
 def main() -> int:
+    from PIL import Image
+
     parser = argparse.ArgumentParser(description="Run detection and depth on one live frame.")
     source = parser.add_mutually_exclusive_group(required=True)
     source.add_argument("--camera", type=int, help="Camera index, usually 0")
@@ -194,12 +198,21 @@ def main() -> int:
     )
     parser.add_argument("--conf", type=float, default=0.25, help="Confidence threshold")
     parser.add_argument("--out-dir", type=Path, default=Path("."), help="Where to write PNGs")
+    parser.add_argument(
+        "--warmup",
+        type=int,
+        default=10,
+        help="Camera frames to discard first. Raise to ~90 for a phone camera that must focus.",
+    )
     args = parser.parse_args()
 
     depth = load_depth_module()
     args.out_dir.mkdir(parents=True, exist_ok=True)
 
-    frame = grab_frame(args.camera) if args.camera is not None else load_image(args.image)
+    if args.camera is not None:
+        frame = grab_frame(args.camera, warmup=args.warmup)
+    else:
+        frame = load_image(args.image)
     print(f"  frame {frame.shape[1]}x{frame.shape[0]}  weights={args.weights}")
 
     detections = detect(frame, args.weights, args.conf)
@@ -221,8 +234,12 @@ def main() -> int:
     # case the app has to render and not a row to hide.
     rows.sort(key=lambda r: (r[3] is None, -(r[3] or 0.0)))
 
+    # The untouched frame is what step 7 measures. The annotated PNG has boxes burned into
+    # exactly the pixels a box reduction reads, so it must never be fed back as an input.
+    raw = args.out_dir / "live_capture_raw.png"
     annotated = args.out_dir / "live_capture_annotated.png"
     depth_png = args.out_dir / "live_capture_depth.png"
+    Image.fromarray(frame).save(raw)
     annotate(frame, rows, annotated)
     render_depth(depth_map, depth_png)
 
@@ -236,7 +253,8 @@ def main() -> int:
             shown = f"{value:10.3f}" if value is not None else "      none"
             print(f"  {rank:>2}  {label:<14} {confidence:>5.2f}  {shown}")
 
-    print(f"\n  Wrote {annotated}")
+    print(f"\n  Wrote {raw}")
+    print(f"  Wrote {annotated}")
     print(f"  Wrote {depth_png}")
     print("\n  Open both. Two things to check with your own eyes, which no metric here does:")
     print("    1. Are the boxes on the right objects, and is anything obvious missed?")
