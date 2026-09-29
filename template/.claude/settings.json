@@ -25,7 +25,27 @@
       "WebFetch(domain:docs.expo.dev)",
       "WebFetch(domain:docs.swmansion.com)",
       "WebFetch(domain:docs.pytorch.org)",
-      "WebFetch(domain:huggingface.co)"
+      "WebFetch(domain:huggingface.co)",
+      "mcp__mobile-mcp__mobile_list_available_devices",
+      "mcp__mobile-mcp__mobile_get_screen_size",
+      "mcp__mobile-mcp__mobile_get_orientation",
+      "mcp__mobile-mcp__mobile_take_screenshot",
+      "mcp__mobile-mcp__mobile_save_screenshot",
+      "mcp__mobile-mcp__mobile_list_elements_on_screen",
+      "mcp__mobile-mcp__mobile_list_apps",
+      "mcp__mobile-mcp__mobile_get_foreground_app",
+      "mcp__mobile-mcp__mobile_get_device_logs",
+      "mcp__mobile-mcp__mobile_list_crashes",
+      "mcp__mobile-mcp__mobile_get_crash",
+      "mcp__mobile-mcp__mobile_launch_app",
+      "mcp__mobile-mcp__mobile_terminate_app",
+      "mcp__mobile-mcp__mobile_click_on_screen_at_coordinates",
+      "mcp__mobile-mcp__mobile_double_tap_on_screen",
+      "mcp__mobile-mcp__mobile_long_press_on_screen_at_coordinates",
+      "mcp__mobile-mcp__mobile_swipe_on_screen",
+      "mcp__mobile-mcp__mobile_type_keys",
+      "mcp__mobile-mcp__mobile_press_button",
+      "mcp__mobile-mcp__mobile_set_orientation"
     ],
     "ask": [
       "Bash(git push:*)",
@@ -43,7 +63,9 @@
       "mcp__plugin_roboflow_roboflow__trainings_create",
       "mcp__plugin_roboflow_roboflow__models_infer",
       "mcp__plugin_roboflow_roboflow__versions_generate",
-      "mcp__plugin_roboflow_roboflow__workflows_run"
+      "mcp__plugin_roboflow_roboflow__workflows_run",
+      "mcp__mobile-mcp__mobile_install_app",
+      "mcp__mobile-mcp__mobile_uninstall_app"
     ],
     "deny": [
       "Read(./.env)",
@@ -54,7 +76,11 @@
       "mcp__roboflow__datasource_trigger",
       "mcp__roboflow__connect_cloud_storage",
       "mcp__plugin_roboflow_roboflow__datasource_trigger",
-      "mcp__plugin_roboflow_roboflow__connect_cloud_storage"
+      "mcp__plugin_roboflow_roboflow__connect_cloud_storage",
+      "mcp__mobile-mcp__mobile_login_to_cloud_provider",
+      "mcp__mobile-mcp__mobile_allocate_remote_device",
+      "mcp__mobile-mcp__mobile_list_remote_devices",
+      "mcp__mobile-mcp__mobile_release_remote_device"
     ]
   },
   "hooks": {

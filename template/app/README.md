@@ -20,7 +20,7 @@ app/
 ├── app.json                  Expo config — name, icon, permissions, plugins
 ├── package.json
 ├── metro.config.js           assetExts must include 'tflite' and 'pte'
-├── App.tsx                   Capture / pick, run inference, show the result
+├── App.tsx                   Photo and Live tabs, run inference, show the result
 ├── assets/
 │   └── models/
 │       ├── yolo11n_int8.tflite       Detection. Bundled, gitignored
@@ -68,9 +68,13 @@ Expo Go sandbox cannot load them. The first build compiles native code and takes
 after that, TypeScript edits hot-reload and only a native dependency change forces
 another build.
 
-**Inference runs on a bundled or picked still image, not the live camera.** The iOS
-Simulator has no camera at all, so a still image is the only input that works in both
-simulators — and being deterministic is what makes the device-versus-reference parity
-check in Lesson 05 possible. Live camera capture is the real-device path.
+**Two modes, one pipeline.** *Photo* runs inference on a picked or bundled still. *Live*
+captures a still from the camera about once a second and hands it to the same function,
+skipping a capture while the previous one is still in inference. Photo mode is the
+deterministic one, which is why the device-versus-reference parity check uses it.
+
+The camera depends on where the app runs: the Android Emulator can use your laptop webcam,
+the iOS Simulator has no camera at all, and a real phone has its own. Lesson 05's path
+files say which applies to you.
 
 Simulator latency is not device latency. Report the two separately or not at all.

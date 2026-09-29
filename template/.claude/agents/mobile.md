@@ -1,7 +1,7 @@
 ---
 name: mobile
 description: Use for the Expo / React Native app in app/ — loading and running the on-device models, decoding raw model output, the TypeScript fusion port, capture and image picking, detection and depth overlays, screen-space coordinate mapping, and on-device latency measurement. Use when the work is what the user holds and what runs on it.
-tools: Read, Grep, Glob, Write, Edit, Bash
+tools: Read, Grep, Glob, Write, Edit, Bash, mcp__mobile-mcp__mobile_list_available_devices, mcp__mobile-mcp__mobile_get_screen_size, mcp__mobile-mcp__mobile_get_orientation, mcp__mobile-mcp__mobile_take_screenshot, mcp__mobile-mcp__mobile_save_screenshot, mcp__mobile-mcp__mobile_list_elements_on_screen, mcp__mobile-mcp__mobile_list_apps, mcp__mobile-mcp__mobile_get_foreground_app, mcp__mobile-mcp__mobile_get_device_logs, mcp__mobile-mcp__mobile_list_crashes, mcp__mobile-mcp__mobile_get_crash, mcp__mobile-mcp__mobile_launch_app, mcp__mobile-mcp__mobile_terminate_app, mcp__mobile-mcp__mobile_click_on_screen_at_coordinates, mcp__mobile-mcp__mobile_double_tap_on_screen, mcp__mobile-mcp__mobile_long_press_on_screen_at_coordinates, mcp__mobile-mcp__mobile_swipe_on_screen, mcp__mobile-mcp__mobile_type_keys, mcp__mobile-mcp__mobile_press_button, mcp__mobile-mcp__mobile_set_orientation
 model: sonnet
 ---
 
@@ -46,6 +46,12 @@ process. Nobody else's server is going to catch a mistake in this code.
 7. **Degrade honestly.** A model that failed to load, an image that could not be decoded,
    and zero detections are three different states and the user should be able to tell them
    apart. Zero detections is a success.
+8. **mobile-mcp shows you the screen, never the numbers.** Use it to launch the app, read
+   the element list, tap through a flow, and screenshot the result. A box drawn on the
+   right object says nothing about whether its coordinates, class, or depth rank are
+   correct; parity against the Python reference does. Read state from the element list
+   before interpreting pixels, and never install or uninstall an app to work around a
+   failure without asking.
 
 ## Constraints
 
