@@ -181,7 +181,7 @@ to its source:
 | 02 | `data-management/SKILL.md` (upload, tags, RoboQL, versions), `data-management/labeling.md` (Auto Label and its free 4-image preview), `plans-and-pricing/SKILL.md` (the rate table behind the whole credit harness), `universe/SKILL.md`, `inference/workflows.md` (the YOLO-World block) |
 | 03 | `training-and-evaluation/SKILL.md` (exact `model_id` values, training controls, **and the RF-DETR NAS default the course overrides**), `improvement-playbook.md` (the confusion-matrix decision tree behind the error analysis), `custom-weights-upload/SKILL.md`, `plans-and-pricing/SKILL.md` (training rates, Core-plan feature list) |
 | 04 | `inference/SKILL.md` (deployment option comparison, retained as the cloud contrast rows), `plans-and-pricing/SKILL.md`. Its on-device half is sourced from the RF-DETR/Ultralytics export docs and PyTorch's ExecuTorch docs, cited inline |
-| 05 | **None.** Lesson 05 spends zero Roboflow credits and touches no Roboflow surface — its sources are the Expo docs, the `react-native-fast-tflite` README, and the `react-native-executorch` docs, all cited inline in the lesson |
+| 05 | **None.** Lesson 05 spends zero Roboflow credits and touches no Roboflow surface — its sources are the Expo docs, the Android emulator docs, the mobile-mcp README, the `react-native-fast-tflite` README, and the `react-native-executorch` docs, all cited inline in the lesson |
 
 Row 05 is worth noticing rather than skipping. Every lesson from 02 onward has drawn on
 `computer-vision-skills/` and priced its work against the credit ledger; Lesson 05 does
