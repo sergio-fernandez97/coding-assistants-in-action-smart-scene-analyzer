@@ -1,6 +1,6 @@
 # Prompt — run Depth Anything V2 through the generic ExecuTorch module
 
-**When:** Lesson 05, step 6.
+**When:** Lesson 05, step 7 — in the session.
 
 **Which agent:** `mobile`.
 

@@ -1,6 +1,6 @@
 # Prompt — the overlay and the letterbox offset
 
-**When:** Lesson 05, step 8.
+**When:** Lesson 05, step 8 — in the session.
 
 **Which agent:** `mobile`.
 

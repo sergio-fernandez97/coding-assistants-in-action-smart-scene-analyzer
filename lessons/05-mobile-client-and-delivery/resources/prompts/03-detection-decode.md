@@ -1,6 +1,6 @@
 # Prompt — decode raw detection output and run NMS
 
-**When:** Lesson 05, step 5.
+**When:** Lesson 05, step 6 — in the session.
 
 **Which agent:** `mobile`.
 
@@ -104,7 +104,7 @@ classes. Report any difference — do not fix it yet.
 ```
 
 The comparison is cheap here and expensive later. If the counts already disagree, the
-decoder is wrong and step 10's parity check will only tell you the same thing after two
+decoder is wrong and step 12's parity check will only tell you the same thing after two
 more steps have been built on top of it.
 
 ---

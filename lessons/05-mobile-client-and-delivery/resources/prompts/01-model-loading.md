@@ -1,6 +1,6 @@
 # Prompt — bundle and load two models on-device
 
-**When:** Lesson 05, step 4.
+**When:** Lesson 05, step 4 — before the session.
 
 **Which agent:** `mobile`.
 

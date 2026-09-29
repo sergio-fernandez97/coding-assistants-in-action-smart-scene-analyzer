@@ -1,6 +1,6 @@
 # Prompt — port the fusion layer to TypeScript
 
-**When:** Lesson 05, step 7.
+**When:** Lesson 05, step 10 — after the session.
 
 **Which agent:** `mobile`.
 

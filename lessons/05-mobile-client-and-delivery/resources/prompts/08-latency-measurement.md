@@ -1,6 +1,6 @@
 # Prompt — measure on-device, and separate the phases
 
-**When:** Lesson 05, step 9.
+**When:** Lesson 05, step 11 — after the session.
 
 **Which agent:** `mobile`.
 

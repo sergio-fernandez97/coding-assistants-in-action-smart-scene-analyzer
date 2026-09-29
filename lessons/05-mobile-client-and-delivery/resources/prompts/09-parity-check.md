@@ -1,6 +1,6 @@
 # Prompt — the device against the reference
 
-**When:** Lesson 05, step 10.
+**When:** Lesson 05, step 12 — after the session.
 
 **Which agent:** `mobile`.
 

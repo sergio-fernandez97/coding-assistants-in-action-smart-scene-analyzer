@@ -7,12 +7,15 @@
 - [ ] The model card's **Exported artifact** table is filled in — input shape, dtype,
       layout, normalization constants, output tensor order, label order
 - [ ] Node.js 20+
-- [ ] Android Studio with an API 33+ emulator, and/or Xcode 16+ with an iOS 17+ runtime
+- [ ] Your path chosen, its toolchain checked: Xcode 16+ with an iOS 17+ runtime, or an
+      API 33+ Android emulator with its back camera set to `Webcam0`
+- [ ] mobile-mcp added at project scope with telemetry off, and it lists your device
 - [ ] `docs/credit-budget.md` reconciled
 
 ## Roles
 
-- [ ] `.claude/agents/mobile.md` read
+- [ ] `.claude/agents/mobile.md` copied from the course template and read
+- [ ] Its `tools:` line includes the mobile-mcp tools
 - [ ] You can state both hard constraints without looking
 - [ ] You can say why the role now owns numerics rather than only presentation
 - [ ] Nothing under `src/` was edited by the `mobile` agent
@@ -44,7 +47,15 @@
 - [ ] **`artifact_drift.py` was observed warning** after a real export-config edit
 - [ ] You can explain why it warns while `units_guard` blocks
 
-## Detection
+## mobile-mcp
+
+- [ ] The device was listed and named before anything else ran
+- [ ] The app's state was read from the element list, not guessed from a screenshot
+- [ ] Every state has on-screen text naming it: loading, ready, picker open, error
+- [ ] No numeric claim was accepted on the strength of a screenshot
+- [ ] The agent never started a build or installed an app on its own
+
+## Detection (photo mode)
 
 - [ ] The raw output tensor was inspected — shape, length, min/max — **before** any
       decoder was written
@@ -66,17 +77,6 @@
 - [ ] The sign convention (larger = nearer) was confirmed, not assumed
 - [ ] Any inverted sign was **recorded**, not silently corrected
 
-## The fusion port
-
-- [ ] Fixtures extracted by **running** the Python reference, not by reasoning
-- [ ] `tests/fixtures/fusion_cases.json` is plain JSON, loadable by both languages
-- [ ] The **Python** suite loads the same fixture file and still passes
-- [ ] Median matches the reference, including the even-length case
-- [ ] Every degenerate case has a defined result; no `NaN` reaches a caller
-- [ ] The suite was **watched failing** before being trusted
-- [ ] No fixture was adjusted to make both implementations agree
-- [ ] `src/` untouched
-
 ## Geometry
 
 - [ ] All six real numbers printed before any transform was written
@@ -88,7 +88,32 @@
       with the bug present
 - [ ] Tests assert hand-computed values, not snapshots
 - [ ] Boxes land in portrait, landscape, and a second aspect ratio
+- [ ] Portrait and landscape mobile-mcp screenshots saved in `docs/screenshots/`
 - [ ] Pure function: no React, no hooks
+
+## Live mode
+
+- [ ] The camera library was proposed and **approved before** it was installed
+- [ ] Camera permission configured through the library's config plugin in `app.json`
+- [ ] "Not yet asked", "denied", and "no camera on this device" render differently
+- [ ] Live mode calls the photo-mode function; no second decoder, letterbox, or depth call
+- [ ] Frames are **skipped, never queued**, while inference is in flight
+- [ ] Frame and skip counters visible; the skip counter was seen above zero
+- [ ] The overlay is drawn on the still that produced it
+- [ ] Capture stops when the tab is hidden or the app is backgrounded
+- [ ] Android: ran on the webcam. iOS: ran on the test double in the Simulator
+- [ ] A mobile-mcp screenshot of the Live tab saved in `docs/screenshots/`
+
+## The fusion port
+
+- [ ] Fixtures extracted by **running** the Python reference, not by reasoning
+- [ ] `tests/fixtures/fusion_cases.json` is plain JSON, loadable by both languages
+- [ ] The **Python** suite loads the same fixture file and still passes
+- [ ] Median matches the reference, including the even-length case
+- [ ] Every degenerate case has a defined result; no `NaN` reaches a caller
+- [ ] The suite was **watched failing** before being trusted
+- [ ] No fixture was adjusted to make both implementations agree
+- [ ] `src/` untouched
 
 ## Latency
 
@@ -105,6 +130,7 @@
 
 ## Parity
 
+- [ ] Run on **photo mode** with a bundled image, never on live frames
 - [ ] Compared against the **PyTorch reference**, not the exported artifact in Python
 - [ ] Every difference classified as preprocessing / decoding / quantization / port
 - [ ] The distinguishing test for each category was actually run, not guessed
@@ -121,6 +147,13 @@
 - [ ] Depth conveyed by ordering and shading, with a "nearer / farther" legend
 - [ ] You can state what the hook catches and what it does not — it catches identifiers,
       not prose that separates a unit from its noun
+
+## Extra — the app on your own phone
+
+- [ ] Installed with `npx expo run:ios --device` or `npx expo run:android --device`
+- [ ] Both tabs work; live mode analyses a real scene
+- [ ] Device latency in its **own** table, separate from simulator or emulator figures
+- [ ] Both modes still work in airplane mode
 
 ## Reconciliation
 
