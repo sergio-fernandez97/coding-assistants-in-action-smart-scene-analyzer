@@ -14,6 +14,7 @@ itself is built by students in their own repo, scaffolded from `template/`.
 | `lessons/<NN>-<slug>/resources/templates/` | Files students copy into their own project |
 | `lessons/<NN>-<slug>/resources/checklists/` | Deliverables and verification checklists |
 | `lessons/<NN>-<slug>/resources/scripts/` | Verification helpers only — never solution code |
+| `lessons/<NN>-<slug>/resources/paths/` | Platform-specific instructions when a lesson has alternative paths (e.g. iOS / Android). The README keeps the shared steps and links each path |
 | `template/` | The starter scaffold copied in Lesson 01 |
 | `template/.claude/skills/` | The project's own procedures — the repeatable half of the prompts |
 | `template/.claude/hooks/` | Enforcement scripts. Two of them block; see the Hard rules |
