@@ -96,15 +96,22 @@ returns the bundled test images in turn, and confirm the Live tab runs the same 
 on them. Screenshot with mobile-mcp.
 ```
 
-**Expected result:** the frame counter advances, the skip counter is non-zero at least
-once, and boxes appear. On iOS, the real camera run is step 13.
+**Expected result:** the frame counter advances and boxes appear. On iOS, the real camera
+run is step 13.
+
+**The skip counter will probably stay at 0, and that is a finding, not a pass.** Decode,
+preprocess, fusion, and the ExecuTorch call all run synchronously on the JS thread, so the
+timer cannot fire while a frame is in flight: frames are throttled by a *blocked thread*,
+and the UI freezes during analysis. Prove the skip rule with a fake-timer unit test
+(a slow `analyze` stub, advance the clock past two intervals, assert one skip and no
+queue). The on-screen counter only moves once inference runs off the JS thread.
 
 ---
 
 ## What good output looks like
 
 - One pipeline: live mode calls the photo-mode function, and no decoding code is duplicated
-- Frames are skipped, never queued, while inference is in flight
+- Frames are skipped, never queued, while inference is in flight, proven by a fake-timer test
 - Three permission/availability states, each with its own visible text
 - The overlay is drawn on the still that produced it
 - Capture stops when the tab is hidden

@@ -15,6 +15,28 @@ rather than bad arithmetic.
 
 ---
 
+## Round 0 — turn the picked image into pixels
+
+```
+Use the mobile agent.
+
+Write app/src/inference/image.ts:
+
+  export async function decodeImage(uri: string, originalSize: Size, longSide: number): Promise<RGBPixels>
+
+  - Resize natively with expo-image-manipulator (the contextual ImageManipulator API;
+    manipulateAsync is deprecated) so the long side is <longSide>, and save as JPEG base64.
+  - Decode that small JPEG to RGB with jpeg-js. Drop the alpha channel.
+  - Return the decoded size: this decoded image is the SOURCE space from now on.
+```
+
+The picker and the camera hand you a **URI**, and neither runtime decodes images: both take
+raw tensors. Install the two dependencies first, from `app/`:
+`npx expo install expo-image-manipulator jpeg-js`, then rebuild (`expo-image-manipulator`
+is native).
+
+---
+
 ## Round 1 — look at the actual tensor
 
 ```

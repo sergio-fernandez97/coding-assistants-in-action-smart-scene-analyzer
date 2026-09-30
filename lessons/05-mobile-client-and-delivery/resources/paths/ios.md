@@ -54,7 +54,13 @@ xcrun simctl addmedia booted <path-to-image>
 devices."*
 
 **Expected result:** your booted simulator is listed by name and iOS version. mobile-mcp
-drives simulators through the Xcode command-line tools; nothing else needs installing.
+drives simulators through the Xcode command-line tools.
+
+If every UI call then fails with `Agent is not installed on the device`, install its
+on-device agent once: `npx mobilecli agent install --device <udid>`, where `<udid>` is the
+simulator id from `xcrun simctl list devices booted`. To open the development client's
+deep link, use `xcrun simctl openurl booted <url>`: `mobile_open_url` refuses custom
+schemes.
 
 ---
 

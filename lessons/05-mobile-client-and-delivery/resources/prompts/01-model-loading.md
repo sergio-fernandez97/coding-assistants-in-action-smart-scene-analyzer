@@ -65,8 +65,9 @@ Detection — react-native-fast-tflite:
   - Compare them against what the model card claimed and report any disagreement
 
 Depth — react-native-executorch:
-  - initExecutorch with the Expo resource fetcher, at app entry, once
-  - ExecutorchModule.load(...) with the bundled .pte
+  - The 0.10 core API: loadModel(path) on the bundled .pte, resolved to a local path
+    with expo-asset. No initExecutorch, no resource fetcher (both are /legacy)
+  - setTelemetryEnabled(false): nothing leaves the device
   - Report the shapes the same way
 
 Both:

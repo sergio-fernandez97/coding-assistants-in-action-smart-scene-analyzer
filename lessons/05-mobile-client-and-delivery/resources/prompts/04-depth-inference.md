@@ -11,8 +11,9 @@
 There is no `useDepthEstimation` hook. `react-native-executorch` ships prebuilt hooks for
 the tasks it has models for, and depth estimation is not one of them.
 
-So this path uses `ExecutorchModule` — `load(source)` and
-`forward(TensorPtr[]) → Promise<TensorPtr[]>`. Preprocessing and postprocessing are yours.
+So this path uses the react-native-executorch **0.10 core API**: `loadModel(path)`,
+`tensor(...)`, and `model.execute('forward', [input], [output])`. `ExecutorchModule` and
+`initExecutorch` are the `/legacy` API in 0.10; do not use them. Preprocessing and postprocessing are yours.
 That is more work than the detection path, and it is the honest shape of the problem
 rather than a detour.
 
@@ -52,8 +53,12 @@ nothing in the pipeline will object.
 ```
 Write app/src/inference/depth.ts:
 
-  - ExecutorchModule.load() with the bundled .pte, once, cached
-  - forward([inputTensor]) and report the OUTPUT tensor's shape and dtype verbatim
+  - setTelemetryEnabled(false) at module load. The library sends download analytics by
+    default, and this project sends nothing off the device
+  - Resolve the bundled .pte to a local file path with expo-asset (Asset.loadAsync, then
+    localUri without the file:// prefix), then loadModel(path), once, cached
+  - execute('forward', [inputTensor], [outputTensor]) and report the OUTPUT tensor's
+    shape and dtype verbatim
   - Reshape to a 2D depth map, stating the dimensions
 
 Print the min, max, and mean of the output. Do not interpret them yet.

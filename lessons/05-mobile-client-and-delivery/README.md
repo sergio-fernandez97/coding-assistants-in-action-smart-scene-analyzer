@@ -200,14 +200,16 @@ photos into the simulator's photo library.
 
 **Expected result:** the app launches, and a text change hot-reloads without a rebuild.
 
+<img src="resources/images/01-step3-first-launch-ios27.png" alt="First launch of the development build on the iOS 27 Simulator" width="280">
+
 > **Timebox: 60 minutes.** A native build is the most fragile thing in this lesson. If it
 > is still failing at 60 minutes, stop. Write the last error into `docs/latency-report.md`
 > under *Build notes* and bring it to the session.
 > ⚠️ **OPEN — the prebuilt fallback does not exist yet.** See [Open items](#open-items).
 
-> ⚠️ **Simulator inference is unverified.** Nobody has confirmed on a clean machine that
-> both runtimes execute in the iOS Simulator, which has no Neural Engine. If a runtime
-> refuses to load there, switch to the Android path and say so in your report.
+> **Simulator inference works.** Both runtimes load and run in the iOS 27 Simulator on
+> XNNPACK (detection ~62 ms, depth ~405 ms p50, debug build; checked 2026-09-30). Those
+> are Simulator figures, not device figures.
 
 ### 4. Load the models and watch the drift hook fire · 20 min
 
@@ -219,7 +221,12 @@ photos into the simulator's photo library.
 touch scripts/export.py
 ```
 
-**Expected result:** both models load once, with a visible loading state. Then
+**Expected result:** both models load once, with a visible loading state that ends in
+their cold-load times:
+
+<img src="resources/images/02-step4-models-loaded.png" alt="Models ready, with detector and depth cold-load times" width="280">
+
+Then
 `artifact_drift.py` **warns** that the bundled artifacts are older than what produced them,
 and does not block.
 
@@ -245,7 +252,14 @@ Rounds 1–2 with the `mobile` agent.
 
 **Expected result:** the agent names your device, launches the app, and reads its state
 from the screen's element list. Every state (loading, ready, picker open, error) has
-visible text that says which one it is.
+visible text that says which one it is. On iOS, if every UI call fails with *"Agent is
+not installed on the device"*, see [ios.md §3](resources/paths/ios.md#3-mobile-mcp-sees-the-simulator--readme-prerequisite-6).
+
+<img src="resources/images/03-step5-picker-open.png" alt="mobile-mcp driving the app: the photo picker is open" width="280">
+
+If the agent cannot find an element you can see, that is an accessibility bug and not a
+tooling one. In the reference run, `accessibilityRole="tab"` without a `tablist` parent hid
+both tabs from the element list, and so from VoiceOver too.
 
 Until now the agent wrote UI code blind. From here it can check its own work on screen, but
 only its **screen**. A box drawn on a lamp says nothing about whether the box's numbers are
@@ -263,15 +277,29 @@ were a server's job; now they are yours, in TypeScript.
 > tensor disagree, trust the tensor and fix the card. A decoder written from memory
 > produces boxes that are plausibly wrong.
 
+Neither runtime decodes images; the picker hands you a URI. Round 0 of the prompt adds
+the decode step, with two new dependencies and a rebuild.
+
+> ⚠️ **`Input tensor N lacks data` on every run** means the `.tflite` stores its weights by
+> file offset, which the TFLite 2.17 inside `react-native-fast-tflite` cannot read. Python
+> runs the same file fine, so Lesson 04's parity test does not catch it. The fix belongs to
+> the export, not the app: inline the buffers (`export.tflite.inline_offset_buffers`,
+> outputs bit-identical) and re-bundle. The `mobile` agent must not re-export; ask for
+> this fix outside it.
+>
+> <img src="resources/images/04-step6-tflite-run-error.png" alt="The error state showing Input tensor lacks data" width="240">
+
 **Expected result:** a picked test photo gives detections whose classes and rough positions
 you can check by eye. A photo with nothing in it shows "no objects found" as a success,
 distinguishable from "model failed to load".
 
+<img src="resources/images/05-step6-first-ondevice-detections-portrait.png" alt="First on-device detections, listed nearer to farther" width="280">
+
 ### 7. Depth ordering on the same photo · 15 min
 
 **Do:** Use [`resources/prompts/04-depth-inference.md`](resources/prompts/04-depth-inference.md).
-There is no `useDepthEstimation` hook, so you use the generic `ExecutorchModule`, and pre-
-and post-processing are yours.
+There is no `useDepthEstimation` hook, so you use the generic 0.10 core API (`loadModel`,
+`tensor`, `execute`), and pre- and post-processing are yours.
 
 **Do:** Prove the units hook. Ask the agent to add a `depth_meters` field to any file in
 `app/src/`.
@@ -296,8 +324,14 @@ A transform that ignores the letterbox offset is correct exactly when the image 
 Write it as **one named function** in `app/src/geometry/toScreen.ts`, with both spaces in
 its signature, and unit-test it against hand-computed values.
 
+The Expo template locks the app to portrait. Set `"orientation": "default"` in
+`app/app.json`, then rebuild natively (`npx expo run:ios` or `run:android`), since a
+config change does not hot-reload.
+
 **Expected result:** portrait and landscape screenshots in `docs/screenshots/`, with every
 box sitting on its object in both.
+
+<img src="resources/images/06-step8-photo-landscape-img-portrait.png" alt="A landscape photo, boxes on objects, device in portrait" width="280"> <img src="resources/images/07-step8-photo-landscape-img-landscape.png" alt="The same photo, device in landscape" width="420">
 
 ### 9. Live mode · 20 min
 
@@ -321,8 +355,19 @@ Three rules the prompt enforces, because each one fails silently:
 - **Android:** boxes on what your webcam sees.
 - **iOS:** "no camera on this device" with the real source, and the test double cycling
   the bundled photos through the real pipeline.
-- **Both:** the frame counter advances, the skip counter is above zero at least once, and
-  a mobile-mcp screenshot of the Live tab is in `docs/screenshots/`.
+- **Both:** the frame counter advances, a fake-timer test proves the skip rule, and a
+  mobile-mcp screenshot of the Live tab is in `docs/screenshots/`.
+
+<img src="resources/images/08-step9-live-no-camera-on-simulator.png" alt="Live tab on the Simulator: no camera on this device" width="280"> <img src="resources/images/09-step9-live-test-double-running.png" alt="The test double running bundled photos through the pipeline" width="280">
+
+**Expect the skip counter to stay at 0, and treat that as the finding.** Every stage of the
+pipeline runs synchronously on the JS thread, so the timer cannot fire while a frame is in
+flight: the UI freezes during analysis, and frames are throttled by a blocked thread rather
+than skipped. The reference run showed 35 frames and 0 skips, with one analysis taking
+1.5 s against a 1 s interval. The on-screen counter only moves once inference runs off the
+JS thread; until then the unit test is your proof.
+
+<img src="resources/images/10-step9-live-35-frames-0-skipped-js-thread-blocked.png" alt="35 frames, 0 skipped: the JS thread is blocked" width="280">
 
 ---
 
@@ -420,7 +465,7 @@ git status   # confirm: no node_modules/, no *.tflite, no *.pte, no app/ios/, no
 - [ ] The app launches on a simulator or emulator and runs both models from bundled artifacts
 - [ ] mobile-mcp listed your device and read the app's state from the screen
 - [ ] Photo mode and live mode call **one** pipeline function
-- [ ] Live mode skips frames while one is in flight; the skip counter was seen above zero
+- [ ] Live mode skips frames while one is in flight, proven by a fake-timer test
 - [ ] "No camera", "permission denied", "model failed to load", and "no objects found" are
       four different things on screen
 - [ ] `artifact_drift.py` was **observed** warning after an export-config edit
@@ -453,9 +498,6 @@ point of this architecture.
   the session.
 - ⚠️ **No fallback model files.** Prerequisite 1 depends on Lesson 04's pre-exported
   artifacts, which are not published yet either.
-- ⚠️ **Simulator inference viability** (step 3). Whether both runtimes execute in the iOS
-  Simulator is unverified. iOS is the default path, so if one refuses to load, the default
-  moves to Android.
 - ⚠️ **A phone camera inside the Android Emulator.** Continuity Camera may present an
   iPhone as a Mac webcam, which the emulator could then use. Unverified.
 - ⚠️ **Free Apple ID signing details** in [ios.md §5](resources/paths/ios.md#5-extra--deliver-to-your-iphone--readme-step-13):
@@ -484,7 +526,6 @@ All tracked in the course `TODO.md`.
 - [Expo — local app development](https://docs.expo.dev/guides/local-app-development/):
   `run:ios --device`, `run:android --device`. Checked 2026-09-29
 - [React Native ExecuTorch — getting started](https://docs.swmansion.com/react-native-executorch/docs/fundamentals/getting-started). Checked 2026-08-12
-- [`ExecutorchModule`](https://docs.swmansion.com/react-native-executorch/docs/typescript-api/ExecutorchModule): the depth path
 - [react-native-fast-tflite](https://github.com/mrousavy/react-native-fast-tflite): v3.0.1, checked 2026-08-12
 - [Ultralytics — export](https://docs.ultralytics.com/modes/export/)
 
