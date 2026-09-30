@@ -7,7 +7,8 @@
 - [ ] The model card's **Exported artifact** table is filled in — input shape, dtype,
       layout, normalization constants, output tensor order, label order
 - [ ] Node.js 20+
-- [ ] Your path chosen, its toolchain checked: Xcode 16+ with an iOS 17+ runtime, or an
+- [ ] Your path chosen, its toolchain checked: Xcode 16+ with an iOS 17+ runtime and a clip recorded
+      on your phone, or an
       API 33+ Android emulator with its back camera set to `Webcam0`
 - [ ] mobile-mcp added at project scope with telemetry off, and it lists your device
 - [ ] `docs/credit-budget.md` reconciled
@@ -101,7 +102,8 @@
 - [ ] Frame and skip counters visible; the skip counter was seen above zero
 - [ ] The overlay is drawn on the still that produced it
 - [ ] Capture stops when the tab is hidden or the app is backgrounded
-- [ ] Android: ran on the webcam. iOS: ran on the test double in the Simulator
+- [ ] Android: ran on the webcam. iOS: ran on your recorded clip (or the photo test double)
+      in the Simulator
 - [ ] A mobile-mcp screenshot of the Live tab saved in `docs/screenshots/`
 
 ## The fusion port

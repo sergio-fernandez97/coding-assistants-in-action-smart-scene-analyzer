@@ -4,12 +4,13 @@ Mac only. Where this file and the [lesson README](../../README.md) overlap, the 
 right; this file holds only what is specific to iOS.
 
 **What you give up on iOS:** the iOS Simulator has **no camera**, so in the session live
-mode runs against a test double. The real camera run is step 13, on your own iPhone. If you
-want live mode on a real camera *in the room*, take the [Android path](android.md) instead.
+mode replays a short clip you recorded on your phone beforehand. The live camera run is
+step 13, on your own iPhone. If you want live mode on a live camera *in the room*, take the
+[Android path](android.md) instead.
 
 ---
 
-## 1. Toolchain · before the session
+## 1. Toolchain and clip · before the session
 
 **Do:** Confirm Xcode and an iOS 17+ simulator runtime.
 
@@ -20,6 +21,15 @@ xcrun simctl list runtimes | grep iOS
 
 **Expected result:** Xcode 16 or later, and at least one `iOS 17` or later runtime.
 `react-native-executorch` requires iOS 17+.
+
+**Do:** Record the clip live mode will replay in the session. On your iPhone, film 20–30
+seconds of a slow pan across an indoor scene with objects from your taxonomy. Send **only
+that file** to your Mac with AirDrop; in the share sheet, tap **Options** and turn
+**Location** off so no GPS data travels with it. Nothing else on your phone is shared, and
+the phone is not connected to anything. No iPhone? Any indoor video you own works.
+
+**Expected result:** one `.mov` or `.mp4` on your Mac, **outside** the project folder. Never
+commit it: it is large and it is your home.
 
 ---
 
@@ -35,16 +45,18 @@ npx expo run:ios
 **Expected result:** the app opens in the Simulator. Change a text string in `App.tsx` and
 it reloads without a rebuild.
 
-**Do:** Put the lesson's test photos in the Simulator's photo library, so the picker has
-something to pick.
+**Do:** Put the lesson's test photos and your clip in the Simulator's photo library, so the
+picker has something to pick. This is the Simulator's library, not your phone's.
 
 ```bash
 xcrun simctl addmedia booted <path-to-image>
+xcrun simctl addmedia booted <path-to-clip>
 ```
 
 `<path-to-image>` is each bundled test image — at least one portrait and one landscape.
+`<path-to-clip>` is the video from §1.
 
-**Expected result:** the images appear in the Simulator's Photos app.
+**Expected result:** the images and the clip appear in the Simulator's Photos app.
 
 ---
 
@@ -67,15 +79,22 @@ schemes.
 ## 4. Camera in the session · README step 9
 
 There is none. The iOS Simulator has no camera device, and it is not a setting you can
-change. Third-party virtual cameras exist but need a developer account and a macOS system
-extension; this course does not support them.
+change. Third-party virtual cameras exist but add native code or paid tooling; this course
+does not support them. Your phone's camera reaches the session as the clip from §1.
 
-**Do:** Run live mode against the test double from
-[`06-live-mode.md`](../prompts/06-live-mode.md) Round 4 — it cycles the bundled test
-images through the real pipeline.
+**Do:** Run live mode against the recorded-clip source from
+[`06-live-mode.md`](../prompts/06-live-mode.md) Round 4. It picks your clip, grabs one
+frame per interval with `expo-video`, saves it to a file with `expo-image-manipulator`, and
+hands that URI to the same function photo mode calls.
 
 **Expected result:** the Live tab shows **"no camera on this device"** with the real
-source, and advancing frames with the test double. Both are correct.
+source, and boxes over successive frames of your own clip with the counter advancing. Both
+are correct. No clip? Use the bundled-photos test double from the same round.
+
+Sources, checked 2026-09-30:
+[Expo Video — `generateThumbnailsAsync`](https://docs.expo.dev/versions/latest/sdk/video/),
+[Expo ImageManipulator — `SharedRef` source](https://docs.expo.dev/versions/latest/sdk/imagemanipulator/).
+SDK 57. ⚠️ Not yet run in the Simulator — see the README's Open items.
 
 ---
 

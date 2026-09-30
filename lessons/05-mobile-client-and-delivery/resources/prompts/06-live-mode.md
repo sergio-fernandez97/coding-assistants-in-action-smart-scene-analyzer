@@ -31,6 +31,9 @@ the camera permission. Check docs/artifact-budget.md first.
 
 Recommend one. Do not install anything yet — the mobile role asks before adding a
 dependency.
+
+iOS Simulator only: live mode will also replay a recorded clip, which needs expo-video.
+List it with its native and install-size cost so I approve both together.
 ```
 
 **Expected result:** a recommendation you approve or reject before any install. Frame
@@ -50,7 +53,9 @@ The screen must distinguish three states, each with visible text:
   - permission denied — with a way to open settings
   - no camera on this device
 
-Rebuild the development build — a new native module requires it.
+On the iOS path, also install expo-video now (npx expo install expo-video).
+
+Rebuild the development build once — a new native module requires it.
 ```
 
 **Why "no camera" is its own state.** On the iOS Simulator the camera does not exist. That
@@ -91,13 +96,20 @@ computed on frame N drawn over frame N+3 is off target on the screen, and nothin
 Android emulator: confirm the back camera is Webcam0 (see your path file), open the Live
 tab, and point the laptop camera at something in the taxonomy. Screenshot with mobile-mcp.
 
-iOS Simulator: there is no camera. Replace the capture source with a test double that
-returns the bundled test images in turn, and confirm the Live tab runs the same pipeline
-on them. Screenshot with mobile-mcp.
+iOS Simulator: there is no camera. Add a second capture source behind the same interface,
+a recorded clip:
+  - Let me pick a video with expo-image-picker (mediaTypes: videos).
+  - Load it with expo-video's createVideoPlayer. No VideoView is needed.
+  - On each capture, call player.generateThumbnailsAsync(t), pass the thumbnail to
+    ImageManipulator.manipulate(...).renderAsync(), then saveAsync() to get a file URI.
+  - Hand that URI to the same function photo mode calls. Do not decode pixels here.
+  - Advance t by one interval per capture; wrap to 0 at the clip's duration.
+Keep a bundled-photos test double too, for the fake-timer test and as a fallback.
+Confirm the Live tab runs the same pipeline on my clip. Screenshot with mobile-mcp.
 ```
 
-**Expected result:** the frame counter advances and boxes appear. On iOS, the real camera
-run is step 13.
+**Expected result:** the frame counter advances and boxes appear over your scene. On iOS,
+the live camera run is step 13.
 
 **The skip counter will probably stay at 0, and that is a finding, not a pass.** Decode,
 preprocess, fusion, and the ExecuTorch call all run synchronously on the JS thread, so the
@@ -120,7 +132,8 @@ queue). The on-screen counter only moves once inference runs off the JS thread.
 ## Reject and re-run if
 
 - A dependency was installed before you approved it
-- Live mode has its own decoder, letterbox, or depth call
+- Live mode has its own decoder, letterbox, or depth call — including a clip source that
+  decodes pixels instead of handing a URI to the photo-mode function
 - A queue or array of pending frames exists anywhere
 - "No camera" and "permission denied" render the same
 - A distance, unit, or raw depth number appears on the Live tab

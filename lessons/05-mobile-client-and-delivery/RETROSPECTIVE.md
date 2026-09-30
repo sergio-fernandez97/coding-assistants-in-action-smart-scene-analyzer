@@ -34,8 +34,10 @@ so they sit after the session.
 
 ## Watch for in the room
 
-- **iOS students expecting a camera.** Say at minute 0 that the Simulator has none and that
-  "no camera on this device" is the correct result for them in step 9.
+- **iOS students expecting a camera.** Say at minute 0 that the Simulator has none, that
+  "no camera on this device" is the correct result for the real source, and that step 9
+  replays the clip they recorded on their phone (ios.md §1). Check it is already in the
+  Simulator's Photos; a student without one uses the bundled-photos double.
 - **The agent installing its way out.** The prompts forbid installs without approval, and
   `mobile_install_app` / `mobile_uninstall_app` are on `ask`. A student who approves one
   under time pressure has usually lost the thread.

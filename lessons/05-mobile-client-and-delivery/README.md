@@ -34,7 +34,7 @@ everything else lives here.
 |---|---|---|
 | Needs | A Mac with Xcode 16+ | Android Studio, any OS |
 | Photo mode in the session | iOS Simulator | Android Emulator |
-| Live mode in the session | Test double: the Simulator **has no camera** | Your laptop webcam, through the emulator |
+| Live mode in the session | A clip you recorded on your phone, replayed: the Simulator **has no camera** | Your laptop webcam, through the emulator |
 | Live mode on a real camera | Step 13, on your iPhone | In the session; step 13 on your phone |
 
 Expo Go cannot run this app. Both ML runtimes are native modules, so you need a
@@ -80,6 +80,7 @@ Do these in order, before the session.
 
    `react-native-executorch` sets those OS floors. Android students also point the
    emulator camera at the webcam now, following [android.md §2](resources/paths/android.md#2-point-the-emulator-camera-at-your-webcam--before-the-session).
+   iOS students record the clip live mode replays, following [ios.md §1](resources/paths/ios.md#1-toolchain-and-clip--before-the-session).
 
 6. **Do:** Add mobile-mcp to your project, with telemetry off.
    **Command:**
@@ -353,8 +354,8 @@ Three rules the prompt enforces, because each one fails silently:
 
 **Expected result:**
 - **Android:** boxes on what your webcam sees.
-- **iOS:** "no camera on this device" with the real source, and the test double cycling
-  the bundled photos through the real pipeline.
+- **iOS:** "no camera on this device" with the real source, and boxes over frames of your
+  recorded clip, run through the real pipeline.
 - **Both:** the frame counter advances, a fake-timer test proves the skip rule, and a
   mobile-mcp screenshot of the Live tab is in `docs/screenshots/`.
 
@@ -498,6 +499,9 @@ point of this architecture.
   the session.
 - ⚠️ **No fallback model files.** Prerequisite 1 depends on Lesson 04's pre-exported
   artifacts, which are not published yet either.
+- ⚠️ **The recorded-clip source on iOS** ([ios.md §4](resources/paths/ios.md#4-camera-in-the-session--readme-step-9)):
+  `expo-video`'s frame grab is documented for iOS but has not been run in the Simulator,
+  nor on an iPhone HEVC `.mov`. If it fails, use the bundled-photos test double.
 - ⚠️ **A phone camera inside the Android Emulator.** Continuity Camera may present an
   iPhone as a Mac webcam, which the emulator could then use. Unverified.
 - ⚠️ **Free Apple ID signing details** in [ios.md §5](resources/paths/ios.md#5-extra--deliver-to-your-iphone--readme-step-13):
