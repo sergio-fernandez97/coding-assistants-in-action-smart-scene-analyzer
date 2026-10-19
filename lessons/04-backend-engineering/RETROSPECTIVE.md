@@ -48,7 +48,7 @@ published as a course download** (the int8 `.tflite` and the `.pte`).
 
 The fallback artifacts are the important half. The lesson's own Open items record that the
 export commands are unverified against this project's models on a clean machine, and that
-`ultralytics` TFLite export and `optimum-executorch` pull large, platform-sensitive
+`ultralytics` TFLite export and `executorch` pull large, platform-sensitive
 dependency trees. A student who hits that alone at 11pm loses the evening and arrives with
 nothing to work on — which costs the live session, not just their evening.
 

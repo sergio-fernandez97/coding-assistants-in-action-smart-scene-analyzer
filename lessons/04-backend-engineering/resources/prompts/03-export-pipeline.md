@@ -8,11 +8,11 @@
 
 ---
 
-⚠️ **Neither toolchain is verified against this project's models.** The commands below are
-current as of 2026-08-12. Whether YOLO11 exports cleanly to int8 TFLite here, and whether
-Depth Anything V2's ViT survives the ExecuTorch recipe at usable speed, has not been
-confirmed. **If one fails, that failure is the finding** — record what broke rather than
-quietly substituting a different model.
+⚠️ **The detection export is not verified against this project's model.** Its command is
+current as of 2026-08-12, but whether YOLO11 exports cleanly to int8 TFLite here has not been
+confirmed. **The depth lowering in Round 3 is verified** (2026-09-29: executorch 1.5.1,
+torch 2.13, transformers 5.15). **If an export fails, that failure is the finding** — record
+what broke rather than quietly substituting a different model.
 
 ---
 
@@ -73,12 +73,26 @@ Either use a held-out slice or accept the optimism knowingly.
 ## Round 3 — depth
 
 ```
-Export the depth model to ExecuTorch:
+Export the depth model to ExecuTorch by lowering it directly. Do not use optimum-cli
+and do not install optimum-executorch: it has no depth-estimation task, and it
+downgrades transformers to 4.56.
 
-  optimum-cli export executorch \
-    --model depth-anything/Depth-Anything-V2-Small-hf \
-    --task depth-estimation --recipe xnnpack \
-    --output_dir app/assets/models/
+The depth half of scripts/export.py:
+  1. Load depth-anything/Depth-Anything-V2-Small-hf with
+     transformers.AutoModelForDepthEstimation, in eval mode.
+  2. Wrap it in a torch.nn.Module whose forward(pixel_values) returns
+     model(pixel_values=pixel_values).predicted_depth, a single tensor, not the
+     HF output object.
+  3. torch.export.export the wrapper with a fixed example torch.randn(1, 3, 518, 518),
+     under torch.no_grad().
+  4. Lower with executorch.exir.to_edge_transform_and_lower(exported,
+     partitioner=[XnnpackPartitioner()]). The partitioner comes from
+     executorch.backends.xnnpack.partition.xnnpack_partitioner. Then call
+     .to_executorch().
+  5. Write program.buffer to a staging path, NOT app/assets/models/. Read the shapes
+     back with executorch.runtime.Runtime (load_program, load_method("forward"),
+     .metadata). Move the file into app/assets/models/ only if the input is exactly
+     [1, 3, 518, 518].
 
 The artifact must accept a FIXED [1, 3, 518, 518] input — the DEPTH_INPUT square from
 the contract in step 2. Not a dynamic shape, and not the aspect-preserving non-square
@@ -143,6 +157,7 @@ fact about your toolchain that you now know and would otherwise have discovered 
 - Export happened as ad-hoc shell commands with no script
 - Reported shapes came from the config rather than the exported file
 - A failing export was worked around by silently changing model, recipe, or task
+- The `.pte` was produced outside `scripts/export.py`, for example by a scratch script in `/tmp`
 - The calibration set is unnamed
 - The contract table was updated to match without noting what changed
 - Artifact sizes were not recorded

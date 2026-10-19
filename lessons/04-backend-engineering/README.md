@@ -32,9 +32,10 @@ Do these in order, before the session.
    (`<cases>` is the file you made in Lesson 03 step 5.)
    **Expected result:** exit code 0 and every case `PASS`.
 
-3. **Do:** Install the extra dependencies.
-   **Command:** `uv sync --extra ml --extra depth`
-   **Expected result:** finishes with no errors.
+3. **Do:** Update `pyproject.toml` from the template and install the export
+   dependencies, as described in
+   [Before step 3 — update `pyproject.toml`](#before-step-3--update-pyprojecttoml).
+   **Expected result:** `executorch` imports, and `transformers` is still 5.x.
 
 4. **Do:** Steps 1–3 below, **in that order**. Step 2 must be committed before step 3 runs.
    **Expected result:** the model card's **Exported artifact** table is committed, and two
@@ -121,23 +122,59 @@ uv run python -c "from ultralytics import YOLO; print(YOLO('<weights>').names)"
 list printed above matches `docs/taxonomy.md` in the same order — or you have written down
 that it doesn't.
 
+> ### Before step 3 — update `pyproject.toml`
+>
+> You scaffolded your project from `template/` in Lesson 01. Since then the template's
+> `pyproject.toml` gained an `export` extra (`executorch` and the LiteRT converters) and an
+> `"executorch.*"` mypy override. Your copy has neither, and step 3 cannot run without them.
+>
+> **Do:** Compare your file with the template's current version. Copy the `export = [...]`
+> extra and the `"executorch.*"` entry into yours, and keep your own additions.
+>
+> ```bash
+> diff <course-repo>/template/pyproject.toml pyproject.toml
+> uv sync --extra dataset --extra ml --extra depth --extra export
+> ```
+>
+> `<course-repo>` is your clone of this course. Name **every** extra: `uv sync` makes the
+> environment match exactly the extras you list, so leaving one out uninstalls it.
+>
+> If you installed `optimum-executorch` with `uv add`, run `uv remove optimum-executorch`
+> first. It has no depth task, and it downgrades `transformers` to 4.56.
+>
+> **Expected result:**
+>
+> ```bash
+> uv run python -c "from importlib.metadata import version as v; import executorch.exir; print(v('executorch'), v('transformers'))"
+> ```
+>
+> prints an `executorch` version (verified with 1.5.1) and a `transformers` version that
+> starts with `5.`.
+
 ### 3. Export both models · 45 min
 
 **Do:** Use [`resources/prompts/03-export-pipeline.md`](resources/prompts/03-export-pipeline.md)
-with `ml-engineer` to write `scripts/export.py`. It runs these two commands:
+with `ml-engineer` to write `scripts/export.py`, then run it.
 
 ```bash
 # Detection → int8 LiteRT (.tflite). int8 needs calibration images.
 uv run yolo export model=<weights> format=litert quantize=8 data=<data.yaml>
 
-# Depth → ExecuTorch (.pte)
-uv run optimum-cli export executorch \
-  --model depth-anything/Depth-Anything-V2-Small-hf \
-  --task depth-estimation --recipe xnnpack \
-  --output_dir app/assets/models/
+# Depth → ExecuTorch (.pte): the script lowers the model directly
+uv run python scripts/export.py --depth
 ```
 
 `<weights>` is your `best.pt`. `<data.yaml>` points to your calibration images from step 2.
+
+**Depth has no one-line export command.** `optimum-cli export executorch` has no
+`depth-estimation` task (checked 2026-09-29, optimum-executorch 0.1.0 and upstream
+`main`), so the script makes three calls itself:
+1. `torch.export.export` on the model, wrapped to return `predicted_depth`, with a fixed
+   `[1, 3, 518, 518]` example input.
+2. `to_edge_transform_and_lower(..., partitioner=[XnnpackPartitioner()])`.
+3. `.to_executorch()`, then write `.buffer` to the `.pte`.
+
+The prompt spells out the details.
 
 > Ultralytics renamed TFLite to **LiteRT** in 8.4.83. The old `format=tflite int8=True`
 > still works but prints a deprecation warning. Checked 2026-09-24 against the
@@ -146,6 +183,10 @@ uv run optimum-cli export executorch \
 **Do:** Record both file sizes in `docs/artifact-budget.md`.
 
 **Expected result:** a `.tflite` and a `.pte` in `app/assets/models/`, sizes recorded.
+- The `.pte`, read back from the file, takes `[1, 3, 518, 518]` float32 and returns
+  `[1, 518, 518]`.
+- It is about **99 MB**. That is expected, because it is unquantized fp32.
+- Lowering takes about a minute on an M-series Mac.
 If an export fails, write down what broke — that is a finding, not a failure.
 ⚠️ **OPEN — no ready-made fallback files yet:** see [Open items](#open-items).
 
@@ -385,8 +426,9 @@ PyTorch original. If int8 hurt a class, this is where you'll see it first.
   fallback weights.
 - ⚠️ **Int8 calibration set undecided** (step 2). Calibrating on the validation split is
   the obvious default, and it makes the parity number look better than it is.
-- ⚠️ **Export commands not yet run on this project's models** on a clean machine. The
-  syntax is checked against current docs (2026-09-24); the result is not.
+- ⚠️ **Detection export not yet run on a clean machine.** Its syntax was checked against
+  current docs on 2026-09-24. The depth lowering in step 3 is verified: executorch 1.5.1,
+  torch 2.13, transformers 5.15, max abs diff 8e-6 vs PyTorch.
 - ⚠️ **Ultralytics now exports ExecuTorch directly** (`format=executorch`, listed in
   8.4.118). Exporting detection to `.pte` too would drop one of the two native runtimes in
   the app. Not yet evaluated.
@@ -394,8 +436,8 @@ PyTorch original. If int8 hurt a class, this is where you'll see it first.
 ## Further reading
 
 - [Ultralytics — model export](https://docs.ultralytics.com/modes/export/) — LiteRT and `quantize=8`, checked 2026-09-24
-- [Optimum ExecuTorch — export guide](https://huggingface.co/docs/optimum-executorch/en/guides/export) — `depth-estimation` task, `xnnpack` recipe, checked 2026-09-24
-- [ExecuTorch — export and lowering](https://docs.pytorch.org/executorch/stable/using-executorch-export.html) — what a `.pte` is
+- [ExecuTorch — XNNPACK backend](https://docs.pytorch.org/executorch/stable/backends/xnnpack/xnnpack-overview.html) — `XnnpackPartitioner` and `to_edge_transform_and_lower`, checked 2026-10-19
+- [ExecuTorch — export and lowering](https://docs.pytorch.org/executorch/stable/using-executorch-export.html) — what a `.pte` is, checked 2026-10-19
 - [react-native-fast-tflite](https://github.com/mrousavy/react-native-fast-tflite) — runs the detection file in Lesson 05
 - [React Native ExecuTorch](https://docs.swmansion.com/react-native-executorch/) — runs the depth file
 
