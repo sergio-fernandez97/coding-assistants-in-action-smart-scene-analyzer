@@ -136,7 +136,40 @@ Do these in order, before the session.
    The `--scope project` flag writes it to `.mcp.json`, so it is committed with the project
    the same way the Roboflow server was.
 
-8. **Do:** Steps 1–4 below, **in that order**. The budget in step 2 is recorded before
+8. **Optional — Do:** Install Claude Desktop and run Claude Code from its **Code** tab
+   instead of the terminal. It's the same engine as the CLI and reads the same project
+   files: `CLAUDE.md`, `.mcp.json` (so mobile-mcp comes along), the hooks and skills in
+   `.claude/`, and your permission rules. The gain on macOS is the **iOS Simulator pane**,
+   which streams the simulator next to the conversation while Claude builds and taps
+   through the app. Skip this step if you're happy in the terminal.
+
+   1. Download Claude for macOS, Windows, or Linux (beta) from the
+      [desktop quickstart](https://code.claude.com/docs/en/desktop-quickstart), launch it,
+      sign in with the account you use for Claude Code, and click the **Code** tab. The
+      Code tab needs a Pro, Max, Team, or Enterprise plan; if it asks you to upgrade, stay
+      on the CLI.
+   2. In the row under the prompt box, set the **environment** to the top **Local** entry, the **project
+      folder** to your project's root (the folder holding `CLAUDE.md` and `app/`), and the
+      **permission mode** to **Manual** so you approve each edit, as you do in the CLI.
+   3. Desktop reads `PATH` from your shell profile, but not other exported variables like
+      `ANDROID_HOME` and `JAVA_HOME` from step 5. Ask Claude to *"run `echo $ANDROID_HOME`
+      and `adb --version`"*. If the variable is empty, add it to your project's
+      `.claude/settings.local.json`, which is gitignored and machine-specific:
+
+      ```json
+      { "env": { "ANDROID_HOME": "<sdk-location>", "JAVA_HOME": "<jdk-location>" } }
+      ```
+
+      Restart the app after you edit your shell profile or this file.
+
+   **Expected result:** ask *"use mobile-mcp to list available devices"* and your
+   simulator or emulator is listed, as in step 7. On iOS, asking Claude to *"run the app
+   in the iOS Simulator"* opens the simulator pane. The pane is in public beta and
+   recommends Xcode 26 or later. The first time, it asks you to allow Claude to use the
+   device. Like the Simulator itself, it has no camera, so
+   live mode still replays your clip.
+
+9. **Do:** Steps 1–4 below, **in that order**. The budget in step 2 is recorded before
    anything is bundled in step 3; recorded afterwards, it records what happened rather
    than what you intended.
    **Expected result:** the app runs on your simulator or emulator with both models loaded.
@@ -568,6 +601,10 @@ All tracked in the course `TODO.md`.
   Xcode, simulator runtime, JDK 17, Android Studio, `ANDROID_HOME`. Checked 2026-10-19
 - [Android — environment variables](https://developer.android.com/tools/variables):
   `ANDROID_HOME`, `PATH`. Checked 2026-10-19
+- [Claude Code Desktop](https://code.claude.com/docs/en/desktop): shared configuration
+  with the CLI, `PATH` from the shell profile. Checked 2026-10-19
+- [Claude Code Desktop — iOS Simulator pane](https://code.claude.com/docs/en/desktop-ios-simulator):
+  requirements, device consent. Checked 2026-10-19
 - [Android — emulator camera](https://developer.android.com/studio/run/emulator-use-camera):
   `Webcam0`. Checked 2026-09-29
 - [Expo — local app development](https://docs.expo.dev/guides/local-app-development/):
