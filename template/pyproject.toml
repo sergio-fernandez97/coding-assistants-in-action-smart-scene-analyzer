@@ -32,6 +32,12 @@ depth = [
     "transformers>=4.46",  # Lesson 03 — Depth Anything V2, inference only
     "timm>=1.0",           # Lesson 03 — backbone Depth Anything V2 depends on
 ]
+export = [
+    "executorch>=1.0.0",        # Lesson 04 — depth → .pte, lowered directly with XNNPACK
+    "ai-edge-litert>=2.1.4",    # Lesson 04 — detection → LiteRT (.tflite)
+    "ai-edge-quantizer>=0.6.0", # Lesson 04 — int8 quantization of the LiteRT export
+    "litert-torch>=0.9.0",      # Lesson 04 — PyTorch → LiteRT converter
+]
 
 [dependency-groups]
 dev = [
@@ -61,7 +67,7 @@ strict = true
 files = ["src"]
 
 [[tool.mypy.overrides]]
-module = ["cv2.*", "roboflow.*", "ultralytics.*", "transformers.*", "timm.*"]
+module = ["cv2.*", "roboflow.*", "ultralytics.*", "transformers.*", "timm.*", "executorch.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
