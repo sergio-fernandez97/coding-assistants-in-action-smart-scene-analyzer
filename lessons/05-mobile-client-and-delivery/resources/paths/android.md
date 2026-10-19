@@ -19,8 +19,8 @@ emulator -list-avds
 ```
 
 **Expected result:** `adb` prints a version, and at least one AVD is listed with API 33
-(Android 13) or later. `react-native-executorch` requires Android 13+. If `emulator` is not
-found, add `$ANDROID_HOME/emulator` to your `PATH`.
+(Android 13) or later. `react-native-executorch` requires Android 13+. If either command is not
+found, see [README prerequisite 5](../../README.md#prerequisites).
 
 ---
 
@@ -67,7 +67,7 @@ the picker does not show them yet, drag the same files onto the emulator window 
 
 ---
 
-## 4. mobile-mcp sees the emulator · README prerequisite 6
+## 4. mobile-mcp sees the emulator · README prerequisite 7
 
 **Do:** With the emulator running, ask Claude Code: *"Use mobile-mcp to list available
 devices."*

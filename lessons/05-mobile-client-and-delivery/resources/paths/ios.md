@@ -60,7 +60,7 @@ xcrun simctl addmedia booted <path-to-clip>
 
 ---
 
-## 3. mobile-mcp sees the Simulator · README prerequisite 6
+## 3. mobile-mcp sees the Simulator · README prerequisite 7
 
 **Do:** With the Simulator booted, ask Claude Code: *"Use mobile-mcp to list available
 devices."*

@@ -71,7 +71,46 @@ Do these in order, before the session.
    **Command:** `node --version`
    **Expected result:** `v20` or later.
 
-5. **Do:** Check the toolchain for your path.
+5. **Do:** Install the native toolchain for your path. Skip anything you already have,
+   since step 6 checks it. Allow about an hour, because Xcode alone is a multi-gigabyte
+   download.
+
+   **iOS** (macOS only):
+
+   | Install | How |
+   |---|---|
+   | Xcode 16+ | Mac App Store → search **Xcode** → **Install**. Open it once so it finishes setting up |
+   | Command Line Tools | Xcode → **Settings → Locations** → **Command Line Tools**: choose the latest version. `xcodebuild` and `xcrun` won't work until this is set |
+   | iOS 17+ simulator runtime | Xcode → **Settings → Components** → **Platform Support** → **iOS** → **Get** |
+
+   **Android** (macOS, Windows, or Linux):
+
+   | Install | How |
+   |---|---|
+   | JDK 17 | macOS: `brew install --cask zulu@17`. Windows: `choco install -y microsoft-openjdk17`. Linux: OpenJDK 17 from your package manager |
+   | Android Studio | Download it from [developer.android.com/studio](https://developer.android.com/studio), then run the Setup Wizard with the **Standard** install type and accept every license |
+   | SDK tools | Android Studio → **Settings → Languages & Frameworks → Android SDK → SDK Tools**: tick **Android SDK Build-Tools**, **Android SDK Platform-Tools** (this is `adb`), and **Android Emulator** |
+   | An API 33+ emulator | **Device Manager** → **Create virtual device** → a recent Pixel → a system image with API 33 or later → **Finish** |
+
+   Then put the SDK on your `PATH`, because Android Studio doesn't do it for you. On macOS
+   or Linux, add these lines to `~/.zshrc` (or `~/.bashrc`):
+
+   ```bash
+   export ANDROID_HOME=<sdk-location>
+   export PATH=$PATH:$ANDROID_HOME/emulator:$ANDROID_HOME/platform-tools
+   ```
+
+   `<sdk-location>` is the **Android SDK Location** shown on that same settings page. On
+   macOS it defaults to `$HOME/Library/Android/sdk`. On macOS, also add
+   `export JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home`.
+   On Windows, open **Edit environment variables for your account**, create `ANDROID_HOME`
+   with the SDK location (default `%LOCALAPPDATA%\Android\Sdk`), and add
+   `%ANDROID_HOME%\platform-tools` and `%ANDROID_HOME%\emulator` to your user `Path`.
+
+   **Expected result:** in a **new** terminal, step 6's commands are found. If you see
+   `command not found`, the `PATH` lines didn't load.
+
+6. **Do:** Check the toolchain for your path.
 
    | | Command | Expected result |
    |---|---|---|
@@ -82,7 +121,7 @@ Do these in order, before the session.
    emulator camera at the webcam now, following [android.md §2](resources/paths/android.md#2-point-the-emulator-camera-at-your-webcam--before-the-session).
    iOS students record the clip live mode replays, following [ios.md §1](resources/paths/ios.md#1-toolchain-and-clip--before-the-session).
 
-6. **Do:** Add mobile-mcp to your project, with telemetry off.
+7. **Do:** Add mobile-mcp to your project, with telemetry off.
    **Command:**
 
    ```bash
@@ -97,7 +136,7 @@ Do these in order, before the session.
    The `--scope project` flag writes it to `.mcp.json`, so it is committed with the project
    the same way the Roboflow server was.
 
-7. **Do:** Steps 1–4 below, **in that order**. The budget in step 2 is recorded before
+8. **Do:** Steps 1–4 below, **in that order**. The budget in step 2 is recorded before
    anything is bundled in step 3; recorded afterwards, it records what happened rather
    than what you intended.
    **Expected result:** the app runs on your simulator or emulator with both models loaded.
@@ -254,7 +293,7 @@ Rounds 1–2 with the `mobile` agent.
 **Expected result:** the agent names your device, launches the app, and reads its state
 from the screen's element list. Every state (loading, ready, picker open, error) has
 visible text that says which one it is. On iOS, if every UI call fails with *"Agent is
-not installed on the device"*, see [ios.md §3](resources/paths/ios.md#3-mobile-mcp-sees-the-simulator--readme-prerequisite-6).
+not installed on the device"*, see [ios.md §3](resources/paths/ios.md#3-mobile-mcp-sees-the-simulator--readme-prerequisite-7).
 
 <img src="resources/images/03-step5-picker-open.png" alt="mobile-mcp driving the app: the photo picker is open" width="280">
 
@@ -525,6 +564,10 @@ All tracked in the course `TODO.md`.
   scope, approval. Checked 2026-09-29
 - [Expo Camera](https://docs.expo.dev/versions/latest/sdk/camera/): `takePictureAsync`,
   the permission config plugin. SDK 57, checked 2026-09-29
+- [Expo — set up your environment](https://docs.expo.dev/get-started/set-up-your-environment/):
+  Xcode, simulator runtime, JDK 17, Android Studio, `ANDROID_HOME`. Checked 2026-10-19
+- [Android — environment variables](https://developer.android.com/tools/variables):
+  `ANDROID_HOME`, `PATH`. Checked 2026-10-19
 - [Android — emulator camera](https://developer.android.com/studio/run/emulator-use-camera):
   `Webcam0`. Checked 2026-09-29
 - [Expo — local app development](https://docs.expo.dev/guides/local-app-development/):
